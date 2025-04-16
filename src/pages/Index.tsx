@@ -34,6 +34,16 @@ const Index = () => {
     "Platou": 0
   });
   
+  const [barItems, setBarItems] = useState<Record<string, number>>({});
+  
+  const [subcategories, setSubcategories] = useState<{
+    revenueItems?: Record<string, string>;
+    expenses?: Record<string, string>;
+  }>({
+    revenueItems: {},
+    expenses: {}
+  });
+  
   const [deletedBucatarieItems, setDeletedBucatarieItems] = useState<Record<string, number>>({});
   const [deletedBarItems, setDeletedBarItems] = useState<Record<string, number>>({});
   const [deletedSalaryItems, setDeletedSalaryItems] = useState<Record<string, number>>({});
@@ -41,8 +51,6 @@ const Index = () => {
   const [deletedUtilitiesItems, setDeletedUtilitiesItems] = useState<Record<string, number>>({});
   const [deletedOperationalItems, setDeletedOperationalItems] = useState<Record<string, number>>({});
   const [deletedOtherItems, setDeletedOtherItems] = useState<Record<string, number>>({});
-  
-  const [barItems, setBarItems] = useState<Record<string, number>>({});
   
   const getRevenueItems = (): Record<string, number> => {
     return { ...bucatarieItems, ...barItems };
@@ -101,20 +109,29 @@ const Index = () => {
     const fetchReport = async () => {
       const report = await loadReport(selectedMonth);
       if (report) {
+        setSubcategories(report.subcategories || { revenueItems: {}, expenses: {} });
+        
+        const allRevenueItems = report.revenueItems || {};
+        
         const bucatarie: Record<string, number> = {};
         const bar: Record<string, number> = {};
         
-        const bucatarieKeys = [
-          "Il Classico", "Il Prosciutto", "Il Piccante", 
-          "La Porchetta", "La Mortadella", "La Buffala", 
-          "Tiramisu", "Platou"
-        ];
+        const revenueSubcategories = report.subcategories?.revenueItems || {};
         
-        Object.entries(report.revenueItems).forEach(([key, value]) => {
-          if (bucatarieKeys.includes(key)) {
+        Object.entries(allRevenueItems).forEach(([key, value]) => {
+          const subcat = revenueSubcategories[key];
+          
+          if (subcat === 'Bucatarie' || 
+             (!subcat && ['Il Classico', 'Il Prosciutto', 'Il Piccante', 'La Porchetta', 'La Mortadella', 'La Buffala', 'Tiramisu', 'Platou'].includes(key))) {
             bucatarie[key] = value;
+            if (!subcat) {
+              revenueSubcategories[key] = 'Bucatarie';
+            }
           } else {
             bar[key] = value;
+            if (!subcat) {
+              revenueSubcategories[key] = 'Bar';
+            }
           }
         });
         
@@ -168,7 +185,8 @@ const Index = () => {
             utilitiesExpenses,
             operationalExpenses,
             otherExpenses,
-            budget
+            budget,
+            subcategories
           );
           setHasUnsavedChanges(false);
         } catch (error) {
@@ -178,7 +196,7 @@ const Index = () => {
       
       saveData();
     }
-  }, [hasUnsavedChanges, selectedMonth, salaryExpenses, distributorExpenses, utilitiesExpenses, operationalExpenses, otherExpenses, budget]);
+  }, [hasUnsavedChanges, selectedMonth, salaryExpenses, distributorExpenses, utilitiesExpenses, operationalExpenses, otherExpenses, budget, subcategories]);
 
   const calculateTotal = (items: Record<string, number>) => {
     return Object.values(items).reduce((sum, value) => sum + value, 0);
@@ -249,6 +267,21 @@ const Index = () => {
         delete newItems[oldName];
         return { ...newItems, [newName]: value };
       });
+      
+      setSubcategories(prev => {
+        const revenueSubcategories = prev.revenueItems || {};
+        const subcategory = revenueSubcategories[oldName] || 'Bucatarie';
+        
+        const newRevenueSubcategories = { ...revenueSubcategories };
+        delete newRevenueSubcategories[oldName];
+        newRevenueSubcategories[newName] = subcategory;
+        
+        return {
+          ...prev,
+          revenueItems: newRevenueSubcategories
+        };
+      });
+      
       await renameItemInSupabase(selectedMonth, 'bucatarieItems', oldName, newName);
     } else if (oldName in barItems) {
       setBarItems(prev => {
@@ -257,6 +290,21 @@ const Index = () => {
         delete newItems[oldName];
         return { ...newItems, [newName]: value };
       });
+      
+      setSubcategories(prev => {
+        const revenueSubcategories = prev.revenueItems || {};
+        const subcategory = revenueSubcategories[oldName] || 'Bar';
+        
+        const newRevenueSubcategories = { ...revenueSubcategories };
+        delete newRevenueSubcategories[oldName];
+        newRevenueSubcategories[newName] = subcategory;
+        
+        return {
+          ...prev,
+          revenueItems: newRevenueSubcategories
+        };
+      });
+      
       await renameItemInSupabase(selectedMonth, 'barItems', oldName, newName);
     }
     setHasUnsavedChanges(true);
@@ -297,6 +345,21 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    
+    setSubcategories(prev => {
+      const expenseSubcategories = prev.expenses || {};
+      const subcategory = expenseSubcategories[oldName] || 'Utilitati';
+      
+      const newExpenseSubcategories = { ...expenseSubcategories };
+      delete newExpenseSubcategories[oldName];
+      newExpenseSubcategories[newName] = subcategory;
+      
+      return {
+        ...prev,
+        expenses: newExpenseSubcategories
+      };
+    });
+    
     await renameItemInSupabase(selectedMonth, 'utilitiesExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
@@ -310,6 +373,21 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    
+    setSubcategories(prev => {
+      const expenseSubcategories = prev.expenses || {};
+      const subcategory = expenseSubcategories[oldName] || 'Operationale';
+      
+      const newExpenseSubcategories = { ...expenseSubcategories };
+      delete newExpenseSubcategories[oldName];
+      newExpenseSubcategories[newName] = subcategory;
+      
+      return {
+        ...prev,
+        expenses: newExpenseSubcategories
+      };
+    });
+    
     await renameItemInSupabase(selectedMonth, 'operationalExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
@@ -323,35 +401,91 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    
+    setSubcategories(prev => {
+      const expenseSubcategories = prev.expenses || {};
+      const subcategory = expenseSubcategories[oldName] || 'Alte Cheltuieli';
+      
+      const newExpenseSubcategories = { ...expenseSubcategories };
+      delete newExpenseSubcategories[oldName];
+      newExpenseSubcategories[newName] = subcategory;
+      
+      return {
+        ...prev,
+        expenses: newExpenseSubcategories
+      };
+    });
+    
     await renameItemInSupabase(selectedMonth, 'otherExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
   const handleAddRevenue = async (name: string, subsectionTitle?: string) => {
     try {
+      const category = subsectionTitle === "Bucatarie" ? 'bucatarieItems' : 'barItems';
+      
       if (subsectionTitle === "Bucatarie") {
         setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
-        await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0);
+        
+        setSubcategories(prev => {
+          const revenueSubcategories = prev.revenueItems || {};
+          
+          return {
+            ...prev,
+            revenueItems: {
+              ...revenueSubcategories,
+              [name]: 'Bucatarie'
+            }
+          };
+        });
+        
+        await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0, "Bucatarie");
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bucatarie`,
+          description: `"${name}" has been added to Bucatarie",
         });
       } else if (subsectionTitle === "Bar") {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
-        await addItemToSupabase(selectedMonth, 'barItems', name, 0);
+        
+        setSubcategories(prev => {
+          const revenueSubcategories = prev.revenueItems || {};
+          
+          return {
+            ...prev,
+            revenueItems: {
+              ...revenueSubcategories,
+              [name]: 'Bar'
+            }
+          };
+        });
+        
+        await addItemToSupabase(selectedMonth, 'barItems', name, 0, "Bar");
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bar`,
+          description: `"${name}" has been added to Bar",
         });
       } else {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
-        await addItemToSupabase(selectedMonth, 'barItems', name, 0);
+        
+        setSubcategories(prev => {
+          const revenueSubcategories = prev.revenueItems || {};
+          
+          return {
+            ...prev,
+            revenueItems: {
+              ...revenueSubcategories,
+              [name]: 'Bar'
+            }
+          };
+        });
+        
+        await addItemToSupabase(selectedMonth, 'barItems', name, 0, "Bar");
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to revenue items`,
+          description: `"${name}" has been added to revenue items",
         });
       }
       
@@ -380,19 +514,58 @@ const Index = () => {
 
   const handleAddUtilities = async (name: string) => {
     setUtilitiesExpenses(prev => ({ ...prev, [name]: 0 }));
-    await addItemToSupabase(selectedMonth, 'utilitiesExpenses', name, 0);
+    
+    setSubcategories(prev => {
+      const expenseSubcategories = prev.expenses || {};
+      
+      return {
+        ...prev,
+        expenses: {
+          ...expenseSubcategories,
+          [name]: 'Utilitati'
+        }
+      };
+    });
+    
+    await addItemToSupabase(selectedMonth, 'utilitiesExpenses', name, 0, "Utilitati");
     setHasUnsavedChanges(true);
   };
 
   const handleAddOperational = async (name: string) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: 0 }));
-    await addItemToSupabase(selectedMonth, 'operationalExpenses', name, 0);
+    
+    setSubcategories(prev => {
+      const expenseSubcategories = prev.expenses || {};
+      
+      return {
+        ...prev,
+        expenses: {
+          ...expenseSubcategories,
+          [name]: 'Operationale'
+        }
+      };
+    });
+    
+    await addItemToSupabase(selectedMonth, 'operationalExpenses', name, 0, "Operationale");
     setHasUnsavedChanges(true);
   };
 
   const handleAddOtherExpenses = async (name: string) => {
     setOtherExpenses(prev => ({ ...prev, [name]: 0 }));
-    await addItemToSupabase(selectedMonth, 'otherExpenses', name, 0);
+    
+    setSubcategories(prev => {
+      const expenseSubcategories = prev.expenses || {};
+      
+      return {
+        ...prev,
+        expenses: {
+          ...expenseSubcategories,
+          [name]: 'Alte Cheltuieli'
+        }
+      };
+    });
+    
+    await addItemToSupabase(selectedMonth, 'otherExpenses', name, 0, "Alte Cheltuieli");
     setHasUnsavedChanges(true);
   };
 
@@ -405,6 +578,17 @@ const Index = () => {
           const newItems = { ...prev };
           delete newItems[name];
           return newItems;
+        });
+        
+        setSubcategories(prev => {
+          const revenueSubcategories = prev.revenueItems || {};
+          const newRevenueSubcategories = { ...revenueSubcategories };
+          delete newRevenueSubcategories[name];
+          
+          return {
+            ...prev,
+            revenueItems: newRevenueSubcategories
+          };
         });
         
         await deleteItemFromSupabase(selectedMonth, 'bucatarieItems', name);
@@ -422,6 +606,17 @@ const Index = () => {
           const newItems = { ...prev };
           delete newItems[name];
           return newItems;
+        });
+        
+        setSubcategories(prev => {
+          const revenueSubcategories = prev.revenueItems || {};
+          const newRevenueSubcategories = { ...revenueSubcategories };
+          delete newRevenueSubcategories[name];
+          
+          return {
+            ...prev,
+            revenueItems: newRevenueSubcategories
+          };
         });
         
         await deleteItemFromSupabase(selectedMonth, 'barItems', name);
@@ -508,6 +703,17 @@ const Index = () => {
           return newItems;
         });
         
+        setSubcategories(prev => {
+          const expenseSubcategories = prev.expenses || {};
+          const newExpenseSubcategories = { ...expenseSubcategories };
+          delete newExpenseSubcategories[name];
+          
+          return {
+            ...prev,
+            expenses: newExpenseSubcategories
+          };
+        });
+        
         await deleteItemFromSupabase(selectedMonth, 'utilitiesExpenses', name);
         
         toast({
@@ -523,6 +729,17 @@ const Index = () => {
           return newItems;
         });
         
+        setSubcategories(prev => {
+          const expenseSubcategories = prev.expenses || {};
+          const newExpenseSubcategories = { ...expenseSubcategories };
+          delete newExpenseSubcategories[name];
+          
+          return {
+            ...prev,
+            expenses: newExpenseSubcategories
+          };
+        });
+        
         await deleteItemFromSupabase(selectedMonth, 'operationalExpenses', name);
         
         toast({
@@ -536,6 +753,17 @@ const Index = () => {
           const newItems = { ...prev };
           delete newItems[name];
           return newItems;
+        });
+        
+        setSubcategories(prev => {
+          const expenseSubcategories = prev.expenses || {};
+          const newExpenseSubcategories = { ...expenseSubcategories };
+          delete newExpenseSubcategories[name];
+          
+          return {
+            ...prev,
+            expenses: newExpenseSubcategories
+          };
         });
         
         await deleteItemFromSupabase(selectedMonth, 'otherExpenses', name);

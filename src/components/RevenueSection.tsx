@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -92,7 +91,6 @@ const RevenueSection = ({
       </div>
       <div className="p-1">
         {subsections ? (
-          // Render with subsections (always expanded/non-collapsible)
           subsections.map((subsection) => (
             <div key={subsection.title} className="mb-2">
               <div className="bg-gray-700 text-white font-semibold p-2">
@@ -214,7 +212,6 @@ const RevenueSection = ({
             </div>
           ))
         ) : (
-          // Original layout without subsections
           <>
             {Object.entries(revenueItems).map(([name, value]) => (
               <div key={name} className="border-b flex justify-between items-center p-2">
