@@ -229,7 +229,7 @@ export const saveReport = async (
     console.error('Error saving report:', error);
     toast({
       title: "Error",
-      description: "Failed to save report",
+      description: "Failed to save report. Please check your connection and try again.",
       variant: "destructive",
     });
   }

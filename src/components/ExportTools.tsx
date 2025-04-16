@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Download, Printer, Save } from "lucide-react";
 import { saveReport, exportToCsv, exportToPdf, PLReport } from "@/lib/persistence";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface ExportToolsProps {
   selectedMonth: Date;
@@ -40,22 +40,32 @@ const ExportTools = ({
 }: ExportToolsProps) => {
   const { toast } = useToast();
   
-  const handleSave = () => {
-    saveReport(selectedMonth, {
-      revenueItems,
-      costOfGoodsItems,
-      salaryExpenses,
-      distributorExpenses,
-      utilitiesExpenses,
-      operationalExpenses,
-      otherExpenses,
-      budget
-    });
-    
-    toast({
-      title: "Saved",
-      description: "Report has been saved successfully.",
-    });
+  const handleSave = async () => {
+    try {
+      await saveReport(
+        selectedMonth, 
+        revenueItems,
+        costOfGoodsItems,
+        salaryExpenses,
+        distributorExpenses,
+        utilitiesExpenses,
+        operationalExpenses,
+        otherExpenses,
+        budget
+      );
+      
+      toast({
+        title: "Saved",
+        description: "Report has been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving report:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save report. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleExportCsv = () => {
