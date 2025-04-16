@@ -909,11 +909,9 @@ const Index = () => {
               <div className="space-y-8">
                 <ProductProfitability 
                   revenueItems={getRevenueItems()}
-                  salaryExpenses={salaryExpenses}
-                  distributorExpenses={distributorExpenses}
-                  utilitiesExpenses={utilitiesExpenses}
-                  operationalExpenses={operationalExpenses}
-                  otherExpenses={otherExpenses}
+                  totalRevenue={totalRevenue}
+                  totalExpenses={totalExpenses}
+                  netProfit={netProfit}
                 />
                 
                 <LaborAnalysis 
@@ -922,6 +920,18 @@ const Index = () => {
                 />
                 
                 <ComparisonView
+                  selectedMonth={selectedMonth}
+                  totalRevenue={totalRevenue}
+                  totalExpenses={totalExpenses}
+                  netProfit={netProfit}
+                />
+                
+                <BudgetAnalysis
+                  selectedMonth={selectedMonth}
+                  budget={budget}
+                  totalRevenue={totalRevenue}
+                  totalExpenses={totalExpenses}
+                  netProfit={netProfit}
                   revenueItems={getRevenueItems()}
                   costOfGoodsItems={{}}
                   salaryExpenses={salaryExpenses}
@@ -931,20 +941,11 @@ const Index = () => {
                   otherExpenses={otherExpenses}
                 />
                 
-                <BudgetAnalysis
-                  budget={budget}
+                <CashFlowProjection
+                  selectedMonth={selectedMonth}
                   totalRevenue={totalRevenue}
                   totalExpenses={totalExpenses}
                   netProfit={netProfit}
-                />
-                
-                <CashFlowProjection
-                  revenueItems={getRevenueItems()}
-                  salaryExpenses={salaryExpenses}
-                  distributorExpenses={distributorExpenses}
-                  utilitiesExpenses={utilitiesExpenses}
-                  operationalExpenses={operationalExpenses}
-                  otherExpenses={otherExpenses}
                 />
               </div>
             </TabsContent>
