@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -51,9 +50,15 @@ const Index = () => {
 
   // State for distributor expenses
   const [distributorExpenses, setDistributorExpenses] = useState<Record<string, number>>({
-    "#1": 0,
-    "#2": 0,
-    "#3": 0
+    "Maria FoodNova": 0,
+    "CocaCola": 0,
+    "24H": 0,
+    "Sinless": 0,
+    "Peroni": 0,
+    "Sudavangarde(Brutarie Foccacia)": 0,
+    "Proporzioni": 0,
+    "LIDL": 0,
+    "Metro": 0
   });
 
   // State for operational expenses
@@ -72,7 +77,7 @@ const Index = () => {
     targetProfit: number;
   } | undefined>(undefined);
 
-  // Update all reports with default salaries when the app loads
+  // Update all reports with default expenses when the app loads
   useEffect(() => {
     updateAllReportsWithDefaultSalaries();
   }, []);
