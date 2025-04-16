@@ -59,19 +59,21 @@ export function useToast() {
     throw new Error("useToast must be used within a ToastProvider");
   }
   
-  const toast = useCallback(
-    (props: Omit<Toast, "id">) => {
-      context.addToast(props);
-    },
-    [context]
-  );
-
   return {
-    toast,
+    toast: context.addToast,
     toasts: context.toasts,
     dismiss: context.removeToast,
   };
 }
+
+export const toast = (props: Omit<Toast, "id">) => {
+  const context = useContext(ToastContext);
+  if (!context) {
+    console.error("Toast was called outside of ToastProvider");
+    return;
+  }
+  context.addToast(props);
+};
 
 function ToastContainer() {
   const { toasts, removeToast } = useContext(ToastContext)!;
