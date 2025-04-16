@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { RequireAuth } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/context/ToastContext";
 
 const Index = () => {
   const { toast } = useToast();
@@ -443,7 +443,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bucatarie`
+          description: `"${name}" has been added to Bucatarie"
         });
       } else if (subsectionTitle === "Bar") {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
@@ -464,7 +464,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bar`
+          description: `"${name}" has been added to Bar"
         });
       } else {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
@@ -485,7 +485,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to revenue items`
+          description: `"${name}" has been added to revenue items"
         });
       }
       
@@ -595,7 +595,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -623,7 +623,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -652,7 +652,7 @@ const Index = () => {
       
       toast({
         title: "Salary item deleted",
-        description: `"${name}" has been removed`
+        description: `"${name}" has been removed"
       });
       
       setHasUnsavedChanges(true);
@@ -680,7 +680,7 @@ const Index = () => {
       
       toast({
         title: "Distributor item deleted",
-        description: `"${name}" has been removed`
+        description: `"${name}" has been removed"
       });
       
       setHasUnsavedChanges(true);
@@ -718,7 +718,7 @@ const Index = () => {
         
         toast({
           title: "Utilities item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -744,7 +744,7 @@ const Index = () => {
         
         toast({
           title: "Operational item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -770,7 +770,7 @@ const Index = () => {
         
         toast({
           title: "Other expense item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
