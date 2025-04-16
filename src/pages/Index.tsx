@@ -334,6 +334,9 @@ const Index = () => {
     } else if (subsectionTitle === "Bar") {
       setBarItems(prev => ({ ...prev, [name]: 0 }));
       await addItemToSupabase(selectedMonth, 'barItems', name, 0);
+    } else {
+      setBarItems(prev => ({ ...prev, [name]: 0 }));
+      await addItemToSupabase(selectedMonth, 'barItems', name, 0);
     }
     setHasUnsavedChanges(true);
   };

@@ -66,6 +66,11 @@ const RevenueSection = ({
       setNewItemName("");
       setShowAddForm(false);
       setAddingToSubsection(null);
+      
+      toast({
+        title: "Item added",
+        description: `"${newItemName}" has been added to the list`,
+      });
     }
   };
 
