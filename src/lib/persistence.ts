@@ -1,6 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { format, parse } from "date-fns";
+import { Json } from "@/integrations/supabase/types";
 
 export interface PLReport {
   date: string;
@@ -24,6 +24,14 @@ export interface PLReport {
   barItems?: Record<string, number>;
 }
 
+function parseJsonToRecord<T>(data: Json | null): Record<string, T> {
+  if (!data || typeof data !== 'object') {
+    return {};
+  }
+  
+  return data as Record<string, T>;
+}
+
 export const loadReport = async (date: Date): Promise<PLReport | null> => {
   try {
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -43,7 +51,6 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
     if (!data) {
       console.log("No report found for date:", dateKey);
       
-      // Create default report with updated default items
       const defaultReport: PLReport = {
         date: dateKey,
         revenueItems: {},
@@ -143,20 +150,19 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
       return defaultReport;
     }
     
-    // Parse the JSON fields from the database
     const report: PLReport = {
       date: data.date,
-      revenueItems: data.revenue_items || {},
-      costOfGoodsItems: data.cost_of_goods_items || {},
-      salaryExpenses: data.salary_expenses || {},
-      distributorExpenses: data.distributor_expenses || {},
-      utilitiesExpenses: data.utilities_expenses || {},
-      operationalExpenses: data.operational_expenses || {},
-      otherExpenses: data.other_expenses || {},
+      revenueItems: parseJsonToRecord<number>(data.revenue_items),
+      costOfGoodsItems: parseJsonToRecord<number>(data.cost_of_goods_items),
+      salaryExpenses: parseJsonToRecord<number>(data.salary_expenses),
+      distributorExpenses: parseJsonToRecord<number>(data.distributor_expenses),
+      utilitiesExpenses: parseJsonToRecord<number>(data.utilities_expenses || {}),
+      operationalExpenses: parseJsonToRecord<number>(data.operational_expenses),
+      otherExpenses: parseJsonToRecord<number>(data.other_expenses || {}),
       subcategories: data.subcategories as any || { revenueItems: {}, expenses: {} },
       budget: data.budget as any,
-      bucatarieItems: data.bucatarie_items as any || {},
-      barItems: data.bar_items as any || {}
+      bucatarieItems: parseJsonToRecord<number>(data.bucatarie_items as any || {}),
+      barItems: parseJsonToRecord<number>(data.bar_items as any || {})
     };
     
     return report;
@@ -190,29 +196,38 @@ export const saveReport = async (
   try {
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    // Upsert report data
-    const { data, error } = await supabase
+    const data = {
+      date: dateKey,
+      revenue_items: revenueItems as Json,
+      cost_of_goods_items: costOfGoodsItems as Json,
+      salary_expenses: salaryExpenses as Json,
+      distributor_expenses: distributorExpenses as Json,
+      utilities_expenses: utilitiesExpenses as Json,
+      operational_expenses: operationalExpenses as Json,
+      other_expenses: otherExpenses as Json,
+      budget: budget as Json,
+      subcategories: subcategories as Json || { revenueItems: {}, expenses: {} } as Json,
+      bucatarie_items: bucatarieItems as Json || {} as Json,
+      bar_items: barItems as Json || {} as Json
+    };
+    
+    const userId = localStorage.getItem('supabase.auth.token.currentSession')
+      ? JSON.parse(localStorage.getItem('supabase.auth.token.currentSession') || '{}')?.user?.id
+      : null;
+    
+    if (userId) {
+      data['user_id'] = userId;
+    }
+    
+    const { error: upsertError } = await supabase
       .from('pl_reports')
-      .upsert({
-        date: dateKey,
-        revenue_items: revenueItems,
-        cost_of_goods_items: costOfGoodsItems,
-        salary_expenses: salaryExpenses,
-        distributor_expenses: distributorExpenses,
-        utilities_expenses: utilitiesExpenses,
-        operational_expenses: operationalExpenses,
-        other_expenses: otherExpenses,
-        budget: budget,
-        subcategories: subcategories || { revenueItems: {}, expenses: {} },
-        bucatarie_items: bucatarieItems || {},
-        bar_items: barItems || {}
-      }, {
+      .upsert(data, {
         onConflict: 'date'
       });
     
-    if (error) {
-      console.error("Error saving report:", error);
-      throw error;
+    if (upsertError) {
+      console.error("Error saving report:", upsertError);
+      throw upsertError;
     }
     
     console.log("Report saved successfully for date:", dateKey);
@@ -264,7 +279,6 @@ export const deleteItemFromSupabase = async (date: Date, category: string, name:
   try {
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    // First, get the current data
     const { data, error } = await supabase
       .from('pl_reports')
       .select('*')
@@ -276,7 +290,6 @@ export const deleteItemFromSupabase = async (date: Date, category: string, name:
       return;
     }
     
-    // Map the category to the database column
     const columnMap: Record<string, string> = {
       'bucatarieItems': 'bucatarie_items',
       'barItems': 'bar_items',
@@ -293,21 +306,17 @@ export const deleteItemFromSupabase = async (date: Date, category: string, name:
       return;
     }
     
-    // Get the items for this category
     const items = data[dbColumn] || {};
     
-    // Remove the specified item
     if (items[name] !== undefined) {
       delete items[name];
       
-      // Update subcategories if needed
       if (category === 'bucatarieItems' || category === 'barItems') {
         const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
         if (subcategories.revenueItems && subcategories.revenueItems[name]) {
           delete subcategories.revenueItems[name];
         }
         
-        // Update the database with the modified items
         const updateData: Record<string, any> = {
           [dbColumn]: items,
           subcategories: subcategories
@@ -329,7 +338,6 @@ export const deleteItemFromSupabase = async (date: Date, category: string, name:
           delete subcategories.expenses[name];
         }
         
-        // Update the database with the modified items
         const updateData: Record<string, any> = {
           [dbColumn]: items,
           subcategories: subcategories
@@ -346,7 +354,6 @@ export const deleteItemFromSupabase = async (date: Date, category: string, name:
           console.log(`Successfully deleted ${name} from ${category}`);
         }
       } else {
-        // For other categories without subcategories
         const updateData: Record<string, any> = {
           [dbColumn]: items
         };
@@ -380,7 +387,6 @@ export const addItemToSupabase = async (
   try {
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    // First, get the current data
     const { data, error } = await supabase
       .from('pl_reports')
       .select('*')
@@ -392,7 +398,6 @@ export const addItemToSupabase = async (
       return;
     }
     
-    // Map the category to the database column
     const columnMap: Record<string, string> = {
       'bucatarieItems': 'bucatarie_items',
       'barItems': 'bar_items',
@@ -409,13 +414,10 @@ export const addItemToSupabase = async (
       return;
     }
     
-    // Get the items for this category
     const items = data[dbColumn] || {};
     
-    // Add the new item
     items[name] = value;
     
-    // Update subcategories if needed
     if (category === 'bucatarieItems' || category === 'barItems') {
       const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
       if (!subcategories.revenueItems) {
@@ -423,7 +425,6 @@ export const addItemToSupabase = async (
       }
       subcategories.revenueItems[name] = subcategory || (category === 'bucatarieItems' ? 'Bucatarie' : 'Bar');
       
-      // Update the database with the modified items
       const updateData: Record<string, any> = {
         [dbColumn]: items,
         subcategories: subcategories
@@ -456,7 +457,6 @@ export const addItemToSupabase = async (
       
       subcategories.expenses[name] = subcategory || expenseCategory;
       
-      // Update the database with the modified items
       const updateData: Record<string, any> = {
         [dbColumn]: items,
         subcategories: subcategories
@@ -473,7 +473,6 @@ export const addItemToSupabase = async (
         console.log(`Successfully added ${name} to ${category}`);
       }
     } else {
-      // For other categories without subcategories
       const updateData: Record<string, any> = {
         [dbColumn]: items
       };
@@ -503,7 +502,6 @@ export const updateItemInSupabase = async (
   try {
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    // Map the category to the database column
     const columnMap: Record<string, string> = {
       'bucatarieItems': 'bucatarie_items',
       'barItems': 'bar_items',
@@ -520,7 +518,6 @@ export const updateItemInSupabase = async (
       return;
     }
     
-    // First, get the current data
     const { data, error } = await supabase
       .from('pl_reports')
       .select(dbColumn)
@@ -532,13 +529,10 @@ export const updateItemInSupabase = async (
       return;
     }
     
-    // Get the items for this category
     const items = data[dbColumn] || {};
     
-    // Update the item
     items[name] = value;
     
-    // Update the database with the modified items
     const updateData: Record<string, any> = {
       [dbColumn]: items
     };
@@ -567,7 +561,6 @@ export const renameItemInSupabase = async (
   try {
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    // First, get the current data
     const { data, error } = await supabase
       .from('pl_reports')
       .select('*')
@@ -579,7 +572,6 @@ export const renameItemInSupabase = async (
       return;
     }
     
-    // Map the category to the database column
     const columnMap: Record<string, string> = {
       'bucatarieItems': 'bucatarie_items',
       'barItems': 'bar_items',
@@ -596,22 +588,18 @@ export const renameItemInSupabase = async (
       return;
     }
     
-    // Get the items for this category
     const items = data[dbColumn] || {};
     
-    // Check if the old name exists
     if (items[oldName] === undefined) {
       console.error(`Item ${oldName} not found in ${category}`);
       return;
     }
     
-    // Create a new object with the renamed key
     const value = items[oldName];
     const newItems = { ...items };
     delete newItems[oldName];
     newItems[newName] = value;
     
-    // Update subcategories if needed
     if (category === 'bucatarieItems' || category === 'barItems') {
       const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
       if (subcategories.revenueItems && subcategories.revenueItems[oldName]) {
@@ -622,7 +610,6 @@ export const renameItemInSupabase = async (
         subcategories.revenueItems = newRevenueSubcategories;
       }
       
-      // Update the database with the modified items
       const updateData: Record<string, any> = {
         [dbColumn]: newItems,
         subcategories: subcategories
@@ -648,7 +635,6 @@ export const renameItemInSupabase = async (
         subcategories.expenses = newExpenseSubcategories;
       }
       
-      // Update the database with the modified items
       const updateData: Record<string, any> = {
         [dbColumn]: newItems,
         subcategories: subcategories
@@ -665,7 +651,6 @@ export const renameItemInSupabase = async (
         console.log(`Successfully renamed ${oldName} to ${newName} in ${category}`);
       }
     } else {
-      // For other categories without subcategories
       const updateData: Record<string, any> = {
         [dbColumn]: newItems
       };
@@ -688,18 +673,14 @@ export const renameItemInSupabase = async (
 
 export const exportToCsv = (report: PLReport) => {
   try {
-    // Format date for display
     const dateObj = parse(report.date, 'yyyy-MM', new Date());
     const formattedDate = format(dateObj, 'MMMM yyyy');
     
-    // Create CSV content
     let csvContent = `P&L Report - ${formattedDate}\n\n`;
     
-    // Revenue section
     csvContent += "REVENUE\n";
     let totalRevenue = 0;
     
-    // Bucatarie items
     if (report.bucatarieItems && Object.keys(report.bucatarieItems).length > 0) {
       csvContent += "Bucatarie:\n";
       let bucatarieTotal = 0;
@@ -713,7 +694,6 @@ export const exportToCsv = (report: PLReport) => {
       csvContent += `Bucatarie Total,${bucatarieTotal}\n\n`;
     }
     
-    // Bar items
     if (report.barItems && Object.keys(report.barItems).length > 0) {
       csvContent += "Bar:\n";
       let barTotal = 0;
@@ -727,7 +707,6 @@ export const exportToCsv = (report: PLReport) => {
       csvContent += `Bar Total,${barTotal}\n\n`;
     }
     
-    // Other revenue items
     const bucatarieKeys = report.bucatarieItems ? Object.keys(report.bucatarieItems) : [];
     const barKeys = report.barItems ? Object.keys(report.barItems) : [];
     const otherRevenueItems = Object.entries(report.revenueItems).filter(
@@ -749,11 +728,9 @@ export const exportToCsv = (report: PLReport) => {
     
     csvContent += `TOTAL REVENUE,${totalRevenue}\n\n`;
     
-    // Expenses section
     csvContent += "EXPENSES\n";
     let totalExpenses = 0;
     
-    // Salary expenses
     if (Object.keys(report.salaryExpenses).length > 0) {
       csvContent += "Salary Expenses:\n";
       let salaryTotal = 0;
@@ -767,7 +744,6 @@ export const exportToCsv = (report: PLReport) => {
       totalExpenses += salaryTotal;
     }
     
-    // Distributor expenses
     if (Object.keys(report.distributorExpenses).length > 0) {
       csvContent += "Distributor Expenses:\n";
       let distributorTotal = 0;
@@ -781,7 +757,6 @@ export const exportToCsv = (report: PLReport) => {
       totalExpenses += distributorTotal;
     }
     
-    // Utilities expenses
     if (Object.keys(report.utilitiesExpenses).length > 0) {
       csvContent += "Utilities Expenses:\n";
       let utilitiesTotal = 0;
@@ -795,7 +770,6 @@ export const exportToCsv = (report: PLReport) => {
       totalExpenses += utilitiesTotal;
     }
     
-    // Operational expenses
     if (Object.keys(report.operationalExpenses).length > 0) {
       csvContent += "Operational Expenses:\n";
       let operationalTotal = 0;
@@ -809,7 +783,6 @@ export const exportToCsv = (report: PLReport) => {
       totalExpenses += operationalTotal;
     }
     
-    // Other expenses
     if (Object.keys(report.otherExpenses).length > 0) {
       csvContent += "Other Expenses:\n";
       let otherTotal = 0;
@@ -825,14 +798,12 @@ export const exportToCsv = (report: PLReport) => {
     
     csvContent += `TOTAL EXPENSES,${totalExpenses}\n\n`;
     
-    // Profit calculation
     const grossProfit = totalRevenue;
     const netProfit = grossProfit - totalExpenses;
     
     csvContent += `GROSS PROFIT,${grossProfit}\n`;
     csvContent += `NET PROFIT,${netProfit}\n\n`;
     
-    // Budget comparison if available
     if (report.budget) {
       csvContent += "BUDGET COMPARISON\n";
       csvContent += `Target Revenue,${report.budget.targetRevenue}\n`;
@@ -848,7 +819,6 @@ export const exportToCsv = (report: PLReport) => {
       csvContent += `Profit Variance,${netProfit - report.budget.targetProfit}\n`;
     }
     
-    // Create and download the CSV file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -886,21 +856,20 @@ export const getAllReports = async (): Promise<PLReport[]> => {
       return [];
     }
     
-    // Parse the JSON fields from the database for each report
     const reports = data.map(item => {
       const report: PLReport = {
         date: item.date,
-        revenueItems: item.revenue_items || {},
-        costOfGoodsItems: item.cost_of_goods_items || {},
-        salaryExpenses: item.salary_expenses || {},
-        distributorExpenses: item.distributor_expenses || {},
-        utilitiesExpenses: item.utilities_expenses || {},
-        operationalExpenses: item.operational_expenses || {},
-        otherExpenses: item.other_expenses || {},
+        revenueItems: parseJsonToRecord<number>(item.revenue_items),
+        costOfGoodsItems: parseJsonToRecord<number>(item.cost_of_goods_items),
+        salaryExpenses: parseJsonToRecord<number>(item.salary_expenses),
+        distributorExpenses: parseJsonToRecord<number>(item.distributor_expenses),
+        utilitiesExpenses: parseJsonToRecord<number>(item.utilities_expenses || {}),
+        operationalExpenses: parseJsonToRecord<number>(item.operational_expenses),
+        otherExpenses: parseJsonToRecord<number>(item.other_expenses || {}),
         subcategories: item.subcategories as any || { revenueItems: {}, expenses: {} },
         budget: item.budget as any,
-        bucatarieItems: item.bucatarie_items as any || {},
-        barItems: item.bar_items as any || {}
+        bucatarieItems: parseJsonToRecord<number>(item.bucatarie_items as any || {}),
+        barItems: parseJsonToRecord<number>(item.bar_items as any || {})
       };
       return report;
     });
