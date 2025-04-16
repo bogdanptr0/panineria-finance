@@ -363,7 +363,7 @@ export async function addItemToSupabase(
 
 export async function updateItemInSupabase(
   month: Date,
-  section: 'bucatarieItems' | 'tazzItems' | 'barItems' | 'salaryExpenses' | 'distributorExpenses' | 'utilitiesExpenses' | 'operationalExpenses' | 'otherExpenses',
+  section: 'revenue_items' | 'salary_expenses' | 'distributor_expenses' | 'utilities_expenses' | 'operational_expenses' | 'other_expenses',
   itemName: string,
   itemValue: number
 ): Promise<boolean> {
@@ -379,7 +379,7 @@ export async function updateItemInSupabase(
     // Fetch the report for the given month and user
     const { data: existingReport, error: reportError } = await supabase
       .from('pl_reports')
-      .select(`id, revenue_items, cost_of_goods_items, salary_expenses, distributor_expenses, utilities_expenses, operational_expenses, other_expenses`)
+      .select('id, revenue_items, cost_of_goods_items, salary_expenses, distributor_expenses, utilities_expenses, operational_expenses, other_expenses')
       .eq('date', formattedDate)
       .eq('user_id', user.id)
       .single();
@@ -396,21 +396,17 @@ export async function updateItemInSupabase(
 
     let sectionItems: Record<string, number> = {};
 
-    if (section === 'bucatarieItems') {
+    if (section === 'revenue_items') {
       sectionItems = (existingReport.revenue_items || {}) as Record<string, number>;
-    } else if (section === 'tazzItems') {
-      sectionItems = (existingReport.revenue_items || {}) as Record<string, number>;
-    } else if (section === 'barItems') {
-      sectionItems = (existingReport.revenue_items || {}) as Record<string, number>;
-    } else if (section === 'salaryExpenses') {
+    } else if (section === 'salary_expenses') {
       sectionItems = (existingReport.salary_expenses || {}) as Record<string, number>;
-    } else if (section === 'distributorExpenses') {
+    } else if (section === 'distributor_expenses') {
       sectionItems = (existingReport.distributor_expenses || {}) as Record<string, number>;
-    } else if (section === 'utilitiesExpenses') {
+    } else if (section === 'utilities_expenses') {
       sectionItems = (existingReport.utilities_expenses || {}) as Record<string, number>;
-    } else if (section === 'operationalExpenses') {
+    } else if (section === 'operational_expenses') {
       sectionItems = (existingReport.operational_expenses || {}) as Record<string, number>;
-    } else if (section === 'otherExpenses') {
+    } else if (section === 'other_expenses') {
       sectionItems = (existingReport.other_expenses || {}) as Record<string, number>;
     }
 
@@ -420,17 +416,17 @@ export async function updateItemInSupabase(
     // Prepare the update object
     let updateObject: any = {};
 
-    if (section === 'bucatarieItems' || section === 'tazzItems' || section === 'barItems') {
+    if (section === 'revenue_items') {
       updateObject.revenue_items = sectionItems;
-    } else if (section === 'salaryExpenses') {
+    } else if (section === 'salary_expenses') {
       updateObject.salary_expenses = sectionItems;
-    } else if (section === 'distributorExpenses') {
+    } else if (section === 'distributor_expenses') {
       updateObject.distributor_expenses = sectionItems;
-    } else if (section === 'utilitiesExpenses') {
+    } else if (section === 'utilities_expenses') {
       updateObject.utilities_expenses = sectionItems;
-    } else if (section === 'operationalExpenses') {
+    } else if (section === 'operational_expenses') {
       updateObject.operational_expenses = sectionItems;
-    } else if (section === 'otherExpenses') {
+    } else if (section === 'other_expenses') {
       updateObject.other_expenses = sectionItems;
     }
 
@@ -455,7 +451,7 @@ export async function updateItemInSupabase(
 
 export async function renameItemInSupabase(
   month: Date,
-  section: 'bucatarieItems' | 'tazzItems' | 'barItems' | 'salaryExpenses' | 'distributorExpenses' | 'utilitiesExpenses' | 'operationalExpenses' | 'otherExpenses',
+  section: 'revenue_items' | 'salary_expenses' | 'distributor_expenses' | 'utilities_expenses' | 'operational_expenses' | 'other_expenses',
   oldName: string,
   newName: string
 ): Promise<boolean> {
@@ -471,7 +467,7 @@ export async function renameItemInSupabase(
     // Fetch the report for the given month and user
     const { data: existingReport, error: reportError } = await supabase
       .from('pl_reports')
-      .select(`id, revenue_items, cost_of_goods_items, salary_expenses, distributor_expenses, utilities_expenses, operational_expenses, other_expenses`)
+      .select('id, revenue_items, cost_of_goods_items, salary_expenses, distributor_expenses, utilities_expenses, operational_expenses, other_expenses')
       .eq('date', formattedDate)
       .eq('user_id', user.id)
       .single();
@@ -488,21 +484,17 @@ export async function renameItemInSupabase(
 
     let sectionItems: Record<string, number> = {};
 
-    if (section === 'bucatarieItems') {
+    if (section === 'revenue_items') {
       sectionItems = (existingReport.revenue_items || {}) as Record<string, number>;
-    } else if (section === 'tazzItems') {
-      sectionItems = (existingReport.revenue_items || {}) as Record<string, number>;
-    } else if (section === 'barItems') {
-      sectionItems = (existingReport.revenue_items || {}) as Record<string, number>;
-    } else if (section === 'salaryExpenses') {
+    } else if (section === 'salary_expenses') {
       sectionItems = (existingReport.salary_expenses || {}) as Record<string, number>;
-    } else if (section === 'distributorExpenses') {
+    } else if (section === 'distributor_expenses') {
       sectionItems = (existingReport.distributor_expenses || {}) as Record<string, number>;
-    } else if (section === 'utilitiesExpenses') {
+    } else if (section === 'utilities_expenses') {
       sectionItems = (existingReport.utilities_expenses || {}) as Record<string, number>;
-    } else if (section === 'operationalExpenses') {
+    } else if (section === 'operational_expenses') {
       sectionItems = (existingReport.operational_expenses || {}) as Record<string, number>;
-    } else if (section === 'otherExpenses') {
+    } else if (section === 'other_expenses') {
       sectionItems = (existingReport.other_expenses || {}) as Record<string, number>;
     }
 
@@ -518,17 +510,17 @@ export async function renameItemInSupabase(
     // Prepare the update object
     let updateObject: any = {};
 
-    if (section === 'bucatarieItems' || section === 'tazzItems' || section === 'barItems') {
+    if (section === 'revenue_items') {
       updateObject.revenue_items = sectionItems;
-    } else if (section === 'salaryExpenses') {
+    } else if (section === 'salary_expenses') {
       updateObject.salary_expenses = sectionItems;
-    } else if (section === 'distributorExpenses') {
+    } else if (section === 'distributor_expenses') {
       updateObject.distributor_expenses = sectionItems;
-    } else if (section === 'utilitiesExpenses') {
+    } else if (section === 'utilities_expenses') {
       updateObject.utilities_expenses = sectionItems;
-    } else if (section === 'operationalExpenses') {
+    } else if (section === 'operational_expenses') {
       updateObject.operational_expenses = sectionItems;
-    } else if (section === 'otherExpenses') {
+    } else if (section === 'other_expenses') {
       updateObject.other_expenses = sectionItems;
     }
 
@@ -553,7 +545,7 @@ export async function renameItemInSupabase(
 
 export async function handleAddRevenueItem(
   month: Date, 
-  section: 'bucatarieItems' | 'tazzItems' | 'barItems', 
+  section: 'revenue_items', 
   itemName: string, 
   itemValue: number
 ): Promise<boolean> {
@@ -569,7 +561,7 @@ export async function handleAddRevenueItem(
     // Check if report exists
     const { data: existingReport, error: reportError } = await supabase
       .from('pl_reports')
-      .select(`id, ${section}`)
+      .select('id, revenue_items')
       .eq('date', formattedDate)
       .eq('user_id', user.id)
       .single();
@@ -580,16 +572,16 @@ export async function handleAddRevenueItem(
     }
     
     if (existingReport) {
-      const sectionItems = existingReport[section] as Record<string, number> || {};
-      const updatedItems = { ...sectionItems, [itemName]: itemValue };
+      const revenueItems = existingReport.revenue_items as Record<string, number> || {};
+      const updatedItems = { ...revenueItems, [itemName]: itemValue };
       
       const { error: updateError } = await supabase
         .from('pl_reports')
-        .update({ [section]: updatedItems })
+        .update({ revenue_items: updatedItems })
         .eq('id', existingReport.id);
         
       if (updateError) {
-        console.error(`Error updating ${section}:`, updateError);
+        console.error(`Error updating revenue_items:`, updateError);
         return false;
       }
       
@@ -599,7 +591,7 @@ export async function handleAddRevenueItem(
       const defaultReportData: any = {
         date: formattedDate,
         user_id: user.id,
-        revenue_items: {},
+        revenue_items: { [itemName]: itemValue },
         cost_of_goods_items: {},
         salary_expenses: {
           "Adi": 4050,
@@ -635,9 +627,6 @@ export async function handleAddRevenueItem(
         other_expenses: {},
         budget: undefined
       };
-      
-      // Add the new item to the specified section
-      defaultReportData[section] = { [itemName]: itemValue };
       
       const { error: insertError } = await supabase
         .from('pl_reports')
