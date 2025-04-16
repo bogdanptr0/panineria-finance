@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { getAllReports, PLReport } from "@/lib/persistence";
 import { formatCurrency, formatPercentage, calculatePercentageChange } from "@/lib/formatters";
@@ -39,13 +38,13 @@ const ComparisonView = ({
         
         // Transform reports into trend data
         const transformedData = allReports.map(report => {
-          const totalRevenue = Object.values(report.revenueItems).reduce((sum, val) => sum + (val as number), 0);
-          const totalCogs = Object.values(report.costOfGoodsItems).reduce((sum, val) => sum + (val as number), 0);
+          const totalRevenue = Object.values(report.revenueItems).reduce((sum, val) => sum + Number(val), 0);
+          const totalCogs = Object.values(report.costOfGoodsItems).reduce((sum, val) => sum + Number(val), 0);
           const grossProfit = totalRevenue - totalCogs;
           
-          const totalSalary = Object.values(report.salaryExpenses).reduce((sum, val) => sum + (val as number), 0);
-          const totalDistributor = Object.values(report.distributorExpenses).reduce((sum, val) => sum + (val as number), 0);
-          const totalOperational = Object.values(report.operationalExpenses || {}).reduce((sum, val) => sum + (val as number), 0);
+          const totalSalary = Object.values(report.salaryExpenses).reduce((sum, val) => sum + Number(val), 0);
+          const totalDistributor = Object.values(report.distributorExpenses).reduce((sum, val) => sum + Number(val), 0);
+          const totalOperational = Object.values(report.operationalExpenses || {}).reduce((sum, val) => sum + Number(val), 0);
           const totalExpenses = totalSalary + totalDistributor + totalOperational;
           
           const netProfit = grossProfit - totalExpenses;
@@ -88,13 +87,13 @@ const ComparisonView = ({
   // Calculate previous month metrics if available
   let previousMonthMetrics = null;
   if (previousReport) {
-    const totalRevenue = Object.values(previousReport.revenueItems).reduce((sum, val) => sum + (val as number), 0);
-    const totalCogs = Object.values(previousReport.costOfGoodsItems).reduce((sum, val) => sum + (val as number), 0);
+    const totalRevenue = Object.values(previousReport.revenueItems).reduce((sum, val) => sum + Number(val), 0);
+    const totalCogs = Object.values(previousReport.costOfGoodsItems).reduce((sum, val) => sum + Number(val), 0);
     const grossProfit = totalRevenue - totalCogs;
     
-    const totalSalary = Object.values(previousReport.salaryExpenses).reduce((sum, val) => sum + (val as number), 0);
-    const totalDistributor = Object.values(previousReport.distributorExpenses).reduce((sum, val) => sum + (val as number), 0);
-    const totalOperational = Object.values(previousReport.operationalExpenses || {}).reduce((sum, val) => sum + (val as number), 0);
+    const totalSalary = Object.values(previousReport.salaryExpenses).reduce((sum, val) => sum + Number(val), 0);
+    const totalDistributor = Object.values(previousReport.distributorExpenses).reduce((sum, val) => sum + Number(val), 0);
+    const totalOperational = Object.values(previousReport.operationalExpenses || {}).reduce((sum, val) => sum + Number(val), 0);
     const totalExpenses = totalSalary + totalDistributor + totalOperational;
     
     const netProfit = grossProfit - totalExpenses;

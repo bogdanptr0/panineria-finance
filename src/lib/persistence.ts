@@ -43,18 +43,65 @@ export const loadReport = async (month: Date): Promise<PLReport | null> => {
 
     return {
       date: pl_reports.date,
-      revenueItems: pl_reports.revenue_items || {},
-      costOfGoodsItems: pl_reports.cost_of_goods_items || {},
-      salaryExpenses: pl_reports.salary_expenses || {},
-      distributorExpenses: pl_reports.distributor_expenses || {},
-      utilitiesExpenses: pl_reports.utilities_expenses || {},
-      operationalExpenses: pl_reports.operational_expenses || {},
-      otherExpenses: pl_reports.other_expenses || {},
-      budget: pl_reports.budget
+      revenueItems: pl_reports.revenue_items as Record<string, number> || {},
+      costOfGoodsItems: pl_reports.cost_of_goods_items as Record<string, number> || {},
+      salaryExpenses: pl_reports.salary_expenses as Record<string, number> || {},
+      distributorExpenses: pl_reports.distributor_expenses as Record<string, number> || {},
+      utilitiesExpenses: pl_reports.utilities_expenses as Record<string, number> || {},
+      operationalExpenses: pl_reports.operational_expenses as Record<string, number> || {},
+      otherExpenses: pl_reports.other_expenses as Record<string, number> || {},
+      budget: pl_reports.budget as { 
+        targetRevenue: number; 
+        targetExpenses: number; 
+        targetProfit: number; 
+      }
     };
   } catch (error) {
     console.error("Error loading report:", error);
     return null;
+  }
+};
+
+export const getAllReports = async (): Promise<PLReport[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    let { data: pl_reports, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!pl_reports || pl_reports.length === 0) {
+      return [];
+    }
+
+    return pl_reports.map(report => ({
+      date: report.date,
+      revenueItems: report.revenue_items as Record<string, number> || {},
+      costOfGoodsItems: report.cost_of_goods_items as Record<string, number> || {},
+      salaryExpenses: report.salary_expenses as Record<string, number> || {},
+      distributorExpenses: report.distributor_expenses as Record<string, number> || {},
+      utilitiesExpenses: report.utilities_expenses as Record<string, number> || {},
+      operationalExpenses: report.operational_expenses as Record<string, number> || {},
+      otherExpenses: report.other_expenses as Record<string, number> || {},
+      budget: report.budget as { 
+        targetRevenue: number; 
+        targetExpenses: number; 
+        targetProfit: number; 
+      }
+    }));
+  } catch (error) {
+    console.error("Error loading all reports:", error);
+    return [];
   }
 };
 
@@ -74,7 +121,6 @@ export const saveReport = async (
   }
 ): Promise<void> => {
   try {
-    // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -86,7 +132,6 @@ export const saveReport = async (
     console.log("Saving report for date:", dateKey);
     console.log("Revenue items:", revenueItems);
     
-    // Check if report exists
     const { data: existingReport, error: fetchError } = await supabase
       .from('pl_reports')
       .select('id')
@@ -99,7 +144,6 @@ export const saveReport = async (
     }
     
     if (existingReport) {
-      // Update existing report
       const { error: updateError } = await supabase
         .from('pl_reports')
         .update({
@@ -120,7 +164,6 @@ export const saveReport = async (
         throw updateError;
       }
     } else {
-      // Insert new report
       const { error: insertError } = await supabase
         .from('pl_reports')
         .insert({
@@ -155,7 +198,13 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
       throw new Error("User not authenticated");
     }
 
-    // Fetch all reports for the user
+    const defaultSalaries = {
+      "Adi": 4050,
+      "Ioana": 4050,
+      "Andreea": 4050,
+      "Victoria": 4050
+    };
+
     const { data: reports, error } = await supabase
       .from('pl_reports')
       .select('*')
@@ -171,15 +220,6 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
       return;
     }
 
-    // Define default salaries
-    const defaultSalaries = {
-      "Adi": 4050,
-      "Ioana": 4050,
-      "Andreea": 4050,
-      "Victoria": 4050
-    };
-
-    // Update reports that don't have the default salaries
     for (const report of reports) {
       const currentSalaries = report.salary_expenses || {};
       const missingSalaries = Object.keys(defaultSalaries).filter(salaryName => !(salaryName in currentSalaries));
@@ -194,7 +234,7 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
 
         if (updateError) {
           console.error("Error updating report:", updateError);
-          continue; // Don't throw, just continue to the next report
+          continue;
         } else {
           console.log(`Updated report ${report.id} with default salaries.`);
         }
@@ -213,16 +253,14 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
 export const exportToCsv = (report: PLReport) => {
   const csvRows = [];
 
-  // Helper function to add rows
   const addRow = (title: string, items: Record<string, number>) => {
     csvRows.push([title]);
     Object.entries(items).forEach(([key, value]) => {
       csvRows.push([key, value.toString()]);
     });
-    csvRows.push([]); // Empty row for spacing
+    csvRows.push([]);
   };
 
-  // Add data
   addRow("Revenue Items", report.revenueItems);
   addRow("Cost of Goods Items", report.costOfGoodsItems);
   addRow("Salary Expenses", report.salaryExpenses);
@@ -231,16 +269,14 @@ export const exportToCsv = (report: PLReport) => {
   addRow("Operational Expenses", report.operationalExpenses);
   addRow("Other Expenses", report.otherExpenses);
 
-  // Convert to CSV format
   const csvContent = csvRows.map(row => row.join(",")).join("\n");
 
-  // Create a download
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
   link.setAttribute("download", "report.csv");
-  document.body.appendChild(link); // Required for Firefox
+  document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 };
@@ -255,7 +291,6 @@ export const deleteItemFromSupabase = async (
   name: string
 ): Promise<void> => {
   try {
-    // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -264,7 +299,6 @@ export const deleteItemFromSupabase = async (
     
     const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
     
-    // Check if report exists
     const { data: existingReport, error: fetchError } = await supabase
       .from('pl_reports')
       .select('*')
@@ -280,32 +314,32 @@ export const deleteItemFromSupabase = async (
       let updatedData: any = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = existingReport.revenue_items || {};
+        const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
         const newRevenueItems = { ...currentRevenueItems };
         delete newRevenueItems[name];
         updatedData.revenue_items = newRevenueItems;
       } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = existingReport.salary_expenses || {};
+        const currentSalaryExpenses = existingReport.salary_expenses as Record<string, number> || {};
         const newSalaryExpenses = { ...currentSalaryExpenses };
         delete newSalaryExpenses[name];
         updatedData.salary_expenses = newSalaryExpenses;
       } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = existingReport.distributor_expenses || {};
+        const currentDistributorExpenses = existingReport.distributor_expenses as Record<string, number> || {};
         const newDistributorExpenses = { ...currentDistributorExpenses };
         delete newDistributorExpenses[name];
         updatedData.distributor_expenses = newDistributorExpenses;
       } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = existingReport.utilities_expenses || {};
+        const currentUtilitiesExpenses = existingReport.utilities_expenses as Record<string, number> || {};
         const newUtilitiesExpenses = { ...currentUtilitiesExpenses };
         delete newUtilitiesExpenses[name];
         updatedData.utilities_expenses = newUtilitiesExpenses;
       } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = existingReport.operational_expenses || {};
+        const currentOperationalExpenses = existingReport.operational_expenses as Record<string, number> || {};
         const newOperationalExpenses = { ...currentOperationalExpenses };
         delete newOperationalExpenses[name];
         updatedData.operational_expenses = newOperationalExpenses;
       } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = existingReport.other_expenses || {};
+        const currentOtherExpenses = existingReport.other_expenses as Record<string, number> || {};
         const newOtherExpenses = { ...currentOtherExpenses };
         delete newOtherExpenses[name];
         updatedData.other_expenses = newOtherExpenses;
@@ -313,7 +347,6 @@ export const deleteItemFromSupabase = async (
       
       updatedData.updated_at = new Date().toISOString();
       
-      // Update existing report
       const { error: updateError } = await supabase
         .from('pl_reports')
         .update(updatedData)
@@ -339,7 +372,6 @@ export const addItemToSupabase = async (
   value: number
 ): Promise<void> => {
   try {
-    // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -348,7 +380,6 @@ export const addItemToSupabase = async (
     
     const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
     
-    // Check if report exists
     const { data: existingReport, error: fetchError } = await supabase
       .from('pl_reports')
       .select('*')
@@ -364,37 +395,37 @@ export const addItemToSupabase = async (
       let updatedData: any = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = existingReport.revenue_items || {};
+        const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
         updatedData.revenue_items = {
           ...currentRevenueItems,
           [name]: value
         };
       } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = existingReport.salary_expenses || {};
+        const currentSalaryExpenses = existingReport.salary_expenses as Record<string, number> || {};
         updatedData.salary_expenses = {
           ...currentSalaryExpenses,
           [name]: value
         };
       } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = existingReport.distributor_expenses || {};
+        const currentDistributorExpenses = existingReport.distributor_expenses as Record<string, number> || {};
         updatedData.distributor_expenses = {
           ...currentDistributorExpenses,
           [name]: value
         };
       } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = existingReport.utilities_expenses || {};
+        const currentUtilitiesExpenses = existingReport.utilities_expenses as Record<string, number> || {};
         updatedData.utilities_expenses = {
           ...currentUtilitiesExpenses,
           [name]: value
         };
       } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = existingReport.operational_expenses || {};
+        const currentOperationalExpenses = existingReport.operational_expenses as Record<string, number> || {};
         updatedData.operational_expenses = {
           ...currentOperationalExpenses,
           [name]: value
         };
       } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = existingReport.other_expenses || {};
+        const currentOtherExpenses = existingReport.other_expenses as Record<string, number> || {};
         updatedData.other_expenses = {
           ...currentOtherExpenses,
           [name]: value
@@ -403,7 +434,6 @@ export const addItemToSupabase = async (
       
       updatedData.updated_at = new Date().toISOString();
       
-      // Update existing report
       const { error: updateError } = await supabase
         .from('pl_reports')
         .update(updatedData)
@@ -414,7 +444,6 @@ export const addItemToSupabase = async (
         throw updateError;
       }
     } else {
-      // Create default report structure
       let reportData: any = {
         date: dateKey,
         user_id: user.id,
@@ -427,7 +456,6 @@ export const addItemToSupabase = async (
         other_expenses: {}
       };
       
-      // Add new item to appropriate category
       if (category === 'bucatarieItems' || category === 'barItems') {
         reportData.revenue_items = { [name]: value };
       } else if (category === 'salaryExpenses') {
@@ -442,7 +470,6 @@ export const addItemToSupabase = async (
         reportData.other_expenses = { [name]: value };
       }
       
-      // Insert new report
       const { error: insertError } = await supabase
         .from('pl_reports')
         .insert(reportData);
@@ -453,7 +480,6 @@ export const addItemToSupabase = async (
       }
     }
     
-    // Force re-save the entire report to ensure all data is synced
     await saveReport(
       month,
       {},
@@ -465,7 +491,6 @@ export const addItemToSupabase = async (
       {},
       undefined
     );
-    
   } catch (error) {
     console.error("Error adding item to Supabase:", error);
     throw error;
@@ -479,7 +504,6 @@ export const updateItemInSupabase = async (
   value: number
 ): Promise<void> => {
   try {
-    // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -488,7 +512,6 @@ export const updateItemInSupabase = async (
     
     const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
     
-    // Check if report exists
     const { data: existingReport, error: fetchError } = await supabase
       .from('pl_reports')
       .select('*')
@@ -504,37 +527,37 @@ export const updateItemInSupabase = async (
       let updatedData: any = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = existingReport.revenue_items || {};
+        const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
         updatedData.revenue_items = {
           ...currentRevenueItems,
           [name]: value
         };
       } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = existingReport.salary_expenses || {};
+        const currentSalaryExpenses = existingReport.salary_expenses as Record<string, number> || {};
         updatedData.salary_expenses = {
           ...currentSalaryExpenses,
           [name]: value
         };
       } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = existingReport.distributor_expenses || {};
+        const currentDistributorExpenses = existingReport.distributor_expenses as Record<string, number> || {};
         updatedData.distributor_expenses = {
           ...currentDistributorExpenses,
           [name]: value
         };
       } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = existingReport.utilities_expenses || {};
+        const currentUtilitiesExpenses = existingReport.utilities_expenses as Record<string, number> || {};
         updatedData.utilities_expenses = {
           ...currentUtilitiesExpenses,
           [name]: value
         };
       } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = existingReport.operational_expenses || {};
+        const currentOperationalExpenses = existingReport.operational_expenses as Record<string, number> || {};
         updatedData.operational_expenses = {
           ...currentOperationalExpenses,
           [name]: value
         };
       } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = existingReport.other_expenses || {};
+        const currentOtherExpenses = existingReport.other_expenses as Record<string, number> || {};
         updatedData.other_expenses = {
           ...currentOtherExpenses,
           [name]: value
@@ -543,7 +566,6 @@ export const updateItemInSupabase = async (
       
       updatedData.updated_at = new Date().toISOString();
       
-      // Update existing report
       const { error: updateError } = await supabase
         .from('pl_reports')
         .update(updatedData)
@@ -569,7 +591,6 @@ export const renameItemInSupabase = async (
   newName: string
 ): Promise<void> => {
   try {
-    // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -578,7 +599,6 @@ export const renameItemInSupabase = async (
     
     const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
     
-    // Check if report exists
     const { data: existingReport, error: fetchError } = await supabase
       .from('pl_reports')
       .select('*')
@@ -594,7 +614,7 @@ export const renameItemInSupabase = async (
       let updatedData: any = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = existingReport.revenue_items || {};
+        const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
         
         if (currentRevenueItems[oldName] !== undefined) {
           const value = currentRevenueItems[oldName];
@@ -603,7 +623,7 @@ export const renameItemInSupabase = async (
           updatedData.revenue_items = currentRevenueItems;
         }
       } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = existingReport.salary_expenses || {};
+        const currentSalaryExpenses = existingReport.salary_expenses as Record<string, number> || {};
         
         if (currentSalaryExpenses[oldName] !== undefined) {
           const value = currentSalaryExpenses[oldName];
@@ -612,7 +632,7 @@ export const renameItemInSupabase = async (
           updatedData.salary_expenses = currentSalaryExpenses;
         }
       } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = existingReport.distributor_expenses || {};
+        const currentDistributorExpenses = existingReport.distributor_expenses as Record<string, number> || {};
         
         if (currentDistributorExpenses[oldName] !== undefined) {
           const value = currentDistributorExpenses[oldName];
@@ -621,7 +641,7 @@ export const renameItemInSupabase = async (
           updatedData.distributor_expenses = currentDistributorExpenses;
         }
       } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = existingReport.utilities_expenses || {};
+        const currentUtilitiesExpenses = existingReport.utilities_expenses as Record<string, number> || {};
         
         if (currentUtilitiesExpenses[oldName] !== undefined) {
           const value = currentUtilitiesExpenses[oldName];
@@ -630,7 +650,7 @@ export const renameItemInSupabase = async (
           updatedData.utilities_expenses = currentUtilitiesExpenses;
         }
       } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = existingReport.operational_expenses || {};
+        const currentOperationalExpenses = existingReport.operational_expenses as Record<string, number> || {};
         
         if (currentOperationalExpenses[oldName] !== undefined) {
           const value = currentOperationalExpenses[oldName];
@@ -639,7 +659,7 @@ export const renameItemInSupabase = async (
           updatedData.operational_expenses = currentOperationalExpenses;
         }
       } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = existingReport.other_expenses || {};
+        const currentOtherExpenses = existingReport.other_expenses as Record<string, number> || {};
         
         if (currentOtherExpenses[oldName] !== undefined) {
           const value = currentOtherExpenses[oldName];
@@ -651,7 +671,6 @@ export const renameItemInSupabase = async (
       
       updatedData.updated_at = new Date().toISOString();
       
-      // Update existing report
       const { error: updateError } = await supabase
         .from('pl_reports')
         .update(updatedData)
