@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { toast } from "@/components/ui/use-toast";
 
 interface MonthSelectorProps {
   selectedMonth: Date;
@@ -21,8 +22,17 @@ const MonthSelector = ({ selectedMonth, onMonthChange }: MonthSelectorProps) => 
 
   const handleMonthChange = (date: Date | undefined) => {
     if (date) {
-      onMonthChange(date);
+      const newDate = new Date(date);
+      // Ensure we're working with the first day of the month
+      newDate.setDate(1);
+      onMonthChange(newDate);
       setIsCalendarOpen(false);
+      
+      toast({
+        title: "Month changed",
+        description: `Switched to ${format(newDate, "MMMM yyyy", { locale: ro })}`,
+        duration: 2000,
+      });
     }
   };
 

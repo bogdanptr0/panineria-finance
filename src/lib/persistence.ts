@@ -41,9 +41,9 @@ export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date
       .select('*')
       .eq('user_id', user.id)
       .eq('date', dateKey)
-      .single();
+      .maybeSingle();
     
-    if (fetchError && fetchError.code !== 'PGRST116') {
+    if (fetchError) {
       throw fetchError;
     }
     
@@ -128,6 +128,7 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
     if (error) throw error;
     
     if (data) {
+      // Convert the snake_case from Supabase to camelCase for our frontend
       return {
         date: data.date,
         revenueItems: data.revenue_items as Record<string, number>,
@@ -139,8 +140,43 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
       };
     }
     
-    // Fall back to localStorage if no report found in Supabase
-    return loadFromLocalStorage(selectedMonth);
+    // If no report found, return null or a default template
+    // Starting with an empty template is better than returning null to avoid errors
+    return {
+      date: dateKey,
+      revenueItems: {
+        "Produs #1": 0,
+        "Produs #2": 0,
+        "Produs #3": 0,
+        "Bere": 0,
+        "Vin": 0
+      },
+      costOfGoodsItems: {
+        "Produs #1": 0,
+        "Produs #2": 0,
+        "Produs #3": 0,
+        "Bere": 0,
+        "Vin": 0
+      },
+      salaryExpenses: {
+        "#1": 0,
+        "#2": 0,
+        "#3": 0
+      },
+      distributorExpenses: {
+        "#1": 0,
+        "#2": 0,
+        "#3": 0
+      },
+      operationalExpenses: {
+        "Chirie": 0,
+        "Utilitati - Curent": 0,
+        "Utilitati - Apa": 0,
+        "Utilitati - Gunoi": 0,
+        "Alte Cheltuieli": 0
+      },
+      budget: undefined
+    };
   } catch (error) {
     console.error('Error loading report:', error);
     toast({
@@ -192,6 +228,7 @@ export const getAllReports = async (): Promise<PLReport[]> => {
     if (error) throw error;
     
     if (data && data.length > 0) {
+      // Convert the snake_case from Supabase to camelCase for our frontend
       return data.map(report => ({
         date: report.date,
         revenueItems: report.revenue_items as Record<string, number>,
@@ -203,8 +240,7 @@ export const getAllReports = async (): Promise<PLReport[]> => {
       }));
     }
     
-    // Fall back to localStorage if no reports found in Supabase
-    return getAllReportsFromLocalStorage();
+    return [];
   } catch (error) {
     console.error('Error getting all reports:', error);
     toast({
