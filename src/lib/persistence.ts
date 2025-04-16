@@ -402,7 +402,7 @@ export const addItemToSupabase = async (
     
     // Create a new report if none exists
     if (!reportData) {
-      const defaultReport: Record<string, any> = {
+      const defaultReport = {
         date: formattedDate,
         user_id: user.id,
         revenue_items: {},
