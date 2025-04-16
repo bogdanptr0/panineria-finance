@@ -1,0 +1,44 @@
+
+@media print {
+  @page {
+    margin: 1cm;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:block {
+    display: block !important;
+  }
+  
+  .print\:break-after-page {
+    break-after: page;
+  }
+  
+  .page-break {
+    break-after: page;
+  }
+  
+  /* Adjust font sizes for print */
+  h1 {
+    font-size: 24pt !important;
+  }
+  
+  h2 {
+    font-size: 18pt !important;
+  }
+  
+  h3 {
+    font-size: 14pt !important;
+  }
+  
+  p, div, span, table {
+    font-size: 10pt !important;
+  }
+}
