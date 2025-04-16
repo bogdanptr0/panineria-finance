@@ -113,7 +113,15 @@ const Index = () => {
       const report = await loadReport(selectedMonth);
       if (report) {
         setBucatarieItems(report.bucatarieItems || DEFAULT_BUCATARIE_ITEMS);
-        setTazzItems(report.tazzItems || DEFAULT_TAZZ_ITEMS);
+        
+        let updatedTazzItems = report.tazzItems || DEFAULT_TAZZ_ITEMS;
+        if (updatedTazzItems["Bere Peroni 0% Alcool"] !== undefined) {
+          const value = updatedTazzItems["Bere Peroni 0% Alcool"];
+          delete updatedTazzItems["Bere Peroni 0% Alcool"];
+          updatedTazzItems["Peroni 0% Alcool"] = value;
+        }
+        setTazzItems(updatedTazzItems);
+        
         setBarItems(report.barItems || DEFAULT_BAR_ITEMS);
         
         setSalaryExpenses(report.salaryExpenses);
