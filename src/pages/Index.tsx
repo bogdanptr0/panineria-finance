@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -506,30 +507,33 @@ const Index = () => {
                 />
                 
                 <ExpensesSection 
-                  title="UTILITATI"
-                  items={utilitiesExpenses}
-                  onUpdateItem={handleUtilitiesUpdate}
-                  totalExpenses={totalUtilitiesExpenses}
-                  onRenameItem={handleUtilitiesRename}
-                  onAddItem={handleAddUtilities}
-                />
-                
-                <ExpensesSection 
                   title="CHELTUIELI OPERATIONALE"
-                  items={operationalExpenses}
-                  onUpdateItem={handleOperationalUpdate}
-                  totalExpenses={totalOperationalExpenses}
-                  onRenameItem={handleOperationalRename}
-                  onAddItem={handleAddOperational}
-                />
-                
-                <ExpensesSection 
-                  title="ALTE CHELTUIELI"
-                  items={otherExpenses}
-                  onUpdateItem={handleOtherExpensesUpdate}
-                  totalExpenses={totalOtherExpenses}
-                  onRenameItem={handleOtherExpensesRename}
+                  items={{
+                    ...utilitiesExpenses,
+                    ...operationalExpenses,
+                    ...otherExpenses
+                  }}
+                  onUpdateItem={(name, value) => {
+                    if (operationalExpensesSubsections[0].items.includes(name)) {
+                      handleUtilitiesUpdate(name, value);
+                    } else if (operationalExpensesSubsections[1].items.includes(name)) {
+                      handleOperationalUpdate(name, value);
+                    } else {
+                      handleOtherExpensesUpdate(name, value);
+                    }
+                  }}
+                  totalExpenses={totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses}
+                  onRenameItem={(oldName, newName) => {
+                    if (operationalExpensesSubsections[0].items.includes(oldName)) {
+                      handleUtilitiesRename(oldName, newName);
+                    } else if (operationalExpensesSubsections[1].items.includes(oldName)) {
+                      handleOperationalRename(oldName, newName);
+                    } else {
+                      handleOtherExpensesRename(oldName, newName);
+                    }
+                  }}
                   onAddItem={handleAddOtherExpenses}
+                  subsections={operationalExpensesSubsections}
                 />
               </div>
             </div>

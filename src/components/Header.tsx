@@ -13,7 +13,9 @@ interface HeaderProps {
   costOfGoodsItems: Record<string, number>;
   salaryExpenses: Record<string, number>;
   distributorExpenses: Record<string, number>;
+  utilitiesExpenses: Record<string, number>;
   operationalExpenses: Record<string, number>;
+  otherExpenses: Record<string, number>;
   budget?: {
     targetRevenue: number;
     targetExpenses: number;
@@ -28,7 +30,9 @@ const Header = ({
   costOfGoodsItems,
   salaryExpenses,
   distributorExpenses,
+  utilitiesExpenses,
   operationalExpenses,
+  otherExpenses,
   budget
 }: HeaderProps) => {
   const { user, signOut } = useAuth();
@@ -58,7 +62,9 @@ const Header = ({
           costOfGoodsItems={costOfGoodsItems}
           salaryExpenses={salaryExpenses}
           distributorExpenses={distributorExpenses}
+          utilitiesExpenses={utilitiesExpenses}
           operationalExpenses={operationalExpenses}
+          otherExpenses={otherExpenses}
           budget={budget}
         />
         
