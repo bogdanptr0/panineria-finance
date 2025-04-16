@@ -19,6 +19,30 @@ export interface PLReport {
 
 const STORAGE_KEY = 'panini_pl_reports';
 
+// Default revenue items that should be present in all reports
+const DEFAULT_REVENUE_ITEMS = {
+  "Il Classico": 0,
+  "Il Prosciutto": 0,
+  "Il Piccante": 0,
+  "La Porchetta": 0,
+  "La Mortadella": 0,
+  "La Buffala": 0,
+  "Tiramisu": 0,
+  "Platou": 0
+};
+
+// Default cost of goods items that should be present in all reports
+const DEFAULT_COGS_ITEMS = {
+  "Il Classico": 0,
+  "Il Prosciutto": 0,
+  "Il Piccante": 0,
+  "La Porchetta": 0,
+  "La Mortadella": 0,
+  "La Buffala": 0,
+  "Tiramisu": 0,
+  "Platou": 0
+};
+
 // Default salary expenses that should be present in all reports
 const DEFAULT_SALARY_EXPENSES = {
   "Adi": 4050,
@@ -86,7 +110,17 @@ export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date
     // Create date key in format YYYY-MM
     const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
     
-    // Ensure the report has the default expenses
+    // Ensure the report has the default items
+    const revenueItems = {
+      ...DEFAULT_REVENUE_ITEMS,
+      ...data.revenueItems
+    };
+    
+    const costOfGoodsItems = {
+      ...DEFAULT_COGS_ITEMS,
+      ...data.costOfGoodsItems
+    };
+    
     const salaryExpenses = {
       ...DEFAULT_SALARY_EXPENSES,
       ...data.salaryExpenses
@@ -109,7 +143,8 @@ export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date
     
     const report: PLReport = {
       date: dateKey,
-      ...data,
+      revenueItems,
+      costOfGoodsItems,
       salaryExpenses,
       distributorExpenses,
       utilitiesExpenses,
@@ -229,13 +264,22 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         costOfGoodsItems: processSupabaseData(data.cost_of_goods_items),
         salaryExpenses: processSupabaseData(data.salary_expenses),
         distributorExpenses: processSupabaseData(data.distributor_expenses),
-        utilitiesExpenses: processSupabaseData(data.utilities_expenses),
-        operationalExpenses: processSupabaseData(data.operational_expenses),
-        otherExpenses: processSupabaseData(data.other_expenses),
-        budget: data.budget as PLReport['budget'] | undefined
+        utilitiesExpenses: data.utilities_expenses ? processSupabaseData(data.utilities_expenses) : {},
+        operationalExpenses: data.operational_expenses ? processSupabaseData(data.operational_expenses) : {},
+        otherExpenses: data.other_expenses ? processSupabaseData(data.other_expenses) : {}
       };
       
-      // Ensure the report has the default expenses
+      // Ensure the report has the default items
+      report.revenueItems = {
+        ...DEFAULT_REVENUE_ITEMS,
+        ...report.revenueItems
+      };
+      
+      report.costOfGoodsItems = {
+        ...DEFAULT_COGS_ITEMS,
+        ...report.costOfGoodsItems
+      };
+      
       report.salaryExpenses = {
         ...DEFAULT_SALARY_EXPENSES,
         ...report.salaryExpenses
@@ -264,10 +308,12 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
       const needsUpdate = 
         !data.utilities_expenses || 
         !data.other_expenses ||
+        Object.keys(DEFAULT_REVENUE_ITEMS).some(key => !(key in processSupabaseData(data.revenue_items))) ||
+        Object.keys(DEFAULT_COGS_ITEMS).some(key => !(key in processSupabaseData(data.cost_of_goods_items))) ||
         Object.keys(DEFAULT_SALARY_EXPENSES).some(key => !(key in processSupabaseData(data.salary_expenses))) ||
         Object.keys(DEFAULT_DISTRIBUTOR_EXPENSES).some(key => !(key in processSupabaseData(data.distributor_expenses))) ||
-        Object.keys(DEFAULT_UTILITIES_EXPENSES).some(key => !(key in processSupabaseData(data.utilities_expenses))) ||
-        Object.keys(DEFAULT_OPERATIONAL_EXPENSES).some(key => !(key in processSupabaseData(data.operational_expenses)));
+        (data.utilities_expenses && Object.keys(DEFAULT_UTILITIES_EXPENSES).some(key => !(key in processSupabaseData(data.utilities_expenses)))) ||
+        (data.operational_expenses && Object.keys(DEFAULT_OPERATIONAL_EXPENSES).some(key => !(key in processSupabaseData(data.operational_expenses))));
       
       // If any defaults were added, save the report back
       if (needsUpdate) {
@@ -275,6 +321,8 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         await supabase
           .from('pl_reports')
           .update({
+            revenue_items: report.revenueItems,
+            cost_of_goods_items: report.costOfGoodsItems,
             salary_expenses: report.salaryExpenses,
             distributor_expenses: report.distributorExpenses,
             utilities_expenses: report.utilitiesExpenses,
@@ -294,14 +342,8 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
     // If no report found, return a default template
     return {
       date: dateKey,
-      revenueItems: {
-        "Bere": 0,
-        "Vin": 0
-      },
-      costOfGoodsItems: {
-        "Bere": 0,
-        "Vin": 0
-      },
+      revenueItems: DEFAULT_REVENUE_ITEMS,
+      costOfGoodsItems: DEFAULT_COGS_ITEMS,
       salaryExpenses: DEFAULT_SALARY_EXPENSES,
       distributorExpenses: DEFAULT_DISTRIBUTOR_EXPENSES,
       utilitiesExpenses: DEFAULT_UTILITIES_EXPENSES,
@@ -335,8 +377,22 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
     const report = existingReports[dateKey];
     
     if (report) {
-      // Ensure the report has the default expenses
+      // Ensure the report has the default items
       const updatedReport = { ...report };
+      
+      if (updatedReport.revenueItems) {
+        updatedReport.revenueItems = {
+          ...DEFAULT_REVENUE_ITEMS,
+          ...updatedReport.revenueItems
+        };
+      }
+      
+      if (updatedReport.costOfGoodsItems) {
+        updatedReport.costOfGoodsItems = {
+          ...DEFAULT_COGS_ITEMS,
+          ...updatedReport.costOfGoodsItems
+        };
+      }
       
       if (updatedReport.salaryExpenses) {
         updatedReport.salaryExpenses = {
@@ -375,6 +431,14 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
       }
       
       // If the report was updated, save it back to localStorage
+      const revenueHasChanged = Object.keys(DEFAULT_REVENUE_ITEMS).some(
+        key => !(key in report.revenueItems || {})
+      );
+      
+      const cogsHasChanged = Object.keys(DEFAULT_COGS_ITEMS).some(
+        key => !(key in report.costOfGoodsItems || {})
+      );
+      
       const salaryHasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
         key => !(key in report.salaryExpenses || {})
       );
@@ -393,7 +457,7 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
       
       const otherHasChanged = !report.otherExpenses;
       
-      if (salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
+      if (revenueHasChanged || cogsHasChanged || salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
         updateLocalStorageReport(updatedReport);
       }
       
@@ -445,11 +509,23 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
     if (data && data.length > 0) {
       // Process each report
       for (const reportData of data) {
-        const salaryExpenses = reportData.salary_expenses || {};
-        const distributorExpenses = reportData.distributor_expenses || {};
-        const utilitiesExpenses = reportData.utilities_expenses || {};
-        const operationalExpenses = reportData.operational_expenses || {};
-        const otherExpenses = reportData.other_expenses || {};
+        const revenueItems = reportData.revenue_items ? processSupabaseData(reportData.revenue_items) : {};
+        const cogsItems = reportData.cost_of_goods_items ? processSupabaseData(reportData.cost_of_goods_items) : {};
+        const salaryExpenses = reportData.salary_expenses ? processSupabaseData(reportData.salary_expenses) : {};
+        const distributorExpenses = reportData.distributor_expenses ? processSupabaseData(reportData.distributor_expenses) : {};
+        const utilitiesExpenses = reportData.utilities_expenses ? processSupabaseData(reportData.utilities_expenses) : {};
+        const operationalExpenses = reportData.operational_expenses ? processSupabaseData(reportData.operational_expenses) : {};
+        const otherExpenses = reportData.other_expenses ? processSupabaseData(reportData.other_expenses) : {};
+        
+        // Check if any default revenue items are missing
+        const revenueHasChanged = Object.keys(DEFAULT_REVENUE_ITEMS).some(
+          key => !(key in revenueItems)
+        );
+        
+        // Check if any default cogs items are missing
+        const cogsHasChanged = Object.keys(DEFAULT_COGS_ITEMS).some(
+          key => !(key in cogsItems)
+        );
         
         // Check if any default salary is missing
         const salaryHasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
@@ -474,8 +550,18 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
         // Check if other expenses exists
         const otherHasChanged = !reportData.other_expenses;
         
-        if (salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
+        if (revenueHasChanged || cogsHasChanged || salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
           // Update the report with defaults
+          const updatedRevenueItems = {
+            ...DEFAULT_REVENUE_ITEMS,
+            ...revenueItems
+          };
+          
+          const updatedCogsItems = {
+            ...DEFAULT_COGS_ITEMS,
+            ...cogsItems
+          };
+          
           const updatedSalaryExpenses = {
             ...DEFAULT_SALARY_EXPENSES,
             ...salaryExpenses
@@ -499,6 +585,8 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
           await supabase
             .from('pl_reports')
             .update({
+              revenue_items: updatedRevenueItems,
+              cost_of_goods_items: updatedCogsItems,
               salary_expenses: updatedSalaryExpenses,
               distributor_expenses: updatedDistributorExpenses,
               utilities_expenses: updatedUtilitiesExpenses,
@@ -541,41 +629,67 @@ const updateAllLocalStorageReportsWithDefaultExpenses = (): void => {
     for (const dateKey in existingReports) {
       const report = existingReports[dateKey];
       
+      // Check if revenue items need update
+      if (report.revenueItems) {
+        const revenueNeedsUpdate = Object.keys(DEFAULT_REVENUE_ITEMS).some(
+          key => !(key in report.revenueItems)
+        );
+        
+        if (revenueNeedsUpdate) {
+          report.revenueItems = {
+            ...DEFAULT_REVENUE_ITEMS,
+            ...report.revenueItems
+          };
+          hasChanges = true;
+        }
+      }
+      
+      // Check if cogs items need update
+      if (report.costOfGoodsItems) {
+        const cogsNeedsUpdate = Object.keys(DEFAULT_COGS_ITEMS).some(
+          key => !(key in report.costOfGoodsItems)
+        );
+        
+        if (cogsNeedsUpdate) {
+          report.costOfGoodsItems = {
+            ...DEFAULT_COGS_ITEMS,
+            ...report.costOfGoodsItems
+          };
+          hasChanges = true;
+        }
+      }
+      
+      // Check if salary needs update
       if (report.salaryExpenses) {
-        // Check if any default salary is missing
         const salaryNeedsUpdate = Object.keys(DEFAULT_SALARY_EXPENSES).some(
           key => !(key in report.salaryExpenses)
         );
         
         if (salaryNeedsUpdate) {
-          // Update the report with default salaries
           report.salaryExpenses = {
             ...DEFAULT_SALARY_EXPENSES,
             ...report.salaryExpenses
           };
-          
           hasChanges = true;
         }
       }
       
+      // Check if distributor needs update
       if (report.distributorExpenses) {
-        // Check if any default distributor is missing
         const distributorNeedsUpdate = Object.keys(DEFAULT_DISTRIBUTOR_EXPENSES).some(
           key => !(key in report.distributorExpenses)
         );
         
         if (distributorNeedsUpdate) {
-          // Update the report with default distributors
           report.distributorExpenses = {
             ...DEFAULT_DISTRIBUTOR_EXPENSES,
             ...report.distributorExpenses
           };
-          
           hasChanges = true;
         }
       }
       
-      // Check if utilities exists and has all defaults
+      // Check if utilities needs update
       if (!report.utilitiesExpenses) {
         report.utilitiesExpenses = { ...DEFAULT_UTILITIES_EXPENSES };
         hasChanges = true;
@@ -593,7 +707,7 @@ const updateAllLocalStorageReportsWithDefaultExpenses = (): void => {
         }
       }
       
-      // Check if operational exists and has all defaults
+      // Check if operational needs update
       if (!report.operationalExpenses) {
         report.operationalExpenses = { ...DEFAULT_OPERATIONAL_EXPENSES };
         hasChanges = true;

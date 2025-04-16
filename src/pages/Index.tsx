@@ -22,13 +22,25 @@ const Index = () => {
   const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState<boolean>(false);
   
   const [revenueItems, setRevenueItems] = useState<Record<string, number>>({
-    "Bere": 0,
-    "Vin": 0
+    "Il Classico": 0,
+    "Il Prosciutto": 0,
+    "Il Piccante": 0,
+    "La Porchetta": 0,
+    "La Mortadella": 0,
+    "La Buffala": 0,
+    "Tiramisu": 0,
+    "Platou": 0
   });
 
   const [costOfGoodsItems, setCostOfGoodsItems] = useState<Record<string, number>>({
-    "Bere": 0,
-    "Vin": 0
+    "Il Classico": 0,
+    "Il Prosciutto": 0,
+    "Il Piccante": 0,
+    "La Porchetta": 0,
+    "La Mortadella": 0,
+    "La Buffala": 0,
+    "Tiramisu": 0,
+    "Platou": 0
   });
 
   const [salaryExpenses, setSalaryExpenses] = useState<Record<string, number>>({
@@ -378,8 +390,8 @@ const Index = () => {
                         handleOtherExpensesRename(oldName, newName);
                       }
                     }}
-                    onAddItem={(name) => {
-                      handleSubsectionAddItem(operationalExpensesSubsections[2].title, name);
+                    onAddItem={(name, subsectionTitle) => {
+                      handleSubsectionAddItem(subsectionTitle || operationalExpensesSubsections[2].title, name);
                     }}
                     subsections={operationalExpensesSubsections}
                   />
