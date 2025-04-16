@@ -96,7 +96,7 @@ const RevenueSection = ({
               
               <div>
                 {subsection.items.map((name) => (
-                  <div key={name} className="border-b flex justify-between items-center p-2">
+                  <div key={`${subsection.title}-${name}`} className="border-b flex justify-between items-center p-2">
                     {editingName === name ? (
                       <div className="flex items-center gap-2 flex-1">
                         <Input

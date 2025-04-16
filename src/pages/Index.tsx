@@ -10,8 +10,11 @@ import ComparisonView from "@/components/ComparisonView";
 import BudgetAnalysis from "@/components/BudgetAnalysis";
 import CashFlowProjection from "@/components/CashFlowProjection";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { loadReport, updateAllReportsWithDefaultSalaries, saveReport, 
-  deleteItemFromSupabase, addItemToSupabase, updateItemInSupabase, renameItemInSupabase } from "@/lib/persistence";
+import { 
+  loadReport, updateAllReportsWithDefaultSalaries, saveReport, 
+  deleteItemFromSupabase, addItemToSupabase, updateItemInSupabase, renameItemInSupabase,
+  DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS
+} from "@/lib/persistence";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -23,39 +26,9 @@ const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState<boolean>(false);
   
-  const [bucatarieItems, setBucatarieItems] = useState<Record<string, number>>({
-    "Il Classico": 0,
-    "Il Prosciutto": 0,
-    "Il Piccante": 0,
-    "La Porchetta": 0,
-    "La Mortadella": 0,
-    "La Buffala": 0,
-    "Tiramisu": 0,
-    "Platou": 0
-  });
-  
-  const [tazzItems, setTazzItems] = useState<Record<string, number>>({
-    "[MINI] Il Classico": 0,
-    "[MINI] Il Prosciutto": 0,
-    "[MINI] Il Piccante": 0,
-    "[MINI] La Porchetta": 0,
-    "[MINI] La Mortadella": 0,
-    "[MINI] La Buffala": 0,
-    "Il Classico": 0,
-    "Il Prosciutto": 0,
-    "Il Piccante": 0,
-    "La Porchetta": 0,
-    "La Mortadella": 0,
-    "La Buffala": 0,
-    "Tiramisu": 0,
-    "Apa plata - 0,5": 0,
-    "Apa minerala - 0,5": 0,
-    "Coca Cola": 0,
-    "Coca Cola Zero": 0,
-    "Sprite": 0,
-    "Fanta": 0,
-    "Bere Peroni 0% alcool": 0
-  });
+  const [bucatarieItems, setBucatarieItems] = useState<Record<string, number>>(DEFAULT_BUCATARIE_ITEMS);
+  const [tazzItems, setTazzItems] = useState<Record<string, number>>(DEFAULT_TAZZ_ITEMS);
+  const [barItems, setBarItems] = useState<Record<string, number>>(DEFAULT_BAR_ITEMS);
   
   const [deletedBucatarieItems, setDeletedBucatarieItems] = useState<Record<string, number>>({});
   const [deletedTazzItems, setDeletedTazzItems] = useState<Record<string, number>>({});
@@ -66,10 +39,22 @@ const Index = () => {
   const [deletedOperationalItems, setDeletedOperationalItems] = useState<Record<string, number>>({});
   const [deletedOtherItems, setDeletedOtherItems] = useState<Record<string, number>>({});
   
-  const [barItems, setBarItems] = useState<Record<string, number>>({});
-  
   const getRevenueItems = (): Record<string, number> => {
-    return { ...bucatarieItems, ...tazzItems, ...barItems };
+    const result: Record<string, number> = {};
+    
+    Object.entries(bucatarieItems).forEach(([key, value]) => {
+      result[key] = value;
+    });
+    
+    Object.entries(tazzItems).forEach(([key, value]) => {
+      result[key] = value;
+    });
+    
+    Object.entries(barItems).forEach(([key, value]) => {
+      result[key] = value;
+    });
+    
+    return result;
   };
 
   const [salaryExpenses, setSalaryExpenses] = useState<Record<string, number>>({
@@ -125,39 +110,9 @@ const Index = () => {
     const fetchReport = async () => {
       const report = await loadReport(selectedMonth);
       if (report) {
-        const bucatarie: Record<string, number> = {};
-        const tazz: Record<string, number> = {};
-        const bar: Record<string, number> = {};
-        
-        const bucatarieKeys = [
-          "Il Classico", "Il Prosciutto", "Il Piccante", 
-          "La Porchetta", "La Mortadella", "La Buffala", 
-          "Tiramisu", "Platou"
-        ];
-        
-        const tazzKeys = [
-          "[MINI] Il Classico", "[MINI] Il Prosciutto", "[MINI] Il Piccante",
-          "[MINI] La Porchetta", "[MINI] La Mortadella", "[MINI] La Buffala",
-          "Il Classico", "Il Prosciutto", "Il Piccante",
-          "La Porchetta", "La Mortadella", "La Buffala",
-          "Tiramisu", "Apa plata - 0,5", "Apa minerala - 0,5",
-          "Coca Cola", "Coca Cola Zero", "Sprite", "Fanta", 
-          "Bere Peroni 0% alcool"
-        ];
-        
-        Object.entries(report.revenueItems).forEach(([key, value]) => {
-          if (bucatarieKeys.includes(key)) {
-            bucatarie[key] = value;
-          } else if (tazzKeys.includes(key)) {
-            tazz[key] = value;
-          } else {
-            bar[key] = value;
-          }
-        });
-        
-        setBucatarieItems(bucatarie);
-        setTazzItems(tazz);
-        setBarItems(bar);
+        setBucatarieItems(report.bucatarieItems || DEFAULT_BUCATARIE_ITEMS);
+        setTazzItems(report.tazzItems || DEFAULT_TAZZ_ITEMS);
+        setBarItems(report.barItems || DEFAULT_BAR_ITEMS);
         
         setSalaryExpenses(report.salaryExpenses);
         setDistributorExpenses(report.distributorExpenses);
@@ -217,7 +172,7 @@ const Index = () => {
       
       saveData();
     }
-  }, [hasUnsavedChanges, selectedMonth, salaryExpenses, distributorExpenses, utilitiesExpenses, operationalExpenses, otherExpenses, budget]);
+  }, [hasUnsavedChanges, selectedMonth, bucatarieItems, tazzItems, barItems, salaryExpenses, distributorExpenses, utilitiesExpenses, operationalExpenses, otherExpenses, budget]);
 
   const calculateTotal = (items: Record<string, number>) => {
     return Object.values(items).reduce((sum, value) => sum + value, 0);
@@ -241,6 +196,7 @@ const Index = () => {
   const handleRevenueUpdate = async (name: string, value: number) => {
     const isBucatarieItem = Object.keys(bucatarieItems).includes(name);
     const isTazzItem = Object.keys(tazzItems).includes(name);
+    const isBarItem = Object.keys(barItems).includes(name);
     
     if (isBucatarieItem) {
       setBucatarieItems(prev => ({ ...prev, [name]: value }));
@@ -248,10 +204,13 @@ const Index = () => {
     } else if (isTazzItem) {
       setTazzItems(prev => ({ ...prev, [name]: value }));
       await updateItemInSupabase(selectedMonth, 'tazzItems', name, value);
-    } else {
+    } else if (isBarItem) {
       setBarItems(prev => ({ ...prev, [name]: value }));
       await updateItemInSupabase(selectedMonth, 'barItems', name, value);
+    } else {
+      console.warn("Item not found in any subcategory:", name);
     }
+    
     setHasUnsavedChanges(true);
   };
 
@@ -439,8 +398,6 @@ const Index = () => {
       const isBarItem = Object.keys(barItems).includes(name);
       
       if (isBucatarieItem) {
-        const value = bucatarieItems[name];
-        
         setBucatarieItems(prev => {
           const newItems = { ...prev };
           delete newItems[name];
@@ -451,13 +408,9 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed from Bucatarie`
         });
-        
-        setHasUnsavedChanges(true);
       } else if (isTazzItem) {
-        const value = tazzItems[name];
-        
         setTazzItems(prev => {
           const newItems = { ...prev };
           delete newItems[name];
@@ -468,13 +421,9 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed from Tazz`
         });
-        
-        setHasUnsavedChanges(true);
       } else if (isBarItem) {
-        const value = barItems[name];
-        
         setBarItems(prev => {
           const newItems = { ...prev };
           delete newItems[name];
@@ -485,11 +434,11 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed from Bar`
         });
-        
-        setHasUnsavedChanges(true);
       }
+      
+      setHasUnsavedChanges(true);
     } catch (error) {
       console.error("Error deleting item:", error);
       toast({
