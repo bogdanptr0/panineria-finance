@@ -384,7 +384,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`,
+          description: `"${name}" has been removed",
           action: (
             <Button 
               variant="outline" 
@@ -411,7 +411,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`,
+          description: `"${name}" has been removed",
           action: (
             <Button 
               variant="outline" 
@@ -450,7 +450,7 @@ const Index = () => {
       
       toast({
         title: "Salary item deleted",
-        description: `"${name}" has been removed`,
+        description: `"${name}" has been removed",
         action: (
           <Button 
             variant="outline" 
@@ -488,7 +488,7 @@ const Index = () => {
       
       toast({
         title: "Distributor item deleted",
-        description: `"${name}" has been removed`,
+        description: `"${name}" has been removed",
         action: (
           <Button 
             variant="outline" 
@@ -526,7 +526,7 @@ const Index = () => {
       
       toast({
         title: "Utilities item deleted",
-        description: `"${name}" has been removed`,
+        description: `"${name}" has been removed",
         action: (
           <Button 
             variant="outline" 
@@ -553,7 +553,7 @@ const Index = () => {
       
       toast({
         title: "Operational item deleted",
-        description: `"${name}" has been removed`,
+        description: `"${name}" has been removed",
         action: (
           <Button 
             variant="outline" 
@@ -580,7 +580,7 @@ const Index = () => {
       
       toast({
         title: "Other expense item deleted",
-        description: `"${name}" has been removed`,
+        description: `"${name}" has been removed",
         action: (
           <Button 
             variant="outline" 
@@ -614,7 +614,7 @@ const Index = () => {
       
       toast({
         title: "Item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored",
       });
       
       setHasUnsavedChanges(true);
@@ -639,7 +639,7 @@ const Index = () => {
       
       toast({
         title: "Item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored",
       });
       
       setHasUnsavedChanges(true);
@@ -664,7 +664,7 @@ const Index = () => {
       
       toast({
         title: "Salary item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored",
       });
       
       setHasUnsavedChanges(true);
@@ -689,7 +689,7 @@ const Index = () => {
       
       toast({
         title: "Distributor item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored",
       });
       
       setHasUnsavedChanges(true);
@@ -714,7 +714,7 @@ const Index = () => {
       
       toast({
         title: "Utilities item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored",
       });
       
       setHasUnsavedChanges(true);
@@ -739,7 +739,7 @@ const Index = () => {
       
       toast({
         title: "Operational item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored",
       });
       
       setHasUnsavedChanges(true);
@@ -764,7 +764,7 @@ const Index = () => {
       
       toast({
         title: "Other expense item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored",
       });
       
       setHasUnsavedChanges(true);
@@ -940,9 +940,7 @@ const Index = () => {
               <div className="space-y-8">
                 <ProductProfitability 
                   revenueItems={getRevenueItems()}
-                  totalRevenue={totalRevenue}
-                  totalExpenses={totalExpenses}
-                  netProfit={netProfit}
+                  costOfGoodsItems={{}}
                 />
                 
                 <LaborAnalysis 
@@ -950,34 +948,11 @@ const Index = () => {
                   totalRevenue={totalRevenue}
                 />
                 
-                <ComparisonView
-                  selectedMonth={selectedMonth}
-                  totalRevenue={totalRevenue}
-                  totalExpenses={totalExpenses}
-                  netProfit={netProfit}
-                />
+                <ComparisonView />
                 
-                <BudgetAnalysis
-                  selectedMonth={selectedMonth}
-                  budget={budget}
-                  totalRevenue={totalRevenue}
-                  totalExpenses={totalExpenses}
-                  netProfit={netProfit}
-                  revenueItems={getRevenueItems()}
-                  costOfGoodsItems={{}}
-                  salaryExpenses={salaryExpenses}
-                  distributorExpenses={distributorExpenses}
-                  utilitiesExpenses={utilitiesExpenses}
-                  operationalExpenses={operationalExpenses}
-                  otherExpenses={otherExpenses}
-                />
+                <BudgetAnalysis />
                 
-                <CashFlowProjection
-                  selectedMonth={selectedMonth}
-                  totalRevenue={totalRevenue}
-                  totalExpenses={totalExpenses}
-                  netProfit={netProfit}
-                />
+                <CashFlowProjection />
               </div>
             </TabsContent>
           </Tabs>

@@ -4,18 +4,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 interface ProductProfitabilityProps {
   revenueItems: Record<string, number>;
-  costOfGoodsItems: Record<string, number>;
+  costOfGoodsItems?: Record<string, number>;
+  totalRevenue?: number;
+  totalExpenses?: number;
+  netProfit?: number;
 }
 
-const ProductProfitability = ({ revenueItems, costOfGoodsItems }: ProductProfitabilityProps) => {
+const ProductProfitability = ({ revenueItems, costOfGoodsItems = {} }: ProductProfitabilityProps) => {
   // Calculate profitability metrics for each product
   const products = Object.keys(revenueItems).filter(name => 
-    costOfGoodsItems.hasOwnProperty(name)
+    costOfGoodsItems && costOfGoodsItems.hasOwnProperty(name)
   );
   
   const productMetrics = products.map(name => {
     const revenue = revenueItems[name] || 0;
-    const cost = costOfGoodsItems[name] || 0;
+    const cost = costOfGoodsItems?.[name] || 0;
     const profit = revenue - cost;
     const margin = revenue > 0 ? profit / revenue : 0;
     
