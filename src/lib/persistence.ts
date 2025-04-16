@@ -7,7 +7,9 @@ export interface PLReport {
   costOfGoodsItems: Record<string, number>;
   salaryExpenses: Record<string, number>;
   distributorExpenses: Record<string, number>;
+  utilitiesExpenses: Record<string, number>;
   operationalExpenses: Record<string, number>;
+  otherExpenses: Record<string, number>;
   budget?: {
     targetRevenue: number;
     targetExpenses: number;
@@ -38,6 +40,24 @@ const DEFAULT_DISTRIBUTOR_EXPENSES = {
   "Metro": 0
 };
 
+// Default utilities expenses
+const DEFAULT_UTILITIES_EXPENSES = {
+  "Gaze(Engie)": 0,
+  "Apa": 0,
+  "Curent": 0,
+  "Gunoi(Iridex)": 0,
+  "Internet": 0
+};
+
+// Default operational expenses
+const DEFAULT_OPERATIONAL_EXPENSES = {
+  "Contabilitate": 0,
+  "ECR": 0,
+  "ISU": 0,
+  "Chirie": 0,
+  "Protectia Muncii": 0
+};
+
 export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date'>): Promise<void> => {
   try {
     // Create date key in format YYYY-MM
@@ -54,11 +74,23 @@ export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date
       ...data.distributorExpenses
     };
     
+    const utilitiesExpenses = {
+      ...DEFAULT_UTILITIES_EXPENSES,
+      ...data.utilitiesExpenses
+    };
+    
+    const operationalExpenses = {
+      ...DEFAULT_OPERATIONAL_EXPENSES,
+      ...data.operationalExpenses
+    };
+    
     const report: PLReport = {
       date: dateKey,
       ...data,
       salaryExpenses,
-      distributorExpenses
+      distributorExpenses,
+      utilitiesExpenses,
+      operationalExpenses
     };
     
     // Get current user
@@ -89,7 +121,9 @@ export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date
           cost_of_goods_items: report.costOfGoodsItems,
           salary_expenses: report.salaryExpenses,
           distributor_expenses: report.distributorExpenses,
+          utilities_expenses: report.utilitiesExpenses,
           operational_expenses: report.operationalExpenses,
+          other_expenses: report.otherExpenses,
           budget: report.budget,
           updated_at: new Date().toISOString()
         })
@@ -107,7 +141,9 @@ export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date
           cost_of_goods_items: report.costOfGoodsItems,
           salary_expenses: report.salaryExpenses,
           distributor_expenses: report.distributorExpenses,
+          utilities_expenses: report.utilitiesExpenses,
           operational_expenses: report.operationalExpenses,
+          other_expenses: report.otherExpenses,
           budget: report.budget
         });
       
@@ -164,11 +200,13 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
       // Convert the snake_case from Supabase to camelCase for our frontend
       const report = {
         date: data.date,
-        revenueItems: data.revenue_items as Record<string, number>,
-        costOfGoodsItems: data.cost_of_goods_items as Record<string, number>,
-        salaryExpenses: data.salary_expenses as Record<string, number>,
-        distributorExpenses: data.distributor_expenses as Record<string, number>,
-        operationalExpenses: data.operational_expenses as Record<string, number>,
+        revenueItems: data.revenue_items || {},
+        costOfGoodsItems: data.cost_of_goods_items || {},
+        salaryExpenses: data.salary_expenses || {},
+        distributorExpenses: data.distributor_expenses || {},
+        utilitiesExpenses: data.utilities_expenses || {},
+        operationalExpenses: data.operational_expenses || {},
+        otherExpenses: data.other_expenses || {},
         budget: data.budget as PLReport['budget'] | undefined
       };
       
@@ -189,23 +227,47 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         };
       }
       
+      if (report.utilitiesExpenses) {
+        report.utilitiesExpenses = {
+          ...DEFAULT_UTILITIES_EXPENSES,
+          ...report.utilitiesExpenses
+        };
+      }
+      
+      if (report.operationalExpenses) {
+        report.operationalExpenses = {
+          ...DEFAULT_OPERATIONAL_EXPENSES,
+          ...report.operationalExpenses
+        };
+      }
+      
       // Check if any default values were added
       const salaryHasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
-        key => !(key in data.salary_expenses)
+        key => !(key in data.salary_expenses || {})
       );
       
       const distributorHasChanged = Object.keys(DEFAULT_DISTRIBUTOR_EXPENSES).some(
-        key => !(key in data.distributor_expenses)
+        key => !(key in data.distributor_expenses || {})
+      );
+      
+      const utilitiesHasChanged = !report.utilitiesExpenses || Object.keys(DEFAULT_UTILITIES_EXPENSES).some(
+        key => !(key in report.utilitiesExpenses || {})
+      );
+      
+      const operationalHasChanged = !report.operationalExpenses || Object.keys(DEFAULT_OPERATIONAL_EXPENSES).some(
+        key => !(key in report.operationalExpenses || {})
       );
       
       // If any defaults were added, save the report back
-      if (salaryHasChanged || distributorHasChanged) {
+      if (salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged) {
         // Save the updated report back to the database
         await supabase
           .from('pl_reports')
           .update({
             salary_expenses: report.salaryExpenses,
             distributor_expenses: report.distributorExpenses,
+            utilities_expenses: report.utilitiesExpenses,
+            operational_expenses: report.operationalExpenses,
             updated_at: new Date().toISOString()
           })
           .eq('id', data.id);
@@ -230,14 +292,9 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
       },
       salaryExpenses: DEFAULT_SALARY_EXPENSES,
       distributorExpenses: DEFAULT_DISTRIBUTOR_EXPENSES,
-      operationalExpenses: {
-        "Chirie": 0,
-        "Utilitati - Curent": 0,
-        "Utilitati - Apa": 0,
-        "Utilitati - Gunoi": 0,
-        "Alte Cheltuieli": 0
-      },
-      budget: undefined
+      utilitiesExpenses: DEFAULT_UTILITIES_EXPENSES,
+      operationalExpenses: DEFAULT_OPERATIONAL_EXPENSES,
+      otherExpenses: {}
     };
   } catch (error) {
     console.error('Error loading report:', error);
@@ -283,16 +340,48 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
         };
       }
       
+      if (!updatedReport.utilitiesExpenses) {
+        updatedReport.utilitiesExpenses = { ...DEFAULT_UTILITIES_EXPENSES };
+      } else {
+        updatedReport.utilitiesExpenses = {
+          ...DEFAULT_UTILITIES_EXPENSES,
+          ...updatedReport.utilitiesExpenses
+        };
+      }
+      
+      if (!updatedReport.operationalExpenses) {
+        updatedReport.operationalExpenses = { ...DEFAULT_OPERATIONAL_EXPENSES };
+      } else {
+        updatedReport.operationalExpenses = {
+          ...DEFAULT_OPERATIONAL_EXPENSES,
+          ...updatedReport.operationalExpenses
+        };
+      }
+      
+      if (!updatedReport.otherExpenses) {
+        updatedReport.otherExpenses = {};
+      }
+      
       // If the report was updated, save it back to localStorage
       const salaryHasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
-        key => !(key in report.salaryExpenses)
+        key => !(key in report.salaryExpenses || {})
       );
       
       const distributorHasChanged = Object.keys(DEFAULT_DISTRIBUTOR_EXPENSES).some(
-        key => !(key in report.distributorExpenses)
+        key => !(key in report.distributorExpenses || {})
       );
       
-      if (salaryHasChanged || distributorHasChanged) {
+      const utilitiesHasChanged = !report.utilitiesExpenses || Object.keys(DEFAULT_UTILITIES_EXPENSES).some(
+        key => !(key in report.utilitiesExpenses || {})
+      );
+      
+      const operationalHasChanged = !report.operationalExpenses || Object.keys(DEFAULT_OPERATIONAL_EXPENSES).some(
+        key => !(key in report.operationalExpenses || {})
+      );
+      
+      const otherHasChanged = !report.otherExpenses;
+      
+      if (salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
         updateLocalStorageReport(updatedReport);
       }
       
@@ -344,9 +433,11 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
     if (data && data.length > 0) {
       // Process each report
       for (const reportData of data) {
-        const salaryExpenses = reportData.salary_expenses as Record<string, number>;
-        const distributorExpenses = reportData.distributor_expenses as Record<string, number>;
-        let hasChanged = false;
+        const salaryExpenses = reportData.salary_expenses || {};
+        const distributorExpenses = reportData.distributor_expenses || {};
+        const utilitiesExpenses = reportData.utilities_expenses || {};
+        const operationalExpenses = reportData.operational_expenses || {};
+        const otherExpenses = reportData.other_expenses || {};
         
         // Check if any default salary is missing
         const salaryHasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
@@ -358,7 +449,20 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
           key => !(key in distributorExpenses)
         );
         
-        if (salaryHasChanged || distributorHasChanged) {
+        // Check if any default utilities is missing
+        const utilitiesHasChanged = !reportData.utilities_expenses || Object.keys(DEFAULT_UTILITIES_EXPENSES).some(
+          key => !(key in utilitiesExpenses)
+        );
+        
+        // Check if any default operational is missing
+        const operationalHasChanged = !reportData.operational_expenses || Object.keys(DEFAULT_OPERATIONAL_EXPENSES).some(
+          key => !(key in operationalExpenses)
+        );
+        
+        // Check if other expenses exists
+        const otherHasChanged = !reportData.other_expenses;
+        
+        if (salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
           // Update the report with defaults
           const updatedSalaryExpenses = {
             ...DEFAULT_SALARY_EXPENSES,
@@ -370,11 +474,24 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
             ...distributorExpenses
           };
           
+          const updatedUtilitiesExpenses = {
+            ...DEFAULT_UTILITIES_EXPENSES,
+            ...utilitiesExpenses
+          };
+          
+          const updatedOperationalExpenses = {
+            ...DEFAULT_OPERATIONAL_EXPENSES,
+            ...operationalExpenses
+          };
+          
           await supabase
             .from('pl_reports')
             .update({
               salary_expenses: updatedSalaryExpenses,
               distributor_expenses: updatedDistributorExpenses,
+              utilities_expenses: updatedUtilitiesExpenses,
+              operational_expenses: updatedOperationalExpenses,
+              other_expenses: otherExpenses || {},
               updated_at: new Date().toISOString()
             })
             .eq('id', reportData.id);
@@ -445,6 +562,48 @@ const updateAllLocalStorageReportsWithDefaultExpenses = (): void => {
           hasChanges = true;
         }
       }
+      
+      // Check if utilities exists and has all defaults
+      if (!report.utilitiesExpenses) {
+        report.utilitiesExpenses = { ...DEFAULT_UTILITIES_EXPENSES };
+        hasChanges = true;
+      } else {
+        const utilitiesNeedsUpdate = Object.keys(DEFAULT_UTILITIES_EXPENSES).some(
+          key => !(key in report.utilitiesExpenses)
+        );
+        
+        if (utilitiesNeedsUpdate) {
+          report.utilitiesExpenses = {
+            ...DEFAULT_UTILITIES_EXPENSES,
+            ...report.utilitiesExpenses
+          };
+          hasChanges = true;
+        }
+      }
+      
+      // Check if operational exists and has all defaults
+      if (!report.operationalExpenses) {
+        report.operationalExpenses = { ...DEFAULT_OPERATIONAL_EXPENSES };
+        hasChanges = true;
+      } else {
+        const operationalNeedsUpdate = Object.keys(DEFAULT_OPERATIONAL_EXPENSES).some(
+          key => !(key in report.operationalExpenses)
+        );
+        
+        if (operationalNeedsUpdate) {
+          report.operationalExpenses = {
+            ...DEFAULT_OPERATIONAL_EXPENSES,
+            ...report.operationalExpenses
+          };
+          hasChanges = true;
+        }
+      }
+      
+      // Check if other expenses exists
+      if (!report.otherExpenses) {
+        report.otherExpenses = {};
+        hasChanges = true;
+      }
     }
     
     // Save changes if any
@@ -479,11 +638,13 @@ export const getAllReports = async (): Promise<PLReport[]> => {
       // Convert the snake_case from Supabase to camelCase for our frontend
       return data.map(report => ({
         date: report.date,
-        revenueItems: report.revenue_items as Record<string, number>,
-        costOfGoodsItems: report.cost_of_goods_items as Record<string, number>,
-        salaryExpenses: report.salary_expenses as Record<string, number>,
-        distributorExpenses: report.distributor_expenses as Record<string, number>,
-        operationalExpenses: report.operational_expenses as Record<string, number>,
+        revenueItems: report.revenue_items || {},
+        costOfGoodsItems: report.cost_of_goods_items || {},
+        salaryExpenses: report.salary_expenses || {},
+        distributorExpenses: report.distributor_expenses || {},
+        utilitiesExpenses: report.utilities_expenses || {},
+        operationalExpenses: report.operational_expenses || {},
+        otherExpenses: report.other_expenses || {},
         budget: report.budget as PLReport['budget']
       }));
     }
@@ -528,16 +689,24 @@ export const exportToCsv = (report: PLReport): void => {
   const distributorLines = Object.entries(report.distributorExpenses)
     .map(([name, value]) => `Distributor,${name},${value}`);
   
-  const operationalLines = Object.entries(report.operationalExpenses)
+  const utilitiesLines = Object.entries(report.utilitiesExpenses || {})
+    .map(([name, value]) => `Utilities,${name},${value}`);
+  
+  const operationalLines = Object.entries(report.operationalExpenses || {})
     .map(([name, value]) => `Operational,${name},${value}`);
+  
+  const otherLines = Object.entries(report.otherExpenses || {})
+    .map(([name, value]) => `Other,${name},${value}`);
   
   const totalRevenue = Object.values(report.revenueItems).reduce((sum, val) => sum + val, 0);
   const totalCogs = Object.values(report.costOfGoodsItems).reduce((sum, val) => sum + val, 0);
   const totalSalary = Object.values(report.salaryExpenses).reduce((sum, val) => sum + val, 0);
   const totalDistributor = Object.values(report.distributorExpenses).reduce((sum, val) => sum + val, 0);
-  const totalOperational = Object.values(report.operationalExpenses).reduce((sum, val) => sum + val, 0);
+  const totalUtilities = Object.values(report.utilitiesExpenses || {}).reduce((sum, val) => sum + val, 0);
+  const totalOperational = Object.values(report.operationalExpenses || {}).reduce((sum, val) => sum + val, 0);
+  const totalOther = Object.values(report.otherExpenses || {}).reduce((sum, val) => sum + val, 0);
   
-  const totalExpenses = totalSalary + totalDistributor + totalOperational;
+  const totalExpenses = totalSalary + totalDistributor + totalUtilities + totalOperational + totalOther;
   const grossProfit = totalRevenue - totalCogs;
   const netProfit = grossProfit - totalExpenses;
   
@@ -555,7 +724,9 @@ export const exportToCsv = (report: PLReport): void => {
     ...cogsLines,
     ...salaryLines,
     ...distributorLines,
+    ...utilitiesLines,
     ...operationalLines,
+    ...otherLines,
     ...summaryLines
   ].join('\n');
   

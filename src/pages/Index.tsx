@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -55,14 +56,26 @@ const Index = () => {
     "Metro": 0
   });
 
+  // State for utilities expenses
+  const [utilitiesExpenses, setUtilitiesExpenses] = useState<Record<string, number>>({
+    "Gaze(Engie)": 0,
+    "Apa": 0,
+    "Curent": 0,
+    "Gunoi(Iridex)": 0,
+    "Internet": 0
+  });
+
   // State for operational expenses
   const [operationalExpenses, setOperationalExpenses] = useState<Record<string, number>>({
+    "Contabilitate": 0,
+    "ECR": 0,
+    "ISU": 0,
     "Chirie": 0,
-    "Utilitati - Curent": 0,
-    "Utilitati - Apa": 0,
-    "Utilitati - Gunoi": 0,
-    "Alte Cheltuieli": 0
+    "Protectia Muncii": 0
   });
+
+  // State for other expenses
+  const [otherExpenses, setOtherExpenses] = useState<Record<string, number>>({});
 
   // State for budget
   const [budget, setBudget] = useState<{
@@ -85,7 +98,21 @@ const Index = () => {
         setCostOfGoodsItems(report.costOfGoodsItems);
         setSalaryExpenses(report.salaryExpenses);
         setDistributorExpenses(report.distributorExpenses);
-        setOperationalExpenses(report.operationalExpenses);
+        setUtilitiesExpenses(report.utilitiesExpenses || {
+          "Gaze(Engie)": 0,
+          "Apa": 0,
+          "Curent": 0,
+          "Gunoi(Iridex)": 0,
+          "Internet": 0
+        });
+        setOperationalExpenses(report.operationalExpenses || {
+          "Contabilitate": 0,
+          "ECR": 0,
+          "ISU": 0,
+          "Chirie": 0,
+          "Protectia Muncii": 0
+        });
+        setOtherExpenses(report.otherExpenses || {});
         setBudget(report.budget);
       }
     };
@@ -102,8 +129,11 @@ const Index = () => {
   const totalCogs = calculateTotal(costOfGoodsItems);
   const totalSalaryExpenses = calculateTotal(salaryExpenses);
   const totalDistributorExpenses = calculateTotal(distributorExpenses);
+  const totalUtilitiesExpenses = calculateTotal(utilitiesExpenses);
   const totalOperationalExpenses = calculateTotal(operationalExpenses);
-  const totalExpenses = totalSalaryExpenses + totalDistributorExpenses + totalOperationalExpenses;
+  const totalOtherExpenses = calculateTotal(otherExpenses);
+  const totalExpenses = totalSalaryExpenses + totalDistributorExpenses + 
+                         totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses;
   
   // Calculate profit
   const grossProfit = totalRevenue - totalCogs;
@@ -126,8 +156,16 @@ const Index = () => {
     setDistributorExpenses(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleUtilitiesUpdate = (name: string, value: number) => {
+    setUtilitiesExpenses(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleOperationalUpdate = (name: string, value: number) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleOtherExpensesUpdate = (name: string, value: number) => {
+    setOtherExpenses(prev => ({ ...prev, [name]: value }));
   };
 
   // Handle item renaming for each section
@@ -175,10 +213,32 @@ const Index = () => {
     });
   };
 
+  const handleUtilitiesRename = (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setUtilitiesExpenses(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+  };
+
   const handleOperationalRename = (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
     setOperationalExpenses(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+  };
+
+  const handleOtherExpensesRename = (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setOtherExpenses(prev => {
       const value = prev[oldName];
       const newItems = { ...prev };
       delete newItems[oldName];
@@ -203,8 +263,16 @@ const Index = () => {
     setDistributorExpenses(prev => ({ ...prev, [name]: 0 }));
   };
 
+  const handleAddUtilities = (name: string) => {
+    setUtilitiesExpenses(prev => ({ ...prev, [name]: 0 }));
+  };
+
   const handleAddOperational = (name: string) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: 0 }));
+  };
+
+  const handleAddOtherExpenses = (name: string) => {
+    setOtherExpenses(prev => ({ ...prev, [name]: 0 }));
   };
 
   return (
@@ -218,7 +286,9 @@ const Index = () => {
             costOfGoodsItems={costOfGoodsItems}
             salaryExpenses={salaryExpenses}
             distributorExpenses={distributorExpenses}
+            utilitiesExpenses={utilitiesExpenses}
             operationalExpenses={operationalExpenses}
+            otherExpenses={otherExpenses}
             budget={budget}
           />
 
@@ -275,12 +345,30 @@ const Index = () => {
                   />
                   
                   <ExpensesSection 
+                    title="UTILITATI"
+                    items={utilitiesExpenses}
+                    onUpdateItem={handleUtilitiesUpdate}
+                    totalExpenses={totalUtilitiesExpenses}
+                    onRenameItem={handleUtilitiesRename}
+                    onAddItem={handleAddUtilities}
+                  />
+                  
+                  <ExpensesSection 
                     title="CHELTUIELI OPERATIONALE"
                     items={operationalExpenses}
                     onUpdateItem={handleOperationalUpdate}
                     totalExpenses={totalOperationalExpenses}
                     onRenameItem={handleOperationalRename}
                     onAddItem={handleAddOperational}
+                  />
+                  
+                  <ExpensesSection 
+                    title="ALTE CHELTUIELI"
+                    items={otherExpenses}
+                    onUpdateItem={handleOtherExpensesUpdate}
+                    totalExpenses={totalOtherExpenses}
+                    onRenameItem={handleOtherExpensesRename}
+                    onAddItem={handleAddOtherExpenses}
                   />
                   
                   <div className="bg-gray-100 p-4 rounded-md">
@@ -304,7 +392,9 @@ const Index = () => {
                   costOfGoodsItems={costOfGoodsItems}
                   salaryExpenses={salaryExpenses}
                   distributorExpenses={distributorExpenses}
+                  utilitiesExpenses={utilitiesExpenses}
                   operationalExpenses={operationalExpenses}
+                  otherExpenses={otherExpenses}
                   grossProfit={grossProfit}
                   netProfit={netProfit}
                   totalExpenses={totalExpenses}
@@ -344,7 +434,9 @@ const Index = () => {
                   costOfGoodsItems={costOfGoodsItems}
                   salaryExpenses={salaryExpenses}
                   distributorExpenses={distributorExpenses}
+                  utilitiesExpenses={utilitiesExpenses}
                   operationalExpenses={operationalExpenses}
+                  otherExpenses={otherExpenses}
                   budget={budget}
                   onBudgetSave={setBudget}
                 />
@@ -414,12 +506,30 @@ const Index = () => {
                 />
                 
                 <ExpensesSection 
+                  title="UTILITATI"
+                  items={utilitiesExpenses}
+                  onUpdateItem={handleUtilitiesUpdate}
+                  totalExpenses={totalUtilitiesExpenses}
+                  onRenameItem={handleUtilitiesRename}
+                  onAddItem={handleAddUtilities}
+                />
+                
+                <ExpensesSection 
                   title="CHELTUIELI OPERATIONALE"
                   items={operationalExpenses}
                   onUpdateItem={handleOperationalUpdate}
                   totalExpenses={totalOperationalExpenses}
                   onRenameItem={handleOperationalRename}
                   onAddItem={handleAddOperational}
+                />
+                
+                <ExpensesSection 
+                  title="ALTE CHELTUIELI"
+                  items={otherExpenses}
+                  onUpdateItem={handleOtherExpensesUpdate}
+                  totalExpenses={totalOtherExpenses}
+                  onRenameItem={handleOtherExpensesRename}
+                  onAddItem={handleAddOtherExpenses}
                 />
               </div>
             </div>
