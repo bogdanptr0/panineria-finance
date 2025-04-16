@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { formatMonth } from "@/lib/formatters";
 import { DEFAULT_SALARY_EXPENSES } from "@/lib/constants";
@@ -123,25 +124,26 @@ export const loadReport = async (date: Date): Promise<{
       const tazzKeys = Object.keys(DEFAULT_TAZZ_ITEMS);
       
       if (data.revenue_items) {
-        Object.entries(data.revenue_items as Record<string, number>).forEach(([key, value]) => {
+        const revenueItems = data.revenue_items as Record<string, number>;
+        Object.entries(revenueItems).forEach(([key, value]) => {
           if (bucatarieKeys.includes(key)) {
-            bucatarie[key] = value as number;
+            bucatarie[key] = typeof value === 'number' ? value : 0;
           } else if (tazzKeys.includes(key)) {
-            tazz[key] = value as number;
+            tazz[key] = typeof value === 'number' ? value : 0;
           } else {
-            bar[key] = value as number;
+            bar[key] = typeof value === 'number' ? value : 0;
           }
         });
       }
 
       return {
-        revenueItems: data.revenue_items as Record<string, number> || {},
-        costOfGoodsItems: data.cost_of_goods_items as Record<string, number> || DEFAULT_EMPTY_COGS_ITEMS,
-        salaryExpenses: data.salary_expenses as Record<string, number> || DEFAULT_SALARY_EXPENSES,
-        distributorExpenses: data.distributor_expenses as Record<string, number> || DEFAULT_DISTRIBUTOR_EXPENSES,
-        operationalExpenses: data.operational_expenses as Record<string, number> || DEFAULT_OPERATIONAL_EXPENSES,
-        utilitiesExpenses: data.utilities_expenses as Record<string, number> || DEFAULT_UTILITIES_EXPENSES,
-        otherExpenses: data.other_expenses as Record<string, number> || {},
+        revenueItems: (data.revenue_items as Record<string, number>) || {},
+        costOfGoodsItems: (data.cost_of_goods_items as Record<string, number>) || DEFAULT_EMPTY_COGS_ITEMS,
+        salaryExpenses: (data.salary_expenses as Record<string, number>) || DEFAULT_SALARY_EXPENSES,
+        distributorExpenses: (data.distributor_expenses as Record<string, number>) || DEFAULT_DISTRIBUTOR_EXPENSES,
+        operationalExpenses: (data.operational_expenses as Record<string, number>) || DEFAULT_OPERATIONAL_EXPENSES,
+        utilitiesExpenses: (data.utilities_expenses as Record<string, number>) || DEFAULT_UTILITIES_EXPENSES,
+        otherExpenses: (data.other_expenses as Record<string, number>) || {},
         budget: data.budget as {
           targetRevenue: number;
           targetExpenses: number;
@@ -300,25 +302,38 @@ export const deleteItemFromSupabase = async (
     }
     
     let items: Record<string, number> | undefined = undefined;
+    let dataField = '';
     
     switch (category) {
       case 'revenueItems':
         items = reportData.revenue_items as Record<string, number>;
+        dataField = 'revenue_items';
         break;
       case 'salaryExpenses':
         items = reportData.salary_expenses as Record<string, number>;
+        dataField = 'salary_expenses';
         break;
       case 'distributorExpenses':
         items = reportData.distributor_expenses as Record<string, number>;
+        dataField = 'distributor_expenses';
         break;
       case 'utilitiesExpenses':
         items = reportData.utilities_expenses as Record<string, number>;
+        dataField = 'utilities_expenses';
         break;
       case 'operationalExpenses':
         items = reportData.operational_expenses as Record<string, number>;
+        dataField = 'operational_expenses';
         break;
       case 'otherExpenses':
         items = reportData.other_expenses as Record<string, number>;
+        dataField = 'other_expenses';
+        break;
+      case 'bucatarieItems':
+      case 'tazzItems':
+      case 'barItems':
+        items = reportData.revenue_items as Record<string, number>;
+        dataField = 'revenue_items';
         break;
       default:
         console.error('Invalid category:', category);
@@ -330,10 +345,13 @@ export const deleteItemFromSupabase = async (
       return false;
     }
     
-    delete items[itemName];
+    const updatedItems = { ...items };
+    delete updatedItems[itemName];
     
-    let updatePayload: any = {};
-    updatePayload[category] = items;
+    const updatePayload: Record<string, any> = {
+      [dataField]: updatedItems,
+      updated_at: new Date().toISOString()
+    };
     
     const { error: updateError } = await supabase
       .from('pl_reports')
@@ -384,7 +402,7 @@ export const addItemToSupabase = async (
     
     // Create a new report if none exists
     if (!reportData) {
-      const defaultReport = {
+      const defaultReport: Record<string, any> = {
         date: formattedDate,
         user_id: user.id,
         revenue_items: {},
@@ -402,7 +420,8 @@ export const addItemToSupabase = async (
           [itemName]: value
         };
       } else {
-        defaultReport[category] = {
+        const field = category.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+        defaultReport[field] = {
           [itemName]: value
         };
       }
@@ -420,46 +439,56 @@ export const addItemToSupabase = async (
     }
     
     // Handle updating existing report
-    let items: Record<string, number> = {};
-    let updatePayload: any = {};
+    let updatePayload: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    };
     
     if (category === 'bucatarieItems' || category === 'tazzItems' || category === 'barItems') {
       // For subcategories of revenue, we update the revenue_items
-      items = reportData.revenue_items || {};
-      items[itemName] = value;
-      updatePayload = {
-        revenue_items: items,
-        updated_at: new Date().toISOString()
+      const currentItems = reportData.revenue_items as Record<string, number> || {};
+      updatePayload.revenue_items = {
+        ...currentItems,
+        [itemName]: value
       };
     } else {
       // For other categories, we update the specific category
+      let field = '';
+      let currentItems: Record<string, number> = {};
+      
       switch (category) {
         case 'revenueItems':
-          items = reportData.revenue_items || {};
+          field = 'revenue_items';
+          currentItems = reportData.revenue_items as Record<string, number> || {};
           break;
         case 'salaryExpenses':
-          items = reportData.salary_expenses || {};
+          field = 'salary_expenses';
+          currentItems = reportData.salary_expenses as Record<string, number> || {};
           break;
         case 'distributorExpenses':
-          items = reportData.distributor_expenses || {};
+          field = 'distributor_expenses';
+          currentItems = reportData.distributor_expenses as Record<string, number> || {};
           break;
         case 'utilitiesExpenses':
-          items = reportData.utilities_expenses || {};
+          field = 'utilities_expenses';
+          currentItems = reportData.utilities_expenses as Record<string, number> || {};
           break;
         case 'operationalExpenses':
-          items = reportData.operational_expenses || {};
+          field = 'operational_expenses';
+          currentItems = reportData.operational_expenses as Record<string, number> || {};
           break;
         case 'otherExpenses':
-          items = reportData.other_expenses || {};
+          field = 'other_expenses';
+          currentItems = reportData.other_expenses as Record<string, number> || {};
           break;
         default:
           console.error('Invalid category:', category);
           return false;
       }
       
-      items[itemName] = value;
-      updatePayload[category.replace('Items', '_items')] = items;
-      updatePayload.updated_at = new Date().toISOString();
+      updatePayload[field] = {
+        ...currentItems,
+        [itemName]: value
+      };
     }
     
     const { error: updateError } = await supabase
@@ -510,34 +539,42 @@ export const updateItemInSupabase = async (
     }
     
     if (!reportData) {
-      console.log('No report found for this month.');
-      return false;
+      // If no report exists, create one with the item
+      return await addItemToSupabase(date, category, itemName, value);
     }
     
     let items: Record<string, number> = {};
+    let field = '';
     
     switch (category) {
       case 'revenueItems':
+        field = 'revenue_items';
         items = reportData.revenue_items as Record<string, number> || {};
         break;
       case 'salaryExpenses':
+        field = 'salary_expenses';
         items = reportData.salary_expenses as Record<string, number> || {};
         break;
       case 'distributorExpenses':
+        field = 'distributor_expenses';
         items = reportData.distributor_expenses as Record<string, number> || {};
         break;
       case 'utilitiesExpenses':
+        field = 'utilities_expenses';
         items = reportData.utilities_expenses as Record<string, number> || {};
         break;
       case 'operationalExpenses':
+        field = 'operational_expenses';
         items = reportData.operational_expenses as Record<string, number> || {};
         break;
       case 'otherExpenses':
+        field = 'other_expenses';
         items = reportData.other_expenses as Record<string, number> || {};
         break;
       case 'bucatarieItems':
       case 'tazzItems':
       case 'barItems':
+        field = 'revenue_items';
         items = reportData.revenue_items as Record<string, number> || {};
         break;
       default:
@@ -545,17 +582,12 @@ export const updateItemInSupabase = async (
         return false;
     }
     
-    items[itemName] = value;
+    const updatedItems = { ...items, [itemName]: value };
     
-    let updatePayload: Record<string, any> = {};
-    
-    if (category === 'bucatarieItems' || category === 'tazzItems' || category === 'barItems') {
-      updatePayload.revenue_items = items;
-    } else {
-      updatePayload[category.replace('Items', '_items')] = items;
-    }
-    
-    updatePayload.updated_at = new Date().toISOString();
+    const updatePayload: Record<string, any> = {
+      [field]: updatedItems,
+      updated_at: new Date().toISOString()
+    };
     
     const { error: updateError } = await supabase
       .from('pl_reports')
@@ -610,38 +642,38 @@ export const renameItemInSupabase = async (
     }
     
     let items: Record<string, number> = {};
-    let updateField: string = '';
+    let field = '';
     
     switch (category) {
       case 'revenueItems':
+        field = 'revenue_items';
         items = reportData.revenue_items as Record<string, number> || {};
-        updateField = 'revenue_items';
         break;
       case 'salaryExpenses':
+        field = 'salary_expenses';
         items = reportData.salary_expenses as Record<string, number> || {};
-        updateField = 'salary_expenses';
         break;
       case 'distributorExpenses':
+        field = 'distributor_expenses';
         items = reportData.distributor_expenses as Record<string, number> || {};
-        updateField = 'distributor_expenses';
         break;
       case 'utilitiesExpenses':
+        field = 'utilities_expenses';
         items = reportData.utilities_expenses as Record<string, number> || {};
-        updateField = 'utilities_expenses';
         break;
       case 'operationalExpenses':
+        field = 'operational_expenses';
         items = reportData.operational_expenses as Record<string, number> || {};
-        updateField = 'operational_expenses';
         break;
       case 'otherExpenses':
+        field = 'other_expenses';
         items = reportData.other_expenses as Record<string, number> || {};
-        updateField = 'other_expenses';
         break;
       case 'bucatarieItems':
       case 'tazzItems':
       case 'barItems':
+        field = 'revenue_items';
         items = reportData.revenue_items as Record<string, number> || {};
-        updateField = 'revenue_items';
         break;
       default:
         console.error('Invalid category:', category);
@@ -653,16 +685,19 @@ export const renameItemInSupabase = async (
       return false;
     }
     
-    const value = items[oldName];
-    delete items[oldName];
-    items[newName] = value;
+    const updatedItems = { ...items };
+    const value = updatedItems[oldName];
+    delete updatedItems[oldName];
+    updatedItems[newName] = value;
+    
+    const updatePayload: Record<string, any> = {
+      [field]: updatedItems,
+      updated_at: new Date().toISOString()
+    };
     
     const { error: updateError } = await supabase
       .from('pl_reports')
-      .update({
-        [updateField]: items,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('date', formattedDate)
       .eq('user_id', user.id);
     
