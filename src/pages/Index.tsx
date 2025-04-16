@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -11,7 +12,7 @@ import ComparisonView from "@/components/ComparisonView";
 import BudgetAnalysis from "@/components/BudgetAnalysis";
 import CashFlowProjection from "@/components/CashFlowProjection";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { loadReport } from "@/lib/persistence";
+import { loadReport, updateAllReportsWithDefaultSalaries } from "@/lib/persistence";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -70,6 +71,11 @@ const Index = () => {
     targetExpenses: number;
     targetProfit: number;
   } | undefined>(undefined);
+
+  // Update all reports with default salaries when the app loads
+  useEffect(() => {
+    updateAllReportsWithDefaultSalaries();
+  }, []);
 
   // Load report data when month changes
   useEffect(() => {

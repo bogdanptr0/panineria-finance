@@ -18,14 +18,29 @@ export interface PLReport {
 
 const STORAGE_KEY = 'panini_pl_reports';
 
+// Default salary expenses that should be present in all reports
+const DEFAULT_SALARY_EXPENSES = {
+  "Adi": 4050,
+  "Ioana": 4050,
+  "Andreea": 4050,
+  "Victoria": 4050
+};
+
 export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date'>): Promise<void> => {
   try {
     // Create date key in format YYYY-MM
     const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
     
+    // Ensure the report has the default salary expenses
+    const salaryExpenses = {
+      ...DEFAULT_SALARY_EXPENSES,
+      ...data.salaryExpenses
+    };
+    
     const report: PLReport = {
       date: dateKey,
-      ...data
+      ...data,
+      salaryExpenses
     };
     
     // Get current user
@@ -129,7 +144,7 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
     
     if (data) {
       // Convert the snake_case from Supabase to camelCase for our frontend
-      return {
+      const report = {
         date: data.date,
         revenueItems: data.revenue_items as Record<string, number>,
         costOfGoodsItems: data.cost_of_goods_items as Record<string, number>,
@@ -138,6 +153,37 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         operationalExpenses: data.operational_expenses as Record<string, number>,
         budget: data.budget as PLReport['budget']
       };
+      
+      // Ensure the report has the default salary expenses
+      // This makes sure that even previously saved reports
+      // will have the default salary structure
+      if (report.salaryExpenses) {
+        report.salaryExpenses = {
+          ...DEFAULT_SALARY_EXPENSES,
+          ...report.salaryExpenses
+        };
+        
+        // If the report was updated with new defaults, save it back
+        const hasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
+          key => !(key in data.salary_expenses)
+        );
+        
+        if (hasChanged) {
+          // Save the updated report back to the database
+          await supabase
+            .from('pl_reports')
+            .update({
+              salary_expenses: report.salaryExpenses,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', data.id);
+            
+          // Also update in localStorage
+          updateLocalStorageReport(report);
+        }
+      }
+      
+      return report;
     }
     
     // If no report found, return null or a default template
@@ -158,12 +204,7 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         "Bere": 0,
         "Vin": 0
       },
-      salaryExpenses: {
-        "Adi": 4050,
-        "Ioana": 4050,
-        "Andreea": 4050,
-        "Victoria": 4050
-      },
+      salaryExpenses: DEFAULT_SALARY_EXPENSES,
       distributorExpenses: {
         "#1": 0,
         "#2": 0,
@@ -201,11 +242,159 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
     // Create date key in format YYYY-MM
     const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
     
-    // Return the report if it exists
-    return existingReports[dateKey] || null;
+    // Check if the report exists
+    const report = existingReports[dateKey];
+    
+    if (report) {
+      // Ensure the report has the default salary expenses
+      if (report.salaryExpenses) {
+        const updatedReport = {
+          ...report,
+          salaryExpenses: {
+            ...DEFAULT_SALARY_EXPENSES,
+            ...report.salaryExpenses
+          }
+        };
+        
+        // If the report was updated, save it back to localStorage
+        const hasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
+          key => !(key in report.salaryExpenses)
+        );
+        
+        if (hasChanged) {
+          updateLocalStorageReport(updatedReport);
+        }
+        
+        return updatedReport;
+      }
+      
+      return report;
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error loading report from localStorage:', error);
     return null;
+  }
+};
+
+// Helper function to update a report in localStorage
+const updateLocalStorageReport = (report: PLReport): void => {
+  try {
+    const existingReportsStr = localStorage.getItem(STORAGE_KEY);
+    if (!existingReportsStr) return;
+    
+    const existingReports: Record<string, PLReport> = JSON.parse(existingReportsStr);
+    existingReports[report.date] = report;
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingReports));
+  } catch (error) {
+    console.error('Error updating report in localStorage:', error);
+  }
+};
+
+// Function to update all reports with default salary expenses
+export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
+  try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // Fall back to updating localStorage if not authenticated
+      updateAllLocalStorageReportsWithDefaultSalaries();
+      return;
+    }
+    
+    // Fetch all reports from Supabase
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id);
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      // Process each report
+      for (const reportData of data) {
+        const salaryExpenses = reportData.salary_expenses as Record<string, number>;
+        
+        // Check if any default salary is missing
+        const hasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
+          key => !(key in salaryExpenses)
+        );
+        
+        if (hasChanged) {
+          // Update the report with default salaries
+          const updatedSalaryExpenses = {
+            ...DEFAULT_SALARY_EXPENSES,
+            ...salaryExpenses
+          };
+          
+          await supabase
+            .from('pl_reports')
+            .update({
+              salary_expenses: updatedSalaryExpenses,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', reportData.id);
+        }
+      }
+    }
+    
+    // Also update localStorage reports
+    updateAllLocalStorageReportsWithDefaultSalaries();
+    
+    toast({
+      title: "Success",
+      description: "All reports updated with default salary expenses",
+    });
+  } catch (error) {
+    console.error('Error updating reports with default salaries:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update reports with default salary expenses",
+      variant: "destructive",
+    });
+  }
+};
+
+// Helper function to update all localStorage reports with default salary expenses
+const updateAllLocalStorageReportsWithDefaultSalaries = (): void => {
+  try {
+    const existingReportsStr = localStorage.getItem(STORAGE_KEY);
+    if (!existingReportsStr) return;
+    
+    const existingReports: Record<string, PLReport> = JSON.parse(existingReportsStr);
+    let hasChanges = false;
+    
+    // Process each report
+    for (const dateKey in existingReports) {
+      const report = existingReports[dateKey];
+      
+      if (report.salaryExpenses) {
+        // Check if any default salary is missing
+        const needsUpdate = Object.keys(DEFAULT_SALARY_EXPENSES).some(
+          key => !(key in report.salaryExpenses)
+        );
+        
+        if (needsUpdate) {
+          // Update the report with default salaries
+          report.salaryExpenses = {
+            ...DEFAULT_SALARY_EXPENSES,
+            ...report.salaryExpenses
+          };
+          
+          hasChanges = true;
+        }
+      }
+    }
+    
+    // Save changes if any
+    if (hasChanges) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(existingReports));
+    }
+  } catch (error) {
+    console.error('Error updating localStorage reports with default salaries:', error);
   }
 };
 
