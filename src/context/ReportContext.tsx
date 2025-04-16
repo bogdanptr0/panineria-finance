@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -174,11 +173,6 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
         
         setBucatarieItems(report.bucatarieItems || {});
         setBarItems(report.barItems || {});
-        
-        setSubcategories(prev => ({
-          ...prev,
-          revenueItems: report.revenueItems || {}
-        }));
         
         setSalaryExpenses(report.salaryExpenses);
         setDistributorExpenses(report.distributorExpenses);
@@ -475,17 +469,13 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
       if (subsectionTitle === "Bucatarie") {
         setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
         
-        setSubcategories(prev => {
-          const revenueSubcategories = prev.revenueItems || {};
-          
-          return {
-            ...prev,
-            revenueItems: {
-              ...revenueSubcategories,
-              [name]: 'Bucatarie'
-            }
-          };
-        });
+        setSubcategories(prev => ({
+          ...prev,
+          revenueItems: {
+            ...(prev.revenueItems || {}),
+            [name]: 'Bucatarie'
+          }
+        }));
         
         await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0, "Bucatarie");
         
@@ -496,17 +486,13 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
       } else if (subsectionTitle === "Bar") {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
         
-        setSubcategories(prev => {
-          const revenueSubcategories = prev.revenueItems || {};
-          
-          return {
-            ...prev,
-            revenueItems: {
-              ...revenueSubcategories,
-              [name]: 'Bar'
-            }
-          };
-        });
+        setSubcategories(prev => ({
+          ...prev,
+          revenueItems: {
+            ...(prev.revenueItems || {}),
+            [name]: 'Bar'
+          }
+        }));
         
         await addItemToSupabase(selectedMonth, 'barItems', name, 0, "Bar");
         
@@ -517,17 +503,13 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
       } else {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
         
-        setSubcategories(prev => {
-          const revenueSubcategories = prev.revenueItems || {};
-          
-          return {
-            ...prev,
-            revenueItems: {
-              ...revenueSubcategories,
-              [name]: 'Bar'
-            }
-          };
-        });
+        setSubcategories(prev => ({
+          ...prev,
+          revenueItems: {
+            ...(prev.revenueItems || {}),
+            [name]: 'Bar'
+          }
+        }));
         
         await addItemToSupabase(selectedMonth, 'barItems', name, 0, "Bar");
         

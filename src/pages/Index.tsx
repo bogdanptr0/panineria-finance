@@ -2,7 +2,7 @@
 import Header from "@/components/Header";
 import { RequireAuth } from "@/lib/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ReportProvider } from "@/context/ReportContext";
+import { ReportProvider, useReport } from "@/context/ReportContext";
 import BasicReport from "@/components/BasicReport";
 import AdvancedAnalytics from "@/components/AdvancedAnalytics";
 

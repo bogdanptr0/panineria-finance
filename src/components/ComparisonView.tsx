@@ -17,6 +17,15 @@ interface ComparisonViewProps {
   };
 }
 
+interface TrendDataItem {
+  month: string;
+  revenue: number;
+  cogs: number;
+  grossProfit: number;
+  expenses: number;
+  netProfit: number;
+}
+
 const ComparisonView = ({ 
   currentMonth = new Date(), 
   currentReport = {
@@ -28,7 +37,7 @@ const ComparisonView = ({
   } 
 }: ComparisonViewProps) => {
   const [reports, setReports] = useState<PLReport[]>([]);
-  const [trendData, setTrendData] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<TrendDataItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,8 +54,10 @@ const ComparisonView = ({
           
           const totalSalary = Object.values(report.salaryExpenses).reduce((sum, val) => sum + Number(val), 0);
           const totalDistributor = Object.values(report.distributorExpenses).reduce((sum, val) => sum + Number(val), 0);
+          const totalUtilities = Object.values(report.utilitiesExpenses || {}).reduce((sum, val) => sum + Number(val), 0);
           const totalOperational = Object.values(report.operationalExpenses || {}).reduce((sum, val) => sum + Number(val), 0);
-          const totalExpenses = totalSalary + totalDistributor + totalOperational;
+          const totalOther = Object.values(report.otherExpenses || {}).reduce((sum, val) => sum + Number(val), 0);
+          const totalExpenses = totalSalary + totalDistributor + totalUtilities + totalOperational + totalOther;
           
           const netProfit = grossProfit - totalExpenses;
           
@@ -94,8 +105,10 @@ const ComparisonView = ({
     
     const totalSalary = Object.values(previousReport.salaryExpenses).reduce((sum, val) => sum + Number(val), 0);
     const totalDistributor = Object.values(previousReport.distributorExpenses).reduce((sum, val) => sum + Number(val), 0);
+    const totalUtilities = Object.values(previousReport.utilitiesExpenses || {}).reduce((sum, val) => sum + Number(val), 0);
     const totalOperational = Object.values(previousReport.operationalExpenses || {}).reduce((sum, val) => sum + Number(val), 0);
-    const totalExpenses = totalSalary + totalDistributor + totalOperational;
+    const totalOther = Object.values(previousReport.otherExpenses || {}).reduce((sum, val) => sum + Number(val), 0);
+    const totalExpenses = totalSalary + totalDistributor + totalUtilities + totalOperational + totalOther;
     
     const netProfit = grossProfit - totalExpenses;
     

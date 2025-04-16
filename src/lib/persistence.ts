@@ -125,7 +125,7 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
       operationalExpenses: data.operational_expenses || {},
       otherExpenses: data.other_expenses || {},
       subcategories: data.subcategories || { revenueItems: {}, expenses: {} },
-      budget: data.budget,
+      budget: data.budget as any,
       bucatarieItems: data.bucatarie_items || {},
       barItems: data.bar_items || {}
     };
@@ -838,5 +838,47 @@ export const exportToPdf = () => {
     window.print();
   } catch (error) {
     console.error("Error in exportToPdf:", error);
+  }
+};
+
+export const getAllReports = async (): Promise<PLReport[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .order('date', { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching reports:", error);
+      return [];
+    }
+    
+    if (!data || data.length === 0) {
+      return [];
+    }
+    
+    // Parse the JSON fields from the database for each report
+    const reports = data.map(item => {
+      const report: PLReport = {
+        date: item.date,
+        revenueItems: item.revenue_items || {},
+        costOfGoodsItems: item.cost_of_goods_items || {},
+        salaryExpenses: item.salary_expenses || {},
+        distributorExpenses: item.distributor_expenses || {},
+        utilitiesExpenses: item.utilities_expenses || {},
+        operationalExpenses: item.operational_expenses || {},
+        otherExpenses: item.other_expenses || {},
+        subcategories: item.subcategories || { revenueItems: {}, expenses: {} },
+        budget: item.budget as any,
+        bucatarieItems: item.bucatarie_items || {},
+        barItems: item.bar_items || {}
+      };
+      return report;
+    });
+    
+    return reports;
+  } catch (error) {
+    console.error("Error in getAllReports:", error);
+    return [];
   }
 };
