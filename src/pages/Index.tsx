@@ -885,4 +885,102 @@ const Index = () => {
                       if (operationalExpensesSubsections[0].items.includes(name)) {
                         handleUtilitiesUpdate(name, value);
                       } else if (operationalExpensesSubsections[1].items.includes(name)) {
-                        handleOperationalUpdate(
+                        handleOperationalUpdate(name, value);
+                      } else {
+                        handleOtherExpensesUpdate(name, value);
+                      }
+                    }}
+                    totalExpenses={totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses}
+                    onRenameItem={(oldName, newName) => {
+                      if (operationalExpensesSubsections[0].items.includes(oldName)) {
+                        handleUtilitiesRename(oldName, newName);
+                      } else if (operationalExpensesSubsections[1].items.includes(oldName)) {
+                        handleOperationalRename(oldName, newName);
+                      } else {
+                        handleOtherExpensesRename(oldName, newName);
+                      }
+                    }}
+                    onAddItem={(name) => handleSubsectionAddItem("Alte Cheltuieli", name)}
+                    onDeleteItem={handleDeleteOperationalItem}
+                    subsections={operationalExpensesSubsections}
+                    onSubsectionAddItem={handleSubsectionAddItem}
+                  />
+                  
+                  <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
+                    <div className="flex justify-between items-center font-semibold">
+                      <span className="text-lg">TOTAL CHELTUIELI</span>
+                      <span className="text-lg">{formatCurrency(totalExpenses)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
+                    <div className="flex justify-between items-center font-semibold">
+                      <span className="text-lg">PROFIT NET</span>
+                      <span className="text-lg">{formatCurrency(netProfit)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="advanced">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DataVisualization 
+                  revenueData={{
+                    bucatarie: totalBucatarieRevenue,
+                    tazz: totalTazzRevenue,
+                    bar: totalBarRevenue
+                  }}
+                  expensesData={{
+                    salary: totalSalaryExpenses,
+                    distributor: totalDistributorExpenses,
+                    utilities: totalUtilitiesExpenses,
+                    operational: totalOperationalExpenses,
+                    other: totalOtherExpenses
+                  }}
+                  profit={netProfit}
+                />
+                
+                <ProductProfitability 
+                  revenueItems={{
+                    ...bucatarieItems,
+                    ...tazzItems,
+                    ...barItems
+                  }}
+                  subsections={revenueSubsections}
+                />
+                
+                <LaborAnalysis salaryExpenses={salaryExpenses} />
+                
+                <ComparisonView 
+                  selectedMonth={selectedMonth}
+                  currentRevenue={totalRevenue}
+                  currentExpenses={totalExpenses}
+                  currentProfit={netProfit}
+                />
+                
+                <BudgetAnalysis 
+                  selectedMonth={selectedMonth}
+                  currentRevenue={totalRevenue}
+                  currentExpenses={totalExpenses}
+                  currentProfit={netProfit}
+                  budget={budget}
+                  onBudgetChange={setBudget}
+                  onSaveChanges={() => setHasUnsavedChanges(true)}
+                />
+                
+                <CashFlowProjection 
+                  selectedMonth={selectedMonth}
+                  currentRevenue={totalRevenue}
+                  currentExpenses={totalExpenses}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </RequireAuth>
+  );
+};
+
+export default Index;
