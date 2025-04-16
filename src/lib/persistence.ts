@@ -31,6 +31,46 @@ export const DEFAULT_REVENUE_ITEMS: Record<string, number> = {
   "Platou": 0
 };
 
+export const DEFAULT_BAR_ITEMS: Record<string, number> = {
+  "Espresso": 0,
+  "Cafea Lunga": 0,
+  "Cappucino": 0,
+  "Nutellino": 0,
+  "Ceai": 0,
+  "Ciocolata calda": 0,
+  "Coca Cola": 0,
+  "Fanta": 0,
+  "Sprite": 0,
+  "Schwepps": 0,
+  "FuzeTea": 0,
+  "Cappy": 0,
+  "Dorna - Plata - 0,33": 0,
+  "Dorna - Minerala - 0,33": 0,
+  "Dorna - Plata - 0,75": 0,
+  "Dorna - Minerala - 0,75": 0,
+  "Dorna - Plata - 0,5": 0,
+  "Dorna - Minerala - 0,5": 0,
+  "12 Mezzo - Bianca": 0,
+  "12 Mezzo - Rosato": 0,
+  "12 Mezzo - Primitivo": 0,
+  "Montemajor - Greco di tufo": 0,
+  "Scaia - Garganega": 0,
+  "Davinci - Rosato": 0,
+  "Tenuta Ulisse - Rose": 0,
+  "Montemajor - Quattro Noti": 0,
+  "Davinci - Portate a Cesena Sangiovese": 0,
+  "Astoria DOC": 0,
+  "Astoria Rose": 0,
+  "Peroni": 0,
+  "Peroni 0% Alcool": 0,
+  "Hugo": 0,
+  "Bellini": 0,
+  "Aperol Spritz": 0,
+  "Negroni": 0,
+  "Whiskey Cola": 0,
+  "Gin Tonic": 0
+};
+
 export const DEFAULT_EMPTY_COGS_ITEMS: Record<string, number> = {};
 
 // Default salary expenses that should be present in all reports
@@ -295,11 +335,33 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         report.budget = reportData.budget as PLReport['budget'];
       }
       
-      // Ensure the report has the default items
-      report.revenueItems = {
-        ...DEFAULT_REVENUE_ITEMS,
-        ...report.revenueItems
-      };
+      // Ensure the report has the default items for Bucatarie
+      const bucatarieKeys = Object.keys(DEFAULT_REVENUE_ITEMS);
+      const barKeys = Object.keys(DEFAULT_BAR_ITEMS);
+      
+      // Create a new revenueItems object with only the Bucatarie items
+      const filteredRevenueItems: Record<string, number> = {};
+      
+      // Add bucatarie items from existing report or defaults
+      for (const key of bucatarieKeys) {
+        if (key in report.revenueItems) {
+          filteredRevenueItems[key] = report.revenueItems[key];
+        } else {
+          filteredRevenueItems[key] = 0;
+        }
+      }
+      
+      // Add bar items from existing report or defaults
+      for (const key of barKeys) {
+        if (key in report.revenueItems) {
+          filteredRevenueItems[key] = report.revenueItems[key];
+        } else {
+          filteredRevenueItems[key] = 0;
+        }
+      }
+      
+      // Replace the report's revenueItems with our filtered version
+      report.revenueItems = filteredRevenueItems;
       
       report.salaryExpenses = {
         ...DEFAULT_SALARY_EXPENSES,
@@ -330,6 +392,7 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         !reportData.utilities_expenses || 
         !reportData.other_expenses ||
         Object.keys(DEFAULT_REVENUE_ITEMS).some(key => !(key in processSupabaseData(reportData.revenue_items))) ||
+        barKeys.some(key => !(key in processSupabaseData(reportData.revenue_items))) ||
         Object.keys(DEFAULT_SALARY_EXPENSES).some(key => !(key in processSupabaseData(reportData.salary_expenses))) ||
         Object.keys(DEFAULT_DISTRIBUTOR_EXPENSES).some(key => !(key in processSupabaseData(reportData.distributor_expenses)));
       
@@ -357,10 +420,10 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
       return report;
     }
     
-    // If no report found, return a default template
+    // If no report found, return a default template with the new bar items
     return {
       date: dateKey,
-      revenueItems: DEFAULT_REVENUE_ITEMS,
+      revenueItems: { ...DEFAULT_REVENUE_ITEMS, ...DEFAULT_BAR_ITEMS },
       costOfGoodsItems: {},
       salaryExpenses: DEFAULT_SALARY_EXPENSES,
       distributorExpenses: DEFAULT_DISTRIBUTOR_EXPENSES,
@@ -381,6 +444,7 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
   }
 };
 
+// Update the loadFromLocalStorage function to include the new bar items
 const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
   try {
     const existingReportsStr = localStorage.getItem(STORAGE_KEY);
@@ -399,10 +463,24 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
       const updatedReport = { ...report };
       
       if (updatedReport.revenueItems) {
-        updatedReport.revenueItems = {
-          ...DEFAULT_REVENUE_ITEMS,
-          ...updatedReport.revenueItems
-        };
+        // Create a new revenue items object with only our defined keys
+        const filteredRevenueItems: Record<string, number> = {};
+        
+        // Add default bucatarie items
+        for (const key of Object.keys(DEFAULT_REVENUE_ITEMS)) {
+          filteredRevenueItems[key] = key in updatedReport.revenueItems 
+            ? updatedReport.revenueItems[key] 
+            : 0;
+        }
+        
+        // Add default bar items
+        for (const key of Object.keys(DEFAULT_BAR_ITEMS)) {
+          filteredRevenueItems[key] = key in updatedReport.revenueItems 
+            ? updatedReport.revenueItems[key] 
+            : 0;
+        }
+        
+        updatedReport.revenueItems = filteredRevenueItems;
       }
       
       if (updatedReport.costOfGoodsItems) {
@@ -453,6 +531,10 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
         key => !(key in report.revenueItems || {})
       );
       
+      const barHasChanged = Object.keys(DEFAULT_BAR_ITEMS).some(
+        key => !(key in report.revenueItems || {})
+      );
+      
       const cogsHasChanged = Object.keys(DEFAULT_EMPTY_COGS_ITEMS).some(
         key => !(key in report.costOfGoodsItems || {})
       );
@@ -475,14 +557,24 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
       
       const otherHasChanged = !report.otherExpenses;
       
-      if (revenueHasChanged || cogsHasChanged || salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
+      if (revenueHasChanged || barHasChanged || cogsHasChanged || salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
         updateLocalStorageReport(updatedReport);
       }
       
       return updatedReport;
     }
     
-    return null;
+    // Return default template with new bar items if no report exists
+    return {
+      date: dateKey,
+      revenueItems: { ...DEFAULT_REVENUE_ITEMS, ...DEFAULT_BAR_ITEMS },
+      costOfGoodsItems: {},
+      salaryExpenses: DEFAULT_SALARY_EXPENSES,
+      distributorExpenses: DEFAULT_DISTRIBUTOR_EXPENSES,
+      utilitiesExpenses: DEFAULT_UTILITIES_EXPENSES,
+      operationalExpenses: DEFAULT_OPERATIONAL_EXPENSES,
+      otherExpenses: {}
+    };
   } catch (error) {
     console.error('Error loading report from localStorage:', error);
     return null;
@@ -558,6 +650,11 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
           key => !(key in revenueItems)
         );
         
+        // Check if any default bar items are missing
+        const barHasChanged = Object.keys(DEFAULT_BAR_ITEMS).some(
+          key => !(key in revenueItems)
+        );
+        
         // Check if any default salary is missing
         const salaryHasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
           key => !(key in salaryExpenses)
@@ -581,12 +678,19 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
         // Check if other expenses exists
         const otherHasChanged = !extReportData.other_expenses;
         
-        if (revenueHasChanged || salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
-          // Update the report with defaults
-          const updatedRevenueItems = {
-            ...DEFAULT_REVENUE_ITEMS,
-            ...revenueItems
-          };
+        if (revenueHasChanged || barHasChanged || salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged || otherHasChanged) {
+          // Create a new filtered revenue items object
+          const filteredRevenueItems: Record<string, number> = {};
+          
+          // Add bucatarie items from existing report or defaults
+          for (const key of Object.keys(DEFAULT_REVENUE_ITEMS)) {
+            filteredRevenueItems[key] = key in revenueItems ? revenueItems[key] : 0;
+          }
+          
+          // Add bar items from existing report or defaults
+          for (const key of Object.keys(DEFAULT_BAR_ITEMS)) {
+            filteredRevenueItems[key] = key in revenueItems ? revenueItems[key] : 0;
+          }
           
           const updatedSalaryExpenses = {
             ...DEFAULT_SALARY_EXPENSES,
@@ -611,7 +715,7 @@ export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
           await supabase
             .from('pl_reports')
             .update({
-              revenue_items: updatedRevenueItems,
+              revenue_items: filteredRevenueItems,
               cost_of_goods_items: {},
               salary_expenses: updatedSalaryExpenses,
               distributor_expenses: updatedDistributorExpenses,
@@ -657,15 +761,29 @@ const updateAllLocalStorageReportsWithDefaultExpenses = (): void => {
       
       // Check if revenue items need update
       if (report.revenueItems) {
-        const revenueNeedsUpdate = Object.keys(DEFAULT_REVENUE_ITEMS).some(
+        const bucatarieNeedsUpdate = Object.keys(DEFAULT_REVENUE_ITEMS).some(
           key => !(key in report.revenueItems)
         );
         
-        if (revenueNeedsUpdate) {
-          report.revenueItems = {
-            ...DEFAULT_REVENUE_ITEMS,
-            ...report.revenueItems
-          };
+        const barNeedsUpdate = Object.keys(DEFAULT_BAR_ITEMS).some(
+          key => !(key in report.revenueItems)
+        );
+        
+        if (bucatarieNeedsUpdate || barNeedsUpdate) {
+          // Create a new filtered revenue items object
+          const filteredRevenueItems: Record<string, number> = {};
+          
+          // Add bucatarie items from existing report or defaults
+          for (const key of Object.keys(DEFAULT_REVENUE_ITEMS)) {
+            filteredRevenueItems[key] = key in report.revenueItems ? report.revenueItems[key] : 0;
+          }
+          
+          // Add bar items from existing report or defaults
+          for (const key of Object.keys(DEFAULT_BAR_ITEMS)) {
+            filteredRevenueItems[key] = key in report.revenueItems ? report.revenueItems[key] : 0;
+          }
+          
+          report.revenueItems = filteredRevenueItems;
           hasChanges = true;
         }
       }
@@ -918,7 +1036,7 @@ export const createDefaultReport = (date: Date): PLReport => {
   const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   return {
     date: dateKey,
-    revenueItems: { ...DEFAULT_REVENUE_ITEMS },
+    revenueItems: { ...DEFAULT_REVENUE_ITEMS, ...DEFAULT_BAR_ITEMS },
     costOfGoodsItems: { ...DEFAULT_EMPTY_COGS_ITEMS },
     salaryExpenses: { ...DEFAULT_SALARY_EXPENSES },
     distributorExpenses: { ...DEFAULT_DISTRIBUTOR_EXPENSES },
@@ -935,7 +1053,7 @@ export const getMonthlyReport = async (
   const dateKey = `${year}-${String(month).padStart(2, '0')}`;
   return {
     date: dateKey,
-    revenueItems: { ...DEFAULT_REVENUE_ITEMS },
+    revenueItems: { ...DEFAULT_REVENUE_ITEMS, ...DEFAULT_BAR_ITEMS },
     costOfGoodsItems: { ...DEFAULT_EMPTY_COGS_ITEMS },
     salaryExpenses: { ...DEFAULT_SALARY_EXPENSES },
     distributorExpenses: { ...DEFAULT_DISTRIBUTOR_EXPENSES },
