@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -262,17 +261,27 @@ const Index = () => {
   const operationalExpensesSubsections = [
     {
       title: "Utilitati",
-      items: ["Gaze(Engie)", "Apa", "Curent", "Gunoi(Iridex)", "Internet"]
+      items: Object.keys(utilitiesExpenses)
     },
     {
       title: "Operationale",
-      items: ["Contabilitate", "ECR", "ISU", "Chirie", "Protectia Muncii"]
+      items: Object.keys(operationalExpenses)
     },
     {
       title: "Alte Cheltuieli",
       items: Object.keys(otherExpenses)
     }
   ];
+
+  const handleSubsectionAddItem = (subsectionTitle: string, name: string) => {
+    if (subsectionTitle === "Utilitati") {
+      handleAddUtilities(name);
+    } else if (subsectionTitle === "Operationale") {
+      handleAddOperational(name);
+    } else if (subsectionTitle === "Alte Cheltuieli") {
+      handleAddOtherExpenses(name);
+    }
+  };
 
   return (
     <RequireAuth>
@@ -369,7 +378,9 @@ const Index = () => {
                         handleOtherExpensesRename(oldName, newName);
                       }
                     }}
-                    onAddItem={handleAddOtherExpenses}
+                    onAddItem={(name) => {
+                      handleSubsectionAddItem(operationalExpensesSubsections[2].title, name);
+                    }}
                     subsections={operationalExpensesSubsections}
                   />
                   
@@ -532,7 +543,9 @@ const Index = () => {
                       handleOtherExpensesRename(oldName, newName);
                     }
                   }}
-                  onAddItem={handleAddOtherExpenses}
+                  onAddItem={(name) => {
+                    handleSubsectionAddItem(operationalExpensesSubsections[2].title, name);
+                  }}
                   subsections={operationalExpensesSubsections}
                 />
               </div>

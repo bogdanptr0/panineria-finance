@@ -40,6 +40,7 @@ const ExpensesSection = ({
   const [newItemName, setNewItemName] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [activeSubsectionForAdd, setActiveSubsectionForAdd] = useState<string | null>(null);
 
   const handleInputChange = (name: string, valueStr: string) => {
     const value = valueStr === "" ? 0 : parseFloat(valueStr);
@@ -64,11 +65,12 @@ const ExpensesSection = ({
     setNewName("");
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = (subsectionTitle?: string) => {
     if (newItemName.trim() !== "") {
       onAddItem(getDefaultIfEmpty(newItemName));
       setNewItemName("");
       setShowAddForm(false);
+      setActiveSubsectionForAdd(null);
     }
   };
 
@@ -77,6 +79,16 @@ const ExpensesSection = ({
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  const startAddItem = (subsectionTitle: string) => {
+    setActiveSubsectionForAdd(subsectionTitle);
+    setNewItemName("");
+  };
+
+  const cancelAddItem = () => {
+    setActiveSubsectionForAdd(null);
+    setNewItemName("");
   };
 
   // If subsections are provided, render with subsections
@@ -170,9 +182,9 @@ const ExpensesSection = ({
                     </TableRow>
                   ))}
                   
-                  {!collapsedSections[subsection.title] && subsection.title === "Alte Cheltuieli" && (
+                  {!collapsedSections[subsection.title] && (
                     <>
-                      {showAddForm ? (
+                      {activeSubsectionForAdd === subsection.title ? (
                         <TableRow className="bg-gray-50">
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -187,7 +199,7 @@ const ExpensesSection = ({
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                onClick={handleAddItem}
+                                onClick={() => handleAddItem(subsection.title)}
                                 className="h-8 w-8"
                               >
                                 <Save className="h-4 w-4" />
@@ -195,7 +207,7 @@ const ExpensesSection = ({
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                onClick={() => setShowAddForm(false)}
+                                onClick={cancelAddItem}
                                 className="h-8 w-8"
                               >
                                 <X className="h-4 w-4" />
@@ -210,7 +222,7 @@ const ExpensesSection = ({
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              onClick={() => setShowAddForm(true)}
+                              onClick={() => startAddItem(subsection.title)}
                               className="flex items-center text-gray-600 hover:text-gray-800"
                             >
                               <Plus className="h-4 w-4 mr-1" />
