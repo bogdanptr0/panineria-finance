@@ -1,7 +1,6 @@
 
 import { formatDate } from "@/lib/formatters";
 import MonthSelector from "./MonthSelector";
-import ExportTools from "./ExportTools";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
@@ -35,8 +34,6 @@ const Header = ({
           selectedMonth={selectedMonth}
           onMonthChange={onMonthChange}
         />
-        
-        <ExportTools />
         
         {user && (
           <Button variant="outline" onClick={() => signOut()} className="flex items-center gap-1">
