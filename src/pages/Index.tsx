@@ -372,7 +372,6 @@ const Index = () => {
     try {
       if (Object.keys(bucatarieItems).includes(name)) {
         const value = bucatarieItems[name];
-        setDeletedBucatarieItems(prev => ({ ...prev, [name]: value }));
         
         setBucatarieItems(prev => {
           const newItems = { ...prev };
@@ -384,22 +383,12 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`,
-          action: (
-            <Button 
-              variant="outline" 
-              onClick={() => handleUndoDeleteBucatarie(name)}
-              className="bg-white hover:bg-gray-100"
-            >
-              Undo
-            </Button>
-          )
+          description: `"${name}" has been removed`
         });
         
         setHasUnsavedChanges(true);
       } else if (Object.keys(barItems).includes(name)) {
         const value = barItems[name];
-        setDeletedBarItems(prev => ({ ...prev, [name]: value }));
         
         setBarItems(prev => {
           const newItems = { ...prev };
@@ -411,16 +400,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`,
-          action: (
-            <Button 
-              variant="outline" 
-              onClick={() => handleUndoDeleteBar(name)}
-              className="bg-white hover:bg-gray-100"
-            >
-              Undo
-            </Button>
-          )
+          description: `"${name}" has been removed`
         });
         
         setHasUnsavedChanges(true);
@@ -438,7 +418,6 @@ const Index = () => {
   const handleDeleteSalary = async (name: string) => {
     try {
       const value = salaryExpenses[name];
-      setDeletedSalaryItems(prev => ({ ...prev, [name]: value }));
       
       setSalaryExpenses(prev => {
         const newItems = { ...prev };
@@ -450,16 +429,7 @@ const Index = () => {
       
       toast({
         title: "Salary item deleted",
-        description: `"${name}" has been removed`,
-        action: (
-          <Button 
-            variant="outline" 
-            onClick={() => handleUndoDeleteSalary(name)}
-            className="bg-white hover:bg-gray-100"
-          >
-            Undo
-          </Button>
-        ),
+        description: `"${name}" has been removed`
       });
       
       setHasUnsavedChanges(true);
@@ -476,7 +446,6 @@ const Index = () => {
   const handleDeleteDistributor = async (name: string) => {
     try {
       const value = distributorExpenses[name];
-      setDeletedDistributorItems(prev => ({ ...prev, [name]: value }));
       
       setDistributorExpenses(prev => {
         const newItems = { ...prev };
@@ -488,16 +457,7 @@ const Index = () => {
       
       toast({
         title: "Distributor item deleted",
-        description: `"${name}" has been removed`,
-        action: (
-          <Button 
-            variant="outline" 
-            onClick={() => handleUndoDeleteDistributor(name)}
-            className="bg-white hover:bg-gray-100"
-          >
-            Undo
-          </Button>
-        ),
+        description: `"${name}" has been removed`
       });
       
       setHasUnsavedChanges(true);
@@ -512,262 +472,60 @@ const Index = () => {
   };
 
   const handleDeleteOperationalItem = async (name: string) => {
-    if (Object.keys(utilitiesExpenses).includes(name)) {
-      const value = utilitiesExpenses[name];
-      setDeletedUtilitiesItems(prev => ({ ...prev, [name]: value }));
-      
-      setUtilitiesExpenses(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      await deleteItemFromSupabase(selectedMonth, 'utilitiesExpenses', name);
-      
+    try {
+      if (Object.keys(utilitiesExpenses).includes(name)) {
+        setUtilitiesExpenses(prev => {
+          const newItems = { ...prev };
+          delete newItems[name];
+          return newItems;
+        });
+        
+        await deleteItemFromSupabase(selectedMonth, 'utilitiesExpenses', name);
+        
+        toast({
+          title: "Utilities item deleted",
+          description: `"${name}" has been removed`
+        });
+        
+        setHasUnsavedChanges(true);
+      } else if (Object.keys(operationalExpenses).includes(name)) {
+        setOperationalExpenses(prev => {
+          const newItems = { ...prev };
+          delete newItems[name];
+          return newItems;
+        });
+        
+        await deleteItemFromSupabase(selectedMonth, 'operationalExpenses', name);
+        
+        toast({
+          title: "Operational item deleted",
+          description: `"${name}" has been removed`
+        });
+        
+        setHasUnsavedChanges(true);
+      } else if (Object.keys(otherExpenses).includes(name)) {
+        setOtherExpenses(prev => {
+          const newItems = { ...prev };
+          delete newItems[name];
+          return newItems;
+        });
+        
+        await deleteItemFromSupabase(selectedMonth, 'otherExpenses', name);
+        
+        toast({
+          title: "Other expense item deleted",
+          description: `"${name}" has been removed`
+        });
+        
+        setHasUnsavedChanges(true);
+      }
+    } catch (error) {
+      console.error("Error deleting operational item:", error);
       toast({
-        title: "Utilities item deleted",
-        description: `"${name}" has been removed`,
-        action: (
-          <Button 
-            variant="outline" 
-            onClick={() => handleUndoDeleteUtilities(name)}
-            className="bg-white hover:bg-gray-100"
-          >
-            Undo
-          </Button>
-        ),
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive"
       });
-      
-      setHasUnsavedChanges(true);
-    } else if (Object.keys(operationalExpenses).includes(name)) {
-      const value = operationalExpenses[name];
-      setDeletedOperationalItems(prev => ({ ...prev, [name]: value }));
-      
-      setOperationalExpenses(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      await deleteItemFromSupabase(selectedMonth, 'operationalExpenses', name);
-      
-      toast({
-        title: "Operational item deleted",
-        description: `"${name}" has been removed`,
-        action: (
-          <Button 
-            variant="outline" 
-            onClick={() => handleUndoDeleteOperational(name)}
-            className="bg-white hover:bg-gray-100"
-          >
-            Undo
-          </Button>
-        ),
-      });
-      
-      setHasUnsavedChanges(true);
-    } else if (Object.keys(otherExpenses).includes(name)) {
-      const value = otherExpenses[name];
-      setDeletedOtherItems(prev => ({ ...prev, [name]: value }));
-      
-      setOtherExpenses(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      await deleteItemFromSupabase(selectedMonth, 'otherExpenses', name);
-      
-      toast({
-        title: "Other expense item deleted",
-        description: `"${name}" has been removed`,
-        action: (
-          <Button 
-            variant="outline" 
-            onClick={() => handleUndoDeleteOther(name)}
-            className="bg-white hover:bg-gray-100"
-          >
-            Undo
-          </Button>
-        ),
-      });
-      
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleUndoDeleteBucatarie = async (name: string) => {
-    if (deletedBucatarieItems[name] !== undefined) {
-      const value = deletedBucatarieItems[name];
-      setBucatarieItems(prev => ({
-        ...prev,
-        [name]: value
-      }));
-      
-      await addItemToSupabase(selectedMonth, 'bucatarieItems', name, value);
-      
-      setDeletedBucatarieItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      toast({
-        title: "Item restored",
-        description: `"${name}" has been restored`
-      });
-      
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleUndoDeleteBar = async (name: string) => {
-    if (deletedBarItems[name] !== undefined) {
-      const value = deletedBarItems[name];
-      setBarItems(prev => ({
-        ...prev,
-        [name]: value
-      }));
-      
-      await addItemToSupabase(selectedMonth, 'barItems', name, value);
-      
-      setDeletedBarItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      toast({
-        title: "Item restored",
-        description: `"${name}" has been restored`
-      });
-      
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleUndoDeleteSalary = async (name: string) => {
-    if (deletedSalaryItems[name] !== undefined) {
-      const value = deletedSalaryItems[name];
-      setSalaryExpenses(prev => ({
-        ...prev,
-        [name]: value
-      }));
-      
-      await addItemToSupabase(selectedMonth, 'salaryExpenses', name, value);
-      
-      setDeletedSalaryItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      toast({
-        title: "Salary item restored",
-        description: `"${name}" has been restored`
-      });
-      
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleUndoDeleteDistributor = async (name: string) => {
-    if (deletedDistributorItems[name] !== undefined) {
-      const value = deletedDistributorItems[name];
-      setDistributorExpenses(prev => ({
-        ...prev,
-        [name]: value
-      }));
-      
-      await addItemToSupabase(selectedMonth, 'distributorExpenses', name, value);
-      
-      setDeletedDistributorItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      toast({
-        title: "Distributor item restored",
-        description: `"${name}" has been restored`
-      });
-      
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleUndoDeleteUtilities = async (name: string) => {
-    if (deletedUtilitiesItems[name] !== undefined) {
-      const value = deletedUtilitiesItems[name];
-      setUtilitiesExpenses(prev => ({
-        ...prev,
-        [name]: value
-      }));
-      
-      await addItemToSupabase(selectedMonth, 'utilitiesExpenses', name, value);
-      
-      setDeletedUtilitiesItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      toast({
-        title: "Utilities item restored",
-        description: `"${name}" has been restored`
-      });
-      
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleUndoDeleteOperational = async (name: string) => {
-    if (deletedOperationalItems[name] !== undefined) {
-      const value = deletedOperationalItems[name];
-      setOperationalExpenses(prev => ({
-        ...prev,
-        [name]: value
-      }));
-      
-      await addItemToSupabase(selectedMonth, 'operationalExpenses', name, value);
-      
-      setDeletedOperationalItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      toast({
-        title: "Operational item restored",
-        description: `"${name}" has been restored`
-      });
-      
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleUndoDeleteOther = async (name: string) => {
-    if (deletedOtherItems[name] !== undefined) {
-      const value = deletedOtherItems[name];
-      setOtherExpenses(prev => ({
-        ...prev,
-        [name]: value
-      }));
-      
-      await addItemToSupabase(selectedMonth, 'otherExpenses', name, value);
-      
-      setDeletedOtherItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      toast({
-        title: "Other expense item restored",
-        description: `"${name}" has been restored`
-      });
-      
-      setHasUnsavedChanges(true);
     }
   };
 
