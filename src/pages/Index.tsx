@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -19,23 +18,19 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { RequireAuth } from "@/lib/auth";
 
 const Index = () => {
-  // State for the selected month and year
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState<boolean>(false);
   
-  // State for revenue items
   const [revenueItems, setRevenueItems] = useState<Record<string, number>>({
     "Bere": 0,
     "Vin": 0
   });
 
-  // State for cost of goods sold
   const [costOfGoodsItems, setCostOfGoodsItems] = useState<Record<string, number>>({
     "Bere": 0,
     "Vin": 0
   });
 
-  // State for salary expenses
   const [salaryExpenses, setSalaryExpenses] = useState<Record<string, number>>({
     "Adi": 4050,
     "Ioana": 4050,
@@ -43,7 +38,6 @@ const Index = () => {
     "Victoria": 4050
   });
 
-  // State for distributor expenses
   const [distributorExpenses, setDistributorExpenses] = useState<Record<string, number>>({
     "Maria FoodNova": 0,
     "CocaCola": 0,
@@ -56,7 +50,6 @@ const Index = () => {
     "Metro": 0
   });
 
-  // State for utilities expenses
   const [utilitiesExpenses, setUtilitiesExpenses] = useState<Record<string, number>>({
     "Gaze(Engie)": 0,
     "Apa": 0,
@@ -65,7 +58,6 @@ const Index = () => {
     "Internet": 0
   });
 
-  // State for operational expenses
   const [operationalExpenses, setOperationalExpenses] = useState<Record<string, number>>({
     "Contabilitate": 0,
     "ECR": 0,
@@ -74,22 +66,18 @@ const Index = () => {
     "Protectia Muncii": 0
   });
 
-  // State for other expenses
   const [otherExpenses, setOtherExpenses] = useState<Record<string, number>>({});
 
-  // State for budget
   const [budget, setBudget] = useState<{
     targetRevenue: number;
     targetExpenses: number;
     targetProfit: number;
   } | undefined>(undefined);
 
-  // Update all reports with default expenses when the app loads
   useEffect(() => {
     updateAllReportsWithDefaultSalaries();
   }, []);
 
-  // Load report data when month changes
   useEffect(() => {
     const fetchReport = async () => {
       const report = await loadReport(selectedMonth);
@@ -120,7 +108,6 @@ const Index = () => {
     fetchReport();
   }, [selectedMonth]);
 
-  // Calculate totals
   const calculateTotal = (items: Record<string, number>) => {
     return Object.values(items).reduce((sum, value) => sum + value, 0);
   };
@@ -135,11 +122,9 @@ const Index = () => {
   const totalExpenses = totalSalaryExpenses + totalDistributorExpenses + 
                          totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses;
   
-  // Calculate profit
   const grossProfit = totalRevenue - totalCogs;
   const netProfit = grossProfit - totalExpenses;
 
-  // Handle updates for each section
   const handleRevenueUpdate = (name: string, value: number) => {
     setRevenueItems(prev => ({ ...prev, [name]: value }));
   };
@@ -168,7 +153,6 @@ const Index = () => {
     setOtherExpenses(prev => ({ ...prev, [name]: value }));
   };
 
-  // Handle item renaming for each section
   const handleRevenueRename = (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
@@ -246,7 +230,6 @@ const Index = () => {
     });
   };
 
-  // Handle adding new items for each section
   const handleAddRevenue = (name: string) => {
     setRevenueItems(prev => ({ ...prev, [name]: 0 }));
   };
@@ -274,6 +257,21 @@ const Index = () => {
   const handleAddOtherExpenses = (name: string) => {
     setOtherExpenses(prev => ({ ...prev, [name]: 0 }));
   };
+
+  const operationalExpensesSubsections = [
+    {
+      title: "Utilitati",
+      items: ["Gaze(Engie)", "Apa", "Curent", "Gunoi(Iridex)", "Internet"]
+    },
+    {
+      title: "Operationale",
+      items: ["Contabilitate", "ECR", "ISU", "Chirie", "Protectia Muncii"]
+    },
+    {
+      title: "Alte Cheltuieli",
+      items: Object.keys(otherExpenses)
+    }
+  ];
 
   return (
     <RequireAuth>
@@ -345,30 +343,33 @@ const Index = () => {
                   />
                   
                   <ExpensesSection 
-                    title="UTILITATI"
-                    items={utilitiesExpenses}
-                    onUpdateItem={handleUtilitiesUpdate}
-                    totalExpenses={totalUtilitiesExpenses}
-                    onRenameItem={handleUtilitiesRename}
-                    onAddItem={handleAddUtilities}
-                  />
-                  
-                  <ExpensesSection 
                     title="CHELTUIELI OPERATIONALE"
-                    items={operationalExpenses}
-                    onUpdateItem={handleOperationalUpdate}
-                    totalExpenses={totalOperationalExpenses}
-                    onRenameItem={handleOperationalRename}
-                    onAddItem={handleAddOperational}
-                  />
-                  
-                  <ExpensesSection 
-                    title="ALTE CHELTUIELI"
-                    items={otherExpenses}
-                    onUpdateItem={handleOtherExpensesUpdate}
-                    totalExpenses={totalOtherExpenses}
-                    onRenameItem={handleOtherExpensesRename}
+                    items={{
+                      ...utilitiesExpenses,
+                      ...operationalExpenses,
+                      ...otherExpenses
+                    }}
+                    onUpdateItem={(name, value) => {
+                      if (operationalExpensesSubsections[0].items.includes(name)) {
+                        handleUtilitiesUpdate(name, value);
+                      } else if (operationalExpensesSubsections[1].items.includes(name)) {
+                        handleOperationalUpdate(name, value);
+                      } else {
+                        handleOtherExpensesUpdate(name, value);
+                      }
+                    }}
+                    totalExpenses={totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses}
+                    onRenameItem={(oldName, newName) => {
+                      if (operationalExpensesSubsections[0].items.includes(oldName)) {
+                        handleUtilitiesRename(oldName, newName);
+                      } else if (operationalExpensesSubsections[1].items.includes(oldName)) {
+                        handleOperationalRename(oldName, newName);
+                      } else {
+                        handleOtherExpensesRename(oldName, newName);
+                      }
+                    }}
                     onAddItem={handleAddOtherExpenses}
+                    subsections={operationalExpensesSubsections}
                   />
                   
                   <div className="bg-gray-100 p-4 rounded-md">
@@ -449,7 +450,6 @@ const Index = () => {
             </TabsContent>
           </Tabs>
           
-          {/* Print version */}
           <div className="hidden print:block">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold">Raport P&L Panineria</h1>

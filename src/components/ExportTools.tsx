@@ -17,7 +17,9 @@ interface ExportToolsProps {
   costOfGoodsItems: Record<string, number>;
   salaryExpenses: Record<string, number>;
   distributorExpenses: Record<string, number>;
+  utilitiesExpenses: Record<string, number>;
   operationalExpenses: Record<string, number>;
+  otherExpenses: Record<string, number>;
   budget?: {
     targetRevenue: number;
     targetExpenses: number;
@@ -31,7 +33,9 @@ const ExportTools = ({
   costOfGoodsItems,
   salaryExpenses,
   distributorExpenses,
+  utilitiesExpenses,
   operationalExpenses,
+  otherExpenses,
   budget
 }: ExportToolsProps) => {
   const { toast } = useToast();
@@ -42,7 +46,9 @@ const ExportTools = ({
       costOfGoodsItems,
       salaryExpenses,
       distributorExpenses,
+      utilitiesExpenses,
       operationalExpenses,
+      otherExpenses,
       budget
     });
     
@@ -61,7 +67,9 @@ const ExportTools = ({
       costOfGoodsItems,
       salaryExpenses,
       distributorExpenses,
+      utilitiesExpenses,
       operationalExpenses,
+      otherExpenses,
       budget
     };
     

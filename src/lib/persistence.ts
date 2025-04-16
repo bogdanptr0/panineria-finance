@@ -58,6 +58,29 @@ const DEFAULT_OPERATIONAL_EXPENSES = {
   "Protectia Muncii": 0
 };
 
+// Process data from Supabase to ensure it matches the expected types
+const processSupabaseData = (data: any): Record<string, number> => {
+  if (!data) return {};
+  
+  // If it's already an object with the right structure, return it
+  if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+    const result: Record<string, number> = {};
+    
+    // Convert all values to numbers
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        const value = data[key];
+        result[key] = typeof value === 'number' ? value : parseFloat(value) || 0;
+      }
+    }
+    
+    return result;
+  }
+  
+  // If we can't process it, return an empty object
+  return {};
+};
+
 export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date'>): Promise<void> => {
   try {
     // Create date key in format YYYY-MM
@@ -90,7 +113,8 @@ export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date
       salaryExpenses,
       distributorExpenses,
       utilitiesExpenses,
-      operationalExpenses
+      operationalExpenses,
+      otherExpenses: data.otherExpenses || {}
     };
     
     // Get current user
@@ -198,68 +222,55 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
     
     if (data) {
       // Convert the snake_case from Supabase to camelCase for our frontend
-      const report = {
+      // Ensure data is properly processed to match expected types
+      const report: PLReport = {
         date: data.date,
-        revenueItems: data.revenue_items || {},
-        costOfGoodsItems: data.cost_of_goods_items || {},
-        salaryExpenses: data.salary_expenses || {},
-        distributorExpenses: data.distributor_expenses || {},
-        utilitiesExpenses: data.utilities_expenses || {},
-        operationalExpenses: data.operational_expenses || {},
-        otherExpenses: data.other_expenses || {},
+        revenueItems: processSupabaseData(data.revenue_items),
+        costOfGoodsItems: processSupabaseData(data.cost_of_goods_items),
+        salaryExpenses: processSupabaseData(data.salary_expenses),
+        distributorExpenses: processSupabaseData(data.distributor_expenses),
+        utilitiesExpenses: processSupabaseData(data.utilities_expenses),
+        operationalExpenses: processSupabaseData(data.operational_expenses),
+        otherExpenses: processSupabaseData(data.other_expenses),
         budget: data.budget as PLReport['budget'] | undefined
       };
       
       // Ensure the report has the default expenses
-      // This makes sure that even previously saved reports
-      // will have the default structures
-      if (report.salaryExpenses) {
-        report.salaryExpenses = {
-          ...DEFAULT_SALARY_EXPENSES,
-          ...report.salaryExpenses
-        };
-      }
+      report.salaryExpenses = {
+        ...DEFAULT_SALARY_EXPENSES,
+        ...report.salaryExpenses
+      };
       
-      if (report.distributorExpenses) {
-        report.distributorExpenses = {
-          ...DEFAULT_DISTRIBUTOR_EXPENSES,
-          ...report.distributorExpenses
-        };
-      }
+      report.distributorExpenses = {
+        ...DEFAULT_DISTRIBUTOR_EXPENSES,
+        ...report.distributorExpenses
+      };
       
-      if (report.utilitiesExpenses) {
-        report.utilitiesExpenses = {
-          ...DEFAULT_UTILITIES_EXPENSES,
-          ...report.utilitiesExpenses
-        };
-      }
+      report.utilitiesExpenses = {
+        ...DEFAULT_UTILITIES_EXPENSES,
+        ...report.utilitiesExpenses
+      };
       
-      if (report.operationalExpenses) {
-        report.operationalExpenses = {
-          ...DEFAULT_OPERATIONAL_EXPENSES,
-          ...report.operationalExpenses
-        };
+      report.operationalExpenses = {
+        ...DEFAULT_OPERATIONAL_EXPENSES,
+        ...report.operationalExpenses
+      };
+      
+      if (!report.otherExpenses) {
+        report.otherExpenses = {};
       }
       
       // Check if any default values were added
-      const salaryHasChanged = Object.keys(DEFAULT_SALARY_EXPENSES).some(
-        key => !(key in data.salary_expenses || {})
-      );
-      
-      const distributorHasChanged = Object.keys(DEFAULT_DISTRIBUTOR_EXPENSES).some(
-        key => !(key in data.distributor_expenses || {})
-      );
-      
-      const utilitiesHasChanged = !report.utilitiesExpenses || Object.keys(DEFAULT_UTILITIES_EXPENSES).some(
-        key => !(key in report.utilitiesExpenses || {})
-      );
-      
-      const operationalHasChanged = !report.operationalExpenses || Object.keys(DEFAULT_OPERATIONAL_EXPENSES).some(
-        key => !(key in report.operationalExpenses || {})
-      );
+      const needsUpdate = 
+        !data.utilities_expenses || 
+        !data.other_expenses ||
+        Object.keys(DEFAULT_SALARY_EXPENSES).some(key => !(key in processSupabaseData(data.salary_expenses))) ||
+        Object.keys(DEFAULT_DISTRIBUTOR_EXPENSES).some(key => !(key in processSupabaseData(data.distributor_expenses))) ||
+        Object.keys(DEFAULT_UTILITIES_EXPENSES).some(key => !(key in processSupabaseData(data.utilities_expenses))) ||
+        Object.keys(DEFAULT_OPERATIONAL_EXPENSES).some(key => !(key in processSupabaseData(data.operational_expenses)));
       
       // If any defaults were added, save the report back
-      if (salaryHasChanged || distributorHasChanged || utilitiesHasChanged || operationalHasChanged) {
+      if (needsUpdate) {
         // Save the updated report back to the database
         await supabase
           .from('pl_reports')
@@ -268,6 +279,7 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
             distributor_expenses: report.distributorExpenses,
             utilities_expenses: report.utilitiesExpenses,
             operational_expenses: report.operationalExpenses,
+            other_expenses: report.otherExpenses,
             updated_at: new Date().toISOString()
           })
           .eq('id', data.id);
@@ -638,13 +650,13 @@ export const getAllReports = async (): Promise<PLReport[]> => {
       // Convert the snake_case from Supabase to camelCase for our frontend
       return data.map(report => ({
         date: report.date,
-        revenueItems: report.revenue_items || {},
-        costOfGoodsItems: report.cost_of_goods_items || {},
-        salaryExpenses: report.salary_expenses || {},
-        distributorExpenses: report.distributor_expenses || {},
-        utilitiesExpenses: report.utilities_expenses || {},
-        operationalExpenses: report.operational_expenses || {},
-        otherExpenses: report.other_expenses || {},
+        revenueItems: processSupabaseData(report.revenue_items),
+        costOfGoodsItems: processSupabaseData(report.cost_of_goods_items),
+        salaryExpenses: processSupabaseData(report.salary_expenses),
+        distributorExpenses: processSupabaseData(report.distributor_expenses),
+        utilitiesExpenses: processSupabaseData(report.utilities_expenses),
+        operationalExpenses: processSupabaseData(report.operational_expenses),
+        otherExpenses: processSupabaseData(report.other_expenses),
         budget: report.budget as PLReport['budget']
       }));
     }
