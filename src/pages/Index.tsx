@@ -239,10 +239,13 @@ const Index = () => {
   const netProfit = grossProfit - totalExpenses;
 
   const handleRevenueUpdate = async (name: string, value: number) => {
-    if (Object.keys(bucatarieItems).includes(name)) {
+    const isBucatarieItem = Object.keys(bucatarieItems).includes(name);
+    const isTazzItem = Object.keys(tazzItems).includes(name);
+    
+    if (isBucatarieItem) {
       setBucatarieItems(prev => ({ ...prev, [name]: value }));
       await updateItemInSupabase(selectedMonth, 'bucatarieItems', name, value);
-    } else if (Object.keys(tazzItems).includes(name)) {
+    } else if (isTazzItem) {
       setTazzItems(prev => ({ ...prev, [name]: value }));
       await updateItemInSupabase(selectedMonth, 'tazzItems', name, value);
     } else {
@@ -285,7 +288,11 @@ const Index = () => {
   const handleRevenueRename = async (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
-    if (oldName in bucatarieItems) {
+    const isBucatarieItem = oldName in bucatarieItems;
+    const isTazzItem = oldName in tazzItems;
+    const isBarItem = oldName in barItems;
+    
+    if (isBucatarieItem) {
       setBucatarieItems(prev => {
         const value = prev[oldName];
         const newItems = { ...prev };
@@ -294,7 +301,7 @@ const Index = () => {
       });
       
       await renameItemInSupabase(selectedMonth, 'bucatarieItems', oldName, newName);
-    } else if (oldName in tazzItems) {
+    } else if (isTazzItem) {
       setTazzItems(prev => {
         const value = prev[oldName];
         const newItems = { ...prev };
@@ -303,7 +310,7 @@ const Index = () => {
       });
       
       await renameItemInSupabase(selectedMonth, 'tazzItems', oldName, newName);
-    } else if (oldName in barItems) {
+    } else if (isBarItem) {
       setBarItems(prev => {
         const value = prev[oldName];
         const newItems = { ...prev };
@@ -427,7 +434,11 @@ const Index = () => {
 
   const handleDeleteRevenue = async (name: string) => {
     try {
-      if (Object.keys(bucatarieItems).includes(name)) {
+      const isBucatarieItem = Object.keys(bucatarieItems).includes(name);
+      const isTazzItem = Object.keys(tazzItems).includes(name);
+      const isBarItem = Object.keys(barItems).includes(name);
+      
+      if (isBucatarieItem) {
         const value = bucatarieItems[name];
         
         setBucatarieItems(prev => {
@@ -444,7 +455,7 @@ const Index = () => {
         });
         
         setHasUnsavedChanges(true);
-      } else if (Object.keys(tazzItems).includes(name)) {
+      } else if (isTazzItem) {
         const value = tazzItems[name];
         
         setTazzItems(prev => {
@@ -461,7 +472,7 @@ const Index = () => {
         });
         
         setHasUnsavedChanges(true);
-      } else if (Object.keys(barItems).includes(name)) {
+      } else if (isBarItem) {
         const value = barItems[name];
         
         setBarItems(prev => {

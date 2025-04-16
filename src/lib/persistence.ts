@@ -44,8 +44,6 @@ export const DEFAULT_REVENUE_ITEMS: Record<string, number> = {
   "Bere Peroni 0% alcool": 0
 };
 
-export const DEFAULT_EMPTY_COGS_ITEMS: Record<string, number> = {};
-
 // Default salary expenses that should be present in all reports
 const DEFAULT_SALARY_EXPENSES = {
   "Adi": 4050,
@@ -992,6 +990,11 @@ export const deleteItemFromSupabase = async (
     let fieldName = '';
     switch (category) {
       case 'bucatarieItems':
+        fieldName = 'revenue_items';
+        break;
+      case 'tazzItems':
+        fieldName = 'revenue_items';
+        break;
       case 'barItems':
         fieldName = 'revenue_items';
         break;
@@ -1019,20 +1022,11 @@ export const deleteItemFromSupabase = async (
     const currentItems = data[fieldName] || {};
     
     // Remove the item
-    if (fieldName === 'revenue_items') {
-      if (currentItems[itemName] !== undefined) {
-        delete currentItems[itemName];
-      } else {
-        console.log(`Item ${itemName} not found in ${fieldName}`);
-        return false;
-      }
+    if (currentItems[itemName] !== undefined) {
+      delete currentItems[itemName];
     } else {
-      if (currentItems[itemName] !== undefined) {
-        delete currentItems[itemName];
-      } else {
-        console.log(`Item ${itemName} not found in ${fieldName}`);
-        return false;
-      }
+      console.log(`Item ${itemName} not found in ${fieldName}`);
+      return false;
     }
     
     // Create update object
@@ -1094,6 +1088,11 @@ export const addItemToSupabase = async (
     let fieldName = '';
     switch (category) {
       case 'bucatarieItems':
+        fieldName = 'revenue_items';
+        break;
+      case 'tazzItems':
+        fieldName = 'revenue_items';
+        break;
       case 'barItems':
         fieldName = 'revenue_items';
         break;
@@ -1131,13 +1130,7 @@ export const addItemToSupabase = async (
         other_expenses: {}
       };
       
-      if (fieldName === 'revenue_items' && category === 'bucatarieItems') {
-        newReport.revenue_items = { ...newReport.revenue_items, [itemName]: value };
-      } else if (fieldName === 'revenue_items' && category === 'barItems') {
-        newReport.revenue_items = { ...newReport.revenue_items, [itemName]: value };
-      } else {
-        newReport[fieldName] = { ...newReport[fieldName], [itemName]: value };
-      }
+      newReport[fieldName] = { ...newReport[fieldName], [itemName]: value };
       
       const { error: insertError } = await supabase
         .from('pl_reports')
@@ -1216,6 +1209,11 @@ export const updateItemInSupabase = async (
     let fieldName = '';
     switch (category) {
       case 'bucatarieItems':
+        fieldName = 'revenue_items';
+        break;
+      case 'tazzItems':
+        fieldName = 'revenue_items';
+        break;
       case 'barItems':
         fieldName = 'revenue_items';
         break;
@@ -1308,6 +1306,11 @@ export const renameItemInSupabase = async (
     let fieldName = '';
     switch (category) {
       case 'bucatarieItems':
+        fieldName = 'revenue_items';
+        break;
+      case 'tazzItems':
+        fieldName = 'revenue_items';
+        break;
       case 'barItems':
         fieldName = 'revenue_items';
         break;
