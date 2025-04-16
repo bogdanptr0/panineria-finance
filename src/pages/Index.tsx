@@ -384,7 +384,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed",
+          description: `"${name}" has been removed`,
           action: (
             <Button 
               variant="outline" 
@@ -393,7 +393,7 @@ const Index = () => {
             >
               Undo
             </Button>
-          ),
+          )
         });
         
         setHasUnsavedChanges(true);
@@ -411,7 +411,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed",
+          description: `"${name}" has been removed`,
           action: (
             <Button 
               variant="outline" 
@@ -420,7 +420,7 @@ const Index = () => {
             >
               Undo
             </Button>
-          ),
+          )
         });
         
         setHasUnsavedChanges(true);
@@ -430,7 +430,7 @@ const Index = () => {
       toast({
         title: "Error",
         description: "Failed to delete item. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -450,7 +450,7 @@ const Index = () => {
       
       toast({
         title: "Salary item deleted",
-        description: `"${name}" has been removed",
+        description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
@@ -468,7 +468,7 @@ const Index = () => {
       toast({
         title: "Error",
         description: "Failed to delete item. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -488,7 +488,7 @@ const Index = () => {
       
       toast({
         title: "Distributor item deleted",
-        description: `"${name}" has been removed",
+        description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
@@ -506,7 +506,7 @@ const Index = () => {
       toast({
         title: "Error",
         description: "Failed to delete item. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -526,7 +526,7 @@ const Index = () => {
       
       toast({
         title: "Utilities item deleted",
-        description: `"${name}" has been removed",
+        description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
@@ -553,7 +553,7 @@ const Index = () => {
       
       toast({
         title: "Operational item deleted",
-        description: `"${name}" has been removed",
+        description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
@@ -580,7 +580,7 @@ const Index = () => {
       
       toast({
         title: "Other expense item deleted",
-        description: `"${name}" has been removed",
+        description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
