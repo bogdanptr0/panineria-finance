@@ -9,7 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      pl_reports: {
+        Row: {
+          budget: Json | null
+          cost_of_goods_items: Json
+          created_at: string
+          date: string
+          distributor_expenses: Json
+          id: string
+          operational_expenses: Json
+          revenue_items: Json
+          salary_expenses: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: Json | null
+          cost_of_goods_items: Json
+          created_at?: string
+          date: string
+          distributor_expenses: Json
+          id?: string
+          operational_expenses: Json
+          revenue_items: Json
+          salary_expenses: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: Json | null
+          cost_of_goods_items?: Json
+          created_at?: string
+          date?: string
+          distributor_expenses?: Json
+          id?: string
+          operational_expenses?: Json
+          revenue_items?: Json
+          salary_expenses?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

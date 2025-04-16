@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getAllReports, PLReport } from "@/lib/persistence";
 import { formatCurrency, formatPercentage, calculatePercentageChange } from "@/lib/formatters";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { ChartUpIcon, ChartDownIcon, MoveUpIcon, MoveDownIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ComparisonViewProps {
@@ -97,14 +97,14 @@ const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) =>
                 <span className="text-sm font-medium">Revenue</span>
                 {calculatePercentageChange(currentReport.totalRevenue, previousMonthMetrics.totalRevenue) >= 0 ? (
                   <div className="flex items-center text-green-600">
-                    <MoveUpIcon className="h-4 w-4 mr-1" />
+                    <ArrowUp className="h-4 w-4 mr-1" />
                     <span className="text-xs">
                       {formatPercentage(calculatePercentageChange(currentReport.totalRevenue, previousMonthMetrics.totalRevenue))}
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center text-red-600">
-                    <MoveDownIcon className="h-4 w-4 mr-1" />
+                    <ArrowDown className="h-4 w-4 mr-1" />
                     <span className="text-xs">
                       {formatPercentage(Math.abs(calculatePercentageChange(currentReport.totalRevenue, previousMonthMetrics.totalRevenue)))}
                     </span>
@@ -122,14 +122,14 @@ const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) =>
                 <span className="text-sm font-medium">Expenses</span>
                 {calculatePercentageChange(currentReport.totalExpenses, previousMonthMetrics.totalExpenses) <= 0 ? (
                   <div className="flex items-center text-green-600">
-                    <MoveDownIcon className="h-4 w-4 mr-1" />
+                    <ArrowDown className="h-4 w-4 mr-1" />
                     <span className="text-xs">
                       {formatPercentage(Math.abs(calculatePercentageChange(currentReport.totalExpenses, previousMonthMetrics.totalExpenses)))}
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center text-red-600">
-                    <MoveUpIcon className="h-4 w-4 mr-1" />
+                    <ArrowUp className="h-4 w-4 mr-1" />
                     <span className="text-xs">
                       {formatPercentage(calculatePercentageChange(currentReport.totalExpenses, previousMonthMetrics.totalExpenses))}
                     </span>
@@ -147,14 +147,14 @@ const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) =>
                 <span className="text-sm font-medium">Net Profit</span>
                 {calculatePercentageChange(currentReport.netProfit, previousMonthMetrics.netProfit) >= 0 ? (
                   <div className="flex items-center text-green-600">
-                    <MoveUpIcon className="h-4 w-4 mr-1" />
+                    <ArrowUp className="h-4 w-4 mr-1" />
                     <span className="text-xs">
                       {formatPercentage(calculatePercentageChange(currentReport.netProfit, previousMonthMetrics.netProfit))}
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center text-red-600">
-                    <MoveDownIcon className="h-4 w-4 mr-1" />
+                    <ArrowDown className="h-4 w-4 mr-1" />
                     <span className="text-xs">
                       {formatPercentage(Math.abs(calculatePercentageChange(currentReport.netProfit, previousMonthMetrics.netProfit)))}
                     </span>

@@ -1,5 +1,5 @@
-
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PLReport {
   date: string;
@@ -17,25 +17,78 @@ export interface PLReport {
 
 const STORAGE_KEY = 'panini_pl_reports';
 
-export const saveReport = (selectedMonth: Date, data: Omit<PLReport, 'date'>): void => {
+export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date'>): Promise<void> => {
   try {
-    // Get existing reports
+    // Create date key in format YYYY-MM
+    const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
+    
+    const report: PLReport = {
+      date: dateKey,
+      ...data
+    };
+    
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+    
+    // Check if report already exists
+    const { data: existingReport, error: fetchError } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', dateKey)
+      .single();
+    
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      throw fetchError;
+    }
+    
+    if (existingReport) {
+      // Update existing report
+      const { error: updateError } = await supabase
+        .from('pl_reports')
+        .update({
+          revenue_items: report.revenueItems,
+          cost_of_goods_items: report.costOfGoodsItems,
+          salary_expenses: report.salaryExpenses,
+          distributor_expenses: report.distributorExpenses,
+          operational_expenses: report.operationalExpenses,
+          budget: report.budget,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingReport.id);
+      
+      if (updateError) throw updateError;
+    } else {
+      // Insert new report
+      const { error: insertError } = await supabase
+        .from('pl_reports')
+        .insert({
+          user_id: user.id,
+          date: dateKey,
+          revenue_items: report.revenueItems,
+          cost_of_goods_items: report.costOfGoodsItems,
+          salary_expenses: report.salaryExpenses,
+          distributor_expenses: report.distributorExpenses,
+          operational_expenses: report.operationalExpenses,
+          budget: report.budget
+        });
+      
+      if (insertError) throw insertError;
+    }
+    
+    // Also keep local storage for backwards compatibility
     const existingReportsStr = localStorage.getItem(STORAGE_KEY);
     const existingReports: Record<string, PLReport> = existingReportsStr 
       ? JSON.parse(existingReportsStr) 
       : {};
     
-    // Create date key in format YYYY-MM
-    const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
-    
-    // Update or add the report
-    existingReports[dateKey] = {
-      date: dateKey,
-      ...data
-    };
-    
-    // Save back to localStorage
+    existingReports[dateKey] = report;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(existingReports));
+    
     toast({
       title: "Success",
       description: "Report saved successfully",
@@ -50,9 +103,58 @@ export const saveReport = (selectedMonth: Date, data: Omit<PLReport, 'date'>): v
   }
 };
 
-export const loadReport = (selectedMonth: Date): PLReport | null => {
+export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> => {
   try {
-    // Get existing reports
+    // Create date key in format YYYY-MM
+    const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // Fall back to localStorage if not authenticated
+      return loadFromLocalStorage(selectedMonth);
+    }
+    
+    // Fetch report from Supabase
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', dateKey)
+      .maybeSingle();
+    
+    if (error) throw error;
+    
+    if (data) {
+      return {
+        date: data.date,
+        revenueItems: data.revenue_items,
+        costOfGoodsItems: data.cost_of_goods_items,
+        salaryExpenses: data.salary_expenses,
+        distributorExpenses: data.distributor_expenses,
+        operationalExpenses: data.operational_expenses,
+        budget: data.budget
+      };
+    }
+    
+    // Fall back to localStorage if no report found in Supabase
+    return loadFromLocalStorage(selectedMonth);
+  } catch (error) {
+    console.error('Error loading report:', error);
+    toast({
+      title: "Error",
+      description: "Failed to load report",
+      variant: "destructive",
+    });
+    
+    // Fall back to localStorage on error
+    return loadFromLocalStorage(selectedMonth);
+  }
+};
+
+const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
+  try {
     const existingReportsStr = localStorage.getItem(STORAGE_KEY);
     if (!existingReportsStr) return null;
     
@@ -64,23 +166,44 @@ export const loadReport = (selectedMonth: Date): PLReport | null => {
     // Return the report if it exists
     return existingReports[dateKey] || null;
   } catch (error) {
-    console.error('Error loading report:', error);
-    toast({
-      title: "Error",
-      description: "Failed to load report",
-      variant: "destructive",
-    });
+    console.error('Error loading report from localStorage:', error);
     return null;
   }
 };
 
-export const getAllReports = (): PLReport[] => {
+export const getAllReports = async (): Promise<PLReport[]> => {
   try {
-    const existingReportsStr = localStorage.getItem(STORAGE_KEY);
-    if (!existingReportsStr) return [];
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
     
-    const existingReports: Record<string, PLReport> = JSON.parse(existingReportsStr);
-    return Object.values(existingReports).sort((a, b) => a.date.localeCompare(b.date));
+    if (!user) {
+      // Fall back to localStorage if not authenticated
+      return getAllReportsFromLocalStorage();
+    }
+    
+    // Fetch all reports from Supabase
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: true });
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      return data.map(report => ({
+        date: report.date,
+        revenueItems: report.revenue_items,
+        costOfGoodsItems: report.cost_of_goods_items,
+        salaryExpenses: report.salary_expenses,
+        distributorExpenses: report.distributor_expenses,
+        operationalExpenses: report.operational_expenses,
+        budget: report.budget
+      }));
+    }
+    
+    // Fall back to localStorage if no reports found in Supabase
+    return getAllReportsFromLocalStorage();
   } catch (error) {
     console.error('Error getting all reports:', error);
     toast({
@@ -88,6 +211,21 @@ export const getAllReports = (): PLReport[] => {
       description: "Failed to retrieve reports",
       variant: "destructive",
     });
+    
+    // Fall back to localStorage on error
+    return getAllReportsFromLocalStorage();
+  }
+};
+
+const getAllReportsFromLocalStorage = (): PLReport[] => {
+  try {
+    const existingReportsStr = localStorage.getItem(STORAGE_KEY);
+    if (!existingReportsStr) return [];
+    
+    const existingReports: Record<string, PLReport> = JSON.parse(existingReportsStr);
+    return Object.values(existingReports).sort((a, b) => a.date.localeCompare(b.date));
+  } catch (error) {
+    console.error('Error getting all reports from localStorage:', error);
     return [];
   }
 };
