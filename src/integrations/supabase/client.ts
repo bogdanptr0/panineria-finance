@@ -18,7 +18,7 @@ export const supabase = createClient<Database>(
       storage: window.localStorage
     },
     global: {
-      fetch: (...args) => {
+      fetch: function(...args) {
         return fetch(...args);
       }
     },

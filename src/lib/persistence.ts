@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { format, parse } from "date-fns";
 import { Json } from "@/integrations/supabase/types";
+import { verifyDataSync } from "./syncVerifier";
 
 export interface PLReport {
   date: string;
@@ -36,6 +37,9 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
   try {
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     console.log("Loading report for date:", dateKey);
+    
+    // First verify if data exists
+    const exists = await verifyDataSync(dateKey);
     
     const { data, error } = await supabase
       .from('pl_reports')
@@ -150,6 +154,7 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
       return defaultReport;
     }
     
+    // Create a properly typed report object
     const report: PLReport = {
       date: data.date,
       revenueItems: parseJsonToRecord<number>(data.revenue_items),
@@ -159,11 +164,22 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
       utilitiesExpenses: parseJsonToRecord<number>(data.utilities_expenses || {}),
       operationalExpenses: parseJsonToRecord<number>(data.operational_expenses),
       otherExpenses: parseJsonToRecord<number>(data.other_expenses || {}),
-      subcategories: data.subcategories as any || { revenueItems: {}, expenses: {} },
       budget: data.budget as any,
-      bucatarieItems: parseJsonToRecord<number>(data.bucatarie_items as any || {}),
-      barItems: parseJsonToRecord<number>(data.bar_items as any || {})
+      subcategories: { revenueItems: {}, expenses: {} }
     };
+    
+    // Handle fields that might not be in the database schema but need to be in our model
+    if (data.subcategories) {
+      report.subcategories = data.subcategories as any;
+    }
+    
+    if (data.bucatarie_items) {
+      report.bucatarieItems = parseJsonToRecord<number>(data.bucatarie_items as any);
+    }
+    
+    if (data.bar_items) {
+      report.barItems = parseJsonToRecord<number>(data.bar_items as any);
+    }
     
     return report;
   } catch (error) {
@@ -196,7 +212,7 @@ export const saveReport = async (
   try {
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    const data = {
+    const upsertData = {
       date: dateKey,
       revenue_items: revenueItems as Json,
       cost_of_goods_items: costOfGoodsItems as Json,
@@ -205,23 +221,27 @@ export const saveReport = async (
       utilities_expenses: utilitiesExpenses as Json,
       operational_expenses: operationalExpenses as Json,
       other_expenses: otherExpenses as Json,
-      budget: budget as Json,
-      subcategories: subcategories as Json || { revenueItems: {}, expenses: {} } as Json,
       bucatarie_items: bucatarieItems as Json || {} as Json,
-      bar_items: barItems as Json || {} as Json
+      bar_items: barItems as Json || {} as Json,
+      subcategories: subcategories as Json || { revenueItems: {}, expenses: {} } as Json,
+      budget: budget as Json
     };
     
-    const userId = localStorage.getItem('supabase.auth.token.currentSession')
-      ? JSON.parse(localStorage.getItem('supabase.auth.token.currentSession') || '{}')?.user?.id
-      : null;
-    
-    if (userId) {
-      data['user_id'] = userId;
+    // Get user ID if available
+    let userId = null;
+    try {
+      const session = localStorage.getItem('supabase.auth.token.currentSession');
+      userId = session ? JSON.parse(session)?.user?.id : null;
+    } catch (e) {
+      console.error("Error getting user ID:", e);
     }
+    
+    // Add user_id if available
+    const finalData = userId ? { ...upsertData, user_id: userId } : upsertData;
     
     const { error: upsertError } = await supabase
       .from('pl_reports')
-      .upsert(data, {
+      .upsert(finalData as any, {
         onConflict: 'date'
       });
     
@@ -231,7 +251,7 @@ export const saveReport = async (
     }
     
     console.log("Report saved successfully for date:", dateKey);
-    return data;
+    return finalData;
   } catch (error) {
     console.error("Error in saveReport:", error);
     throw error;
@@ -306,13 +326,15 @@ export const deleteItemFromSupabase = async (date: Date, category: string, name:
       return;
     }
     
-    const items = data[dbColumn] || {};
+    const items = parseJsonToRecord<number>(data[dbColumn] as Json || {});
     
     if (items[name] !== undefined) {
       delete items[name];
       
+      // Handle subcategories if relevant
+      let subcategories = parseJsonToRecord<any>(data.subcategories as Json || { revenueItems: {}, expenses: {} });
+      
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
         if (subcategories.revenueItems && subcategories.revenueItems[name]) {
           delete subcategories.revenueItems[name];
         }
@@ -333,7 +355,6 @@ export const deleteItemFromSupabase = async (date: Date, category: string, name:
           console.log(`Successfully deleted ${name} from ${category}`);
         }
       } else if (['utilitiesExpenses', 'operationalExpenses', 'otherExpenses'].includes(category)) {
-        const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
         if (subcategories.expenses && subcategories.expenses[name]) {
           delete subcategories.expenses[name];
         }
