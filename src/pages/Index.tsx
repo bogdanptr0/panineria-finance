@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -10,7 +11,7 @@ import ComparisonView from "@/components/ComparisonView";
 import BudgetAnalysis from "@/components/BudgetAnalysis";
 import CashFlowProjection from "@/components/CashFlowProjection";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { loadReport, updateAllReportsWithDefaultSalaries } from "@/lib/persistence";
+import { loadReport, updateAllReportsWithDefaultSalaries, saveReport } from "@/lib/persistence";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -89,6 +90,9 @@ const Index = () => {
     targetExpenses: number;
     targetProfit: number;
   } | undefined>(undefined);
+  
+  // Add a state for tracking changes to know when to save
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
 
   useEffect(() => {
     updateAllReportsWithDefaultSalaries();
@@ -136,11 +140,44 @@ const Index = () => {
         });
         setOtherExpenses(report.otherExpenses || {});
         setBudget(report.budget);
+        
+        // Clear deleted items on load
+        setDeletedBucatarieItems({});
+        setDeletedBarItems({});
+        setDeletedSalaryItems({});
+        setDeletedDistributorItems({});
+        setDeletedUtilitiesItems({});
+        setDeletedOperationalItems({});
+        setDeletedOtherItems({});
+        
+        setHasUnsavedChanges(false);
       }
     };
     
     fetchReport();
   }, [selectedMonth]);
+  
+  // Save data when there are unsaved changes
+  useEffect(() => {
+    if (hasUnsavedChanges) {
+      const saveData = async () => {
+        await saveReport(
+          selectedMonth,
+          getRevenueItems(),
+          {},
+          salaryExpenses,
+          distributorExpenses,
+          utilitiesExpenses,
+          operationalExpenses,
+          otherExpenses,
+          budget
+        );
+        setHasUnsavedChanges(false);
+      };
+      
+      saveData();
+    }
+  }, [hasUnsavedChanges]);
 
   const calculateTotal = (items: Record<string, number>) => {
     return Object.values(items).reduce((sum, value) => sum + value, 0);
@@ -166,26 +203,32 @@ const Index = () => {
     } else {
       setBarItems(prev => ({ ...prev, [name]: value }));
     }
+    setHasUnsavedChanges(true);
   };
 
   const handleSalaryUpdate = (name: string, value: number) => {
     setSalaryExpenses(prev => ({ ...prev, [name]: value }));
+    setHasUnsavedChanges(true);
   };
 
   const handleDistributorUpdate = (name: string, value: number) => {
     setDistributorExpenses(prev => ({ ...prev, [name]: value }));
+    setHasUnsavedChanges(true);
   };
 
   const handleUtilitiesUpdate = (name: string, value: number) => {
     setUtilitiesExpenses(prev => ({ ...prev, [name]: value }));
+    setHasUnsavedChanges(true);
   };
 
   const handleOperationalUpdate = (name: string, value: number) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: value }));
+    setHasUnsavedChanges(true);
   };
 
   const handleOtherExpensesUpdate = (name: string, value: number) => {
     setOtherExpenses(prev => ({ ...prev, [name]: value }));
+    setHasUnsavedChanges(true);
   };
 
   const handleRevenueRename = (oldName: string, newName: string) => {
@@ -206,6 +249,7 @@ const Index = () => {
         return { ...newItems, [newName]: value };
       });
     }
+    setHasUnsavedChanges(true);
   };
 
   const handleSalaryRename = (oldName: string, newName: string) => {
@@ -217,6 +261,7 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    setHasUnsavedChanges(true);
   };
 
   const handleDistributorRename = (oldName: string, newName: string) => {
@@ -228,6 +273,7 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    setHasUnsavedChanges(true);
   };
 
   const handleUtilitiesRename = (oldName: string, newName: string) => {
@@ -239,6 +285,7 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    setHasUnsavedChanges(true);
   };
 
   const handleOperationalRename = (oldName: string, newName: string) => {
@@ -250,6 +297,7 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    setHasUnsavedChanges(true);
   };
 
   const handleOtherExpensesRename = (oldName: string, newName: string) => {
@@ -261,6 +309,7 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    setHasUnsavedChanges(true);
   };
 
   const handleAddRevenue = (name: string, subsectionTitle?: string) => {
@@ -269,26 +318,32 @@ const Index = () => {
     } else if (subsectionTitle === "Bar") {
       setBarItems(prev => ({ ...prev, [name]: 0 }));
     }
+    setHasUnsavedChanges(true);
   };
 
   const handleAddSalary = (name: string) => {
     setSalaryExpenses(prev => ({ ...prev, [name]: 0 }));
+    setHasUnsavedChanges(true);
   };
 
   const handleAddDistributor = (name: string) => {
     setDistributorExpenses(prev => ({ ...prev, [name]: 0 }));
+    setHasUnsavedChanges(true);
   };
 
   const handleAddUtilities = (name: string) => {
     setUtilitiesExpenses(prev => ({ ...prev, [name]: 0 }));
+    setHasUnsavedChanges(true);
   };
 
   const handleAddOperational = (name: string) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: 0 }));
+    setHasUnsavedChanges(true);
   };
 
   const handleAddOtherExpenses = (name: string) => {
     setOtherExpenses(prev => ({ ...prev, [name]: 0 }));
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteRevenue = (name: string) => {
@@ -302,18 +357,21 @@ const Index = () => {
         return newItems;
       });
       
-      toast({
+      const toastId = toast({
         title: "Item deleted",
         description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
             onClick={() => handleUndoDeleteBucatarie(name)}
+            className="bg-white hover:bg-gray-100"
           >
             Undo
           </Button>
         ),
       });
+      
+      setHasUnsavedChanges(true);
     } else if (Object.keys(barItems).includes(name)) {
       const value = barItems[name];
       setDeletedBarItems(prev => ({ ...prev, [name]: value }));
@@ -324,18 +382,21 @@ const Index = () => {
         return newItems;
       });
       
-      toast({
+      const toastId = toast({
         title: "Item deleted",
         description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
             onClick={() => handleUndoDeleteBar(name)}
+            className="bg-white hover:bg-gray-100"
           >
             Undo
           </Button>
         ),
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -349,18 +410,21 @@ const Index = () => {
       return newItems;
     });
     
-    toast({
+    const toastId = toast({
       title: "Salary item deleted",
       description: `"${name}" has been removed`,
       action: (
         <Button 
           variant="outline" 
           onClick={() => handleUndoDeleteSalary(name)}
+          className="bg-white hover:bg-gray-100"
         >
           Undo
         </Button>
       ),
     });
+    
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteDistributor = (name: string) => {
@@ -373,18 +437,21 @@ const Index = () => {
       return newItems;
     });
     
-    toast({
+    const toastId = toast({
       title: "Distributor item deleted",
       description: `"${name}" has been removed`,
       action: (
         <Button 
           variant="outline" 
           onClick={() => handleUndoDeleteDistributor(name)}
+          className="bg-white hover:bg-gray-100"
         >
           Undo
         </Button>
       ),
     });
+    
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteOperationalItem = (name: string) => {
@@ -398,18 +465,21 @@ const Index = () => {
         return newItems;
       });
       
-      toast({
+      const toastId = toast({
         title: "Utilities item deleted",
         description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
             onClick={() => handleUndoDeleteUtilities(name)}
+            className="bg-white hover:bg-gray-100"
           >
             Undo
           </Button>
         ),
       });
+      
+      setHasUnsavedChanges(true);
     } else if (Object.keys(operationalExpenses).includes(name)) {
       const value = operationalExpenses[name];
       setDeletedOperationalItems(prev => ({ ...prev, [name]: value }));
@@ -420,18 +490,21 @@ const Index = () => {
         return newItems;
       });
       
-      toast({
+      const toastId = toast({
         title: "Operational item deleted",
         description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
             onClick={() => handleUndoDeleteOperational(name)}
+            className="bg-white hover:bg-gray-100"
           >
             Undo
           </Button>
         ),
       });
+      
+      setHasUnsavedChanges(true);
     } else if (Object.keys(otherExpenses).includes(name)) {
       const value = otherExpenses[name];
       setDeletedOtherItems(prev => ({ ...prev, [name]: value }));
@@ -442,18 +515,21 @@ const Index = () => {
         return newItems;
       });
       
-      toast({
+      const toastId = toast({
         title: "Other expense item deleted",
         description: `"${name}" has been removed`,
         action: (
           <Button 
             variant="outline" 
             onClick={() => handleUndoDeleteOther(name)}
+            className="bg-white hover:bg-gray-100"
           >
             Undo
           </Button>
         ),
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -474,6 +550,8 @@ const Index = () => {
         title: "Item restored",
         description: `"${name}" has been restored`,
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -494,6 +572,8 @@ const Index = () => {
         title: "Item restored",
         description: `"${name}" has been restored`,
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -514,6 +594,8 @@ const Index = () => {
         title: "Salary item restored",
         description: `"${name}" has been restored`,
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -534,6 +616,8 @@ const Index = () => {
         title: "Distributor item restored",
         description: `"${name}" has been restored`,
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -554,6 +638,8 @@ const Index = () => {
         title: "Utilities item restored",
         description: `"${name}" has been restored`,
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -574,6 +660,8 @@ const Index = () => {
         title: "Operational item restored",
         description: `"${name}" has been restored`,
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -594,6 +682,8 @@ const Index = () => {
         title: "Other expense item restored",
         description: `"${name}" has been restored`,
       });
+      
+      setHasUnsavedChanges(true);
     }
   };
 
