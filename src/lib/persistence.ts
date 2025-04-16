@@ -1,164 +1,144 @@
 import { supabase } from "@/integrations/supabase/client";
+import { format, parse } from "date-fns";
 
 export interface PLReport {
   date: string;
   revenueItems: Record<string, number>;
-  bucatarieItems: Record<string, number>; // Add separate bucatarieItems
-  barItems: Record<string, number>; // Add separate barItems
   costOfGoodsItems: Record<string, number>;
   salaryExpenses: Record<string, number>;
   distributorExpenses: Record<string, number>;
   utilitiesExpenses: Record<string, number>;
   operationalExpenses: Record<string, number>;
   otherExpenses: Record<string, number>;
+  subcategories?: {
+    revenueItems?: Record<string, string>;
+    expenses?: Record<string, string>;
+  };
   budget?: {
     targetRevenue: number;
     targetExpenses: number;
     targetProfit: number;
   };
-  subcategories?: {
-    revenueItems?: Record<string, string>;
-    expenses?: Record<string, string>;
-  };
+  bucatarieItems?: Record<string, number>;
+  barItems?: Record<string, number>;
 }
 
-interface SupabaseReport {
-  id: string;
-  date: string;
-  user_id: string;
-  revenue_items: Record<string, number>;
-  bucatarie_items: Record<string, number>; // Add separate bucatarie_items in DB
-  bar_items: Record<string, number>; // Add separate bar_items in DB
-  cost_of_goods_items: Record<string, number>;
-  salary_expenses: Record<string, number>;
-  distributor_expenses: Record<string, number>;
-  utilities_expenses: Record<string, number>;
-  operational_expenses: Record<string, number>;
-  other_expenses: Record<string, number>;
-  budget?: {
-    targetRevenue: number;
-    targetExpenses: number;
-    targetProfit: number;
-  };
-  subcategories?: {
-    revenueItems?: Record<string, string>;
-    expenses?: Record<string, string>;
-  };
-  created_at: string;
-  updated_at: string;
-}
-
-export const loadReport = async (month: Date): Promise<PLReport | null> => {
+export const loadReport = async (date: Date): Promise<PLReport | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-
-    const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
-
-    let { data: pl_reports, error } = await supabase
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    console.log("Loading report for date:", dateKey);
+    
+    const { data, error } = await supabase
       .from('pl_reports')
       .select('*')
       .eq('date', dateKey)
-      .eq('user_id', user.id)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw error;
-    }
-
-    if (!pl_reports) {
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Error loading report:", error);
       return null;
     }
-
-    // Cast to our interface with known properties
-    const report = pl_reports as unknown as SupabaseReport;
     
-    // Safely handle subcategories with default empty objects
-    const subcategories = report.subcategories || { revenueItems: {}, expenses: {} };
-
-    // Combine bucatarie and bar items for revenueItems for backwards compatibility
-    const revenueItems = {
-      ...(report.bucatarie_items || {}),
-      ...(report.bar_items || {})
+    if (!data) {
+      console.log("No report found for date:", dateKey);
+      
+      // Create default report
+      const defaultReport: PLReport = {
+        date: dateKey,
+        revenueItems: {},
+        costOfGoodsItems: {},
+        salaryExpenses: {
+          "Adi": 4050,
+          "Ioana": 4050,
+          "Andreea": 4050,
+          "Victoria": 4050
+        },
+        distributorExpenses: {
+          "Maria FoodNova": 0,
+          "CocaCola": 0,
+          "24H": 0,
+          "Sinless": 0,
+          "Peroni": 0,
+          "Sudavangarde(Brutarie Foccacia)": 0,
+          "Proporzioni": 0,
+          "LIDL": 0,
+          "Metro": 0
+        },
+        utilitiesExpenses: {
+          "Gaze(Engie)": 0,
+          "Apa": 0,
+          "Curent": 0,
+          "Gunoi(Iridex)": 0,
+          "Internet": 0
+        },
+        operationalExpenses: {
+          "Contabilitate": 0,
+          "ECR": 0,
+          "ISU": 0,
+          "Chirie": 0,
+          "Protectia Muncii": 0
+        },
+        otherExpenses: {},
+        subcategories: {
+          revenueItems: {},
+          expenses: {}
+        },
+        bucatarieItems: {
+          "Il Classico": 0,
+          "Il Prosciutto": 0,
+          "Il Piccante": 0,
+          "La Porchetta": 0,
+          "La Mortadella": 0,
+          "La Buffala": 0,
+          "Tiramisu": 0,
+          "Platou": 0
+        },
+        barItems: {}
+      };
+      
+      await saveReport(
+        date, 
+        defaultReport.revenueItems,
+        defaultReport.costOfGoodsItems,
+        defaultReport.salaryExpenses,
+        defaultReport.distributorExpenses,
+        defaultReport.utilitiesExpenses,
+        defaultReport.operationalExpenses,
+        defaultReport.otherExpenses,
+        undefined,
+        defaultReport.subcategories,
+        defaultReport.bucatarieItems,
+        defaultReport.barItems
+      );
+      
+      return defaultReport;
+    }
+    
+    // Parse the JSON fields from the database
+    const report: PLReport = {
+      date: data.date,
+      revenueItems: data.revenue_items || {},
+      costOfGoodsItems: data.cost_of_goods_items || {},
+      salaryExpenses: data.salary_expenses || {},
+      distributorExpenses: data.distributor_expenses || {},
+      utilitiesExpenses: data.utilities_expenses || {},
+      operationalExpenses: data.operational_expenses || {},
+      otherExpenses: data.other_expenses || {},
+      subcategories: data.subcategories || { revenueItems: {}, expenses: {} },
+      budget: data.budget,
+      bucatarieItems: data.bucatarie_items || {},
+      barItems: data.bar_items || {}
     };
-
-    return {
-      date: report.date,
-      revenueItems: revenueItems,
-      bucatarieItems: report.bucatarie_items || {},
-      barItems: report.bar_items || {},
-      costOfGoodsItems: report.cost_of_goods_items || {},
-      salaryExpenses: report.salary_expenses || {},
-      distributorExpenses: report.distributor_expenses || {},
-      utilitiesExpenses: report.utilities_expenses || {},
-      operationalExpenses: report.operational_expenses || {},
-      otherExpenses: report.other_expenses || {},
-      budget: report.budget,
-      subcategories
-    };
+    
+    return report;
   } catch (error) {
-    console.error("Error loading report:", error);
+    console.error("Error in loadReport:", error);
     return null;
   }
 };
 
-export const getAllReports = async (): Promise<PLReport[]> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-
-    let { data: pl_reports, error } = await supabase
-      .from('pl_reports')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    if (!pl_reports || pl_reports.length === 0) {
-      return [];
-    }
-
-    return pl_reports.map(report => {
-      const typedReport = report as unknown as SupabaseReport;
-      
-      // Combine bucatarie and bar items for revenueItems for backwards compatibility
-      const revenueItems = {
-        ...(typedReport.bucatarie_items || {}),
-        ...(typedReport.bar_items || {})
-      };
-      
-      return {
-        date: typedReport.date,
-        revenueItems: revenueItems,
-        bucatarieItems: typedReport.bucatarie_items || {},
-        barItems: typedReport.bar_items || {},
-        costOfGoodsItems: typedReport.cost_of_goods_items || {},
-        salaryExpenses: typedReport.salary_expenses || {},
-        distributorExpenses: typedReport.distributor_expenses || {},
-        utilitiesExpenses: typedReport.utilities_expenses || {},
-        operationalExpenses: typedReport.operational_expenses || {},
-        otherExpenses: typedReport.other_expenses || {},
-        budget: typedReport.budget,
-        subcategories: typedReport.subcategories || { revenueItems: {}, expenses: {} }
-      };
-    });
-  } catch (error) {
-    console.error("Error loading all reports:", error);
-    return [];
-  }
-};
-
 export const saveReport = async (
-  month: Date,
+  date: Date,
   revenueItems: Record<string, number>,
   costOfGoodsItems: Record<string, number>,
   salaryExpenses: Record<string, number>,
@@ -175,753 +155,688 @@ export const saveReport = async (
     revenueItems?: Record<string, string>;
     expenses?: Record<string, string>;
   },
-  bucatarieItems?: Record<string, number>, // Added separate parameter
-  barItems?: Record<string, number> // Added separate parameter
-): Promise<void> => {
+  bucatarieItems?: Record<string, number>,
+  barItems?: Record<string, number>
+) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
-    
-    console.log("Saving report for date:", dateKey);
-    
-    const { data: existingReport, error: fetchError } = await supabase
+    // Upsert report data
+    const { data, error } = await supabase
       .from('pl_reports')
-      .select('id')
-      .eq('date', dateKey)
-      .eq('user_id', user.id)
-      .single();
+      .upsert({
+        date: dateKey,
+        revenue_items: revenueItems,
+        cost_of_goods_items: costOfGoodsItems,
+        salary_expenses: salaryExpenses,
+        distributor_expenses: distributorExpenses,
+        utilities_expenses: utilitiesExpenses,
+        operational_expenses: operationalExpenses,
+        other_expenses: otherExpenses,
+        budget: budget,
+        subcategories: subcategories || { revenueItems: {}, expenses: {} },
+        bucatarie_items: bucatarieItems || {},
+        bar_items: barItems || {}
+      }, {
+        onConflict: 'date'
+      });
     
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
+    if (error) {
+      console.error("Error saving report:", error);
+      throw error;
     }
     
-    // Ensure subcategories is properly structured as an object
-    const safeSubcategories = {
-      revenueItems: subcategories?.revenueItems || {},
-      expenses: subcategories?.expenses || {}
-    };
-    
-    // Separate bucatarie and bar items
-    const separateBucatarieItems = bucatarieItems || {};
-    const separateBarItems = barItems || {};
-    
-    if (existingReport) {
-      const { error: updateError } = await supabase
-        .from('pl_reports')
-        .update({
-          revenue_items: revenueItems,
-          bucatarie_items: separateBucatarieItems, // Store separately
-          bar_items: separateBarItems, // Store separately
-          cost_of_goods_items: costOfGoodsItems,
-          salary_expenses: salaryExpenses,
-          distributor_expenses: distributorExpenses,
-          utilities_expenses: utilitiesExpenses,
-          operational_expenses: operationalExpenses,
-          other_expenses: otherExpenses,
-          budget,
-          subcategories: safeSubcategories as Record<string, unknown>, // Type cast to avoid TS error
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingReport.id);
-      
-      if (updateError) {
-        console.error("Error updating report:", updateError);
-        throw updateError;
-      }
-    } else {
-      const { error: insertError } = await supabase
-        .from('pl_reports')
-        .insert({
-          date: dateKey,
-          user_id: user.id,
-          revenue_items: revenueItems,
-          bucatarie_items: separateBucatarieItems, // Store separately
-          bar_items: separateBarItems, // Store separately
-          cost_of_goods_items: costOfGoodsItems,
-          salary_expenses: salaryExpenses,
-          distributor_expenses: distributorExpenses,
-          utilities_expenses: utilitiesExpenses,
-          operational_expenses: operationalExpenses,
-          other_expenses: otherExpenses,
-          budget,
-          subcategories: safeSubcategories as Record<string, unknown> // Type cast to avoid TS error
-        });
-      
-      if (insertError) {
-        console.error("Error inserting report:", insertError);
-        throw insertError;
-      }
-    }
+    console.log("Report saved successfully for date:", dateKey);
+    return data;
   } catch (error) {
-    console.error("Error saving report:", error);
+    console.error("Error in saveReport:", error);
     throw error;
   }
 };
 
-export const updateAllReportsWithDefaultSalaries = async (): Promise<void> => {
+export const updateAllReportsWithDefaultSalaries = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error("User not authenticated");
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('date, salary_expenses');
+    
+    if (error) {
+      console.error("Error fetching reports:", error);
+      return;
     }
-
+    
     const defaultSalaries = {
       "Adi": 4050,
       "Ioana": 4050,
       "Andreea": 4050,
       "Victoria": 4050
     };
-
-    const { data: reports, error } = await supabase
-      .from('pl_reports')
-      .select('*')
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error("Error fetching reports:", error);
-      throw error;
-    }
-
-    if (!reports || reports.length === 0) {
-      console.log("No reports found for the user.");
-      return;
-    }
-
-    for (const report of reports) {
-      const currentSalaries = report.salary_expenses || {};
-      const missingSalaries = Object.keys(defaultSalaries).filter(salaryName => !(salaryName in currentSalaries));
-
-      if (missingSalaries.length > 0) {
-        const updatedSalaries = { ...currentSalaries, ...defaultSalaries };
-
+    
+    for (const report of data) {
+      if (!report.salary_expenses || Object.keys(report.salary_expenses).length === 0) {
         const { error: updateError } = await supabase
           .from('pl_reports')
-          .update({ salary_expenses: updatedSalaries })
-          .eq('id', report.id);
-
+          .update({ salary_expenses: defaultSalaries })
+          .eq('date', report.date);
+        
         if (updateError) {
-          console.error("Error updating report:", updateError);
-          continue;
+          console.error(`Error updating salaries for ${report.date}:`, updateError);
         } else {
-          console.log(`Updated report ${report.id} with default salaries.`);
+          console.log(`Updated default salaries for ${report.date}`);
         }
-      } else {
-        console.log(`Report ${report.id} already has default salaries.`);
       }
     }
-
-    console.log("All reports checked and updated with default salaries where necessary.");
-
   } catch (error) {
-    console.error("Error updating reports with default salaries:", error);
+    console.error("Error in updateAllReportsWithDefaultSalaries:", error);
   }
 };
 
-export const exportToCsv = (report: PLReport) => {
-  const csvRows = [];
-
-  const addRow = (title: string, items: Record<string, number>) => {
-    csvRows.push([title]);
-    Object.entries(items).forEach(([key, value]) => {
-      csvRows.push([key, value.toString()]);
-    });
-    csvRows.push([]);
-  };
-
-  addRow("Revenue Items", report.revenueItems);
-  addRow("Cost of Goods Items", report.costOfGoodsItems);
-  addRow("Salary Expenses", report.salaryExpenses);
-  addRow("Distributor Expenses", report.distributorExpenses);
-  addRow("Utilities Expenses", report.utilitiesExpenses);
-  addRow("Operational Expenses", report.operationalExpenses);
-  addRow("Other Expenses", report.otherExpenses);
-
-  const csvContent = csvRows.map(row => row.join(",")).join("\n");
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", "report.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-export const exportToPdf = () => {
-  window.print();
-};
-
-export const deleteItemFromSupabase = async (
-  month: Date,
-  category: string,
-  name: string
-): Promise<void> => {
+export const deleteItemFromSupabase = async (date: Date, category: string, name: string) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
-    
-    const { data: existingReport, error: fetchError } = await supabase
+    // First, get the current data
+    const { data, error } = await supabase
       .from('pl_reports')
       .select('*')
       .eq('date', dateKey)
-      .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
+    if (error || !data) {
+      console.error("Error fetching report for deletion:", error);
+      return;
     }
     
-    if (existingReport) {
-      const typedReport = existingReport as unknown as SupabaseReport;
-      let updatedData: Record<string, any> = {};
+    // Map the category to the database column
+    const columnMap: Record<string, string> = {
+      'bucatarieItems': 'bucatarie_items',
+      'barItems': 'bar_items',
+      'salaryExpenses': 'salary_expenses',
+      'distributorExpenses': 'distributor_expenses',
+      'utilitiesExpenses': 'utilities_expenses',
+      'operationalExpenses': 'operational_expenses',
+      'otherExpenses': 'other_expenses'
+    };
+    
+    const dbColumn = columnMap[category];
+    if (!dbColumn) {
+      console.error(`Unknown category: ${category}`);
+      return;
+    }
+    
+    // Get the items for this category
+    const items = data[dbColumn] || {};
+    
+    // Remove the specified item
+    if (items[name] !== undefined) {
+      delete items[name];
       
-      if (category === 'bucatarieItems') {
-        const currentBucatarieItems = typedReport.bucatarie_items || {};
-        const newBucatarieItems = { ...currentBucatarieItems };
-        delete newBucatarieItems[name];
-        updatedData.bucatarie_items = newBucatarieItems;
-        
-        // Update the combined revenue_items
-        const currentRevenueItems = typedReport.revenue_items || {};
-        const newRevenueItems = { ...currentRevenueItems };
-        delete newRevenueItems[name];
-        updatedData.revenue_items = newRevenueItems;
-        
-        // Also remove from subcategories tracking if it exists
-        if (typedReport.subcategories?.revenueItems) {
-          const currentSubcategories = typedReport.subcategories || {};
-          const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
-          const newRevenueSubcategories = { ...currentRevenueSubcategories };
-          delete newRevenueSubcategories[name];
-          
-          updatedData.subcategories = {
-            ...currentSubcategories,
-            revenueItems: newRevenueSubcategories,
-            expenses: currentSubcategories.expenses || {}
-          };
+      // Update subcategories if needed
+      if (category === 'bucatarieItems' || category === 'barItems') {
+        const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
+        if (subcategories.revenueItems && subcategories.revenueItems[name]) {
+          delete subcategories.revenueItems[name];
         }
-      } else if (category === 'barItems') {
-        const currentBarItems = typedReport.bar_items || {};
-        const newBarItems = { ...currentBarItems };
-        delete newBarItems[name];
-        updatedData.bar_items = newBarItems;
         
-        // Update the combined revenue_items
-        const currentRevenueItems = typedReport.revenue_items || {};
-        const newRevenueItems = { ...currentRevenueItems };
-        delete newRevenueItems[name];
-        updatedData.revenue_items = newRevenueItems;
+        // Update the database with the modified items
+        const updateData: Record<string, any> = {
+          [dbColumn]: items,
+          subcategories: subcategories
+        };
         
-        // Also remove from subcategories tracking if it exists
-        if (typedReport.subcategories?.revenueItems) {
-          const currentSubcategories = typedReport.subcategories || {};
-          const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
-          const newRevenueSubcategories = { ...currentRevenueSubcategories };
-          delete newRevenueSubcategories[name];
-          
-          updatedData.subcategories = {
-            ...currentSubcategories,
-            revenueItems: newRevenueSubcategories,
-            expenses: currentSubcategories.expenses || {}
-          };
+        const { error: updateError } = await supabase
+          .from('pl_reports')
+          .update(updateData)
+          .eq('date', dateKey);
+        
+        if (updateError) {
+          console.error(`Error deleting ${name} from ${category}:`, updateError);
+        } else {
+          console.log(`Successfully deleted ${name} from ${category}`);
         }
-      } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = typedReport.salary_expenses || {};
-        const newSalaryExpenses = { ...currentSalaryExpenses };
-        delete newSalaryExpenses[name];
-        updatedData.salary_expenses = newSalaryExpenses;
-      } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = typedReport.distributor_expenses || {};
-        const newDistributorExpenses = { ...currentDistributorExpenses };
-        delete newDistributorExpenses[name];
-        updatedData.distributor_expenses = newDistributorExpenses;
-      } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = typedReport.utilities_expenses || {};
-        const newUtilitiesExpenses = { ...currentUtilitiesExpenses };
-        delete newUtilitiesExpenses[name];
-        updatedData.utilities_expenses = newUtilitiesExpenses;
-        
-        // Also remove from subcategories tracking if it exists
-        if (typedReport.subcategories?.expenses) {
-          const currentSubcategories = typedReport.subcategories || {};
-          const currentExpenseSubcategories = currentSubcategories.expenses || {};
-          const newExpenseSubcategories = { ...currentExpenseSubcategories };
-          delete newExpenseSubcategories[name];
-          
-          updatedData.subcategories = {
-            ...currentSubcategories,
-            revenueItems: currentSubcategories.revenueItems || {},
-            expenses: newExpenseSubcategories
-          };
+      } else if (['utilitiesExpenses', 'operationalExpenses', 'otherExpenses'].includes(category)) {
+        const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
+        if (subcategories.expenses && subcategories.expenses[name]) {
+          delete subcategories.expenses[name];
         }
-      } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = typedReport.operational_expenses || {};
-        const newOperationalExpenses = { ...currentOperationalExpenses };
-        delete newOperationalExpenses[name];
-        updatedData.operational_expenses = newOperationalExpenses;
         
-        // Also remove from subcategories tracking if it exists
-        if (typedReport.subcategories?.expenses) {
-          const currentSubcategories = typedReport.subcategories || {};
-          const currentExpenseSubcategories = currentSubcategories.expenses || {};
-          const newExpenseSubcategories = { ...currentExpenseSubcategories };
-          delete newExpenseSubcategories[name];
-          
-          updatedData.subcategories = {
-            ...currentSubcategories,
-            revenueItems: currentSubcategories.revenueItems || {},
-            expenses: newExpenseSubcategories
-          };
+        // Update the database with the modified items
+        const updateData: Record<string, any> = {
+          [dbColumn]: items,
+          subcategories: subcategories
+        };
+        
+        const { error: updateError } = await supabase
+          .from('pl_reports')
+          .update(updateData)
+          .eq('date', dateKey);
+        
+        if (updateError) {
+          console.error(`Error deleting ${name} from ${category}:`, updateError);
+        } else {
+          console.log(`Successfully deleted ${name} from ${category}`);
         }
-      } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = typedReport.other_expenses || {};
-        const newOtherExpenses = { ...currentOtherExpenses };
-        delete newOtherExpenses[name];
-        updatedData.other_expenses = newOtherExpenses;
+      } else {
+        // For other categories without subcategories
+        const updateData: Record<string, any> = {
+          [dbColumn]: items
+        };
         
-        // Also remove from subcategories tracking if it exists
-        if (typedReport.subcategories?.expenses) {
-          const currentSubcategories = typedReport.subcategories || {};
-          const currentExpenseSubcategories = currentSubcategories.expenses || {};
-          const newExpenseSubcategories = { ...currentExpenseSubcategories };
-          delete newExpenseSubcategories[name];
-          
-          updatedData.subcategories = {
-            ...currentSubcategories,
-            revenueItems: currentSubcategories.revenueItems || {},
-            expenses: newExpenseSubcategories
-          };
+        const { error: updateError } = await supabase
+          .from('pl_reports')
+          .update(updateData)
+          .eq('date', dateKey);
+        
+        if (updateError) {
+          console.error(`Error deleting ${name} from ${category}:`, updateError);
+        } else {
+          console.log(`Successfully deleted ${name} from ${category}`);
         }
       }
-      
-      updatedData.updated_at = new Date().toISOString();
-      
-      const { error: updateError } = await supabase
-        .from('pl_reports')
-        .update(updatedData)
-        .eq('id', existingReport.id);
-      
-      if (updateError) {
-        console.error("Error updating report:", updateError);
-        throw updateError;
-      }
-      
-      console.log(`Successfully deleted ${name} from ${category}`);
     } else {
-      console.log("Report not found, cannot delete item.");
+      console.log(`Item ${name} not found in ${category}`);
     }
   } catch (error) {
-    console.error("Error deleting item from Supabase:", error);
-    throw error;
+    console.error("Error in deleteItemFromSupabase:", error);
   }
 };
 
 export const addItemToSupabase = async (
-  month: Date,
-  category: string,
-  name: string,
+  date: Date, 
+  category: string, 
+  name: string, 
   value: number,
-  subsectionTitle?: string
-): Promise<void> => {
+  subcategory?: string
+) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
-    
-    const { data: existingReport, error: fetchError } = await supabase
+    // First, get the current data
+    const { data, error } = await supabase
       .from('pl_reports')
       .select('*')
       .eq('date', dateKey)
-      .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
+    if (error || !data) {
+      console.error("Error fetching report for addition:", error);
+      return;
     }
     
-    if (existingReport) {
-      const typedReport = existingReport as unknown as SupabaseReport;
-      let updatedData: Record<string, any> = {};
-      
-      if (category === 'bucatarieItems') {
-        // Add to separate bucatarie_items
-        const currentBucatarieItems = typedReport.bucatarie_items || {};
-        updatedData.bucatarie_items = {
-          ...currentBucatarieItems,
-          [name]: value
-        };
-        
-        // Update the combined revenue_items
-        const currentRevenueItems = typedReport.revenue_items || {};
-        updatedData.revenue_items = {
-          ...currentRevenueItems,
-          [name]: value
-        };
-        
-        // Track the subcategory
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: {
-            ...currentRevenueSubcategories,
-            [name]: 'Bucatarie'
-          },
-          expenses: currentSubcategories.expenses || {}
-        };
-      } else if (category === 'barItems') {
-        // Add to separate bar_items
-        const currentBarItems = typedReport.bar_items || {};
-        updatedData.bar_items = {
-          ...currentBarItems,
-          [name]: value
-        };
-        
-        // Update the combined revenue_items
-        const currentRevenueItems = typedReport.revenue_items || {};
-        updatedData.revenue_items = {
-          ...currentRevenueItems,
-          [name]: value
-        };
-        
-        // Track the subcategory
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: {
-            ...currentRevenueSubcategories,
-            [name]: 'Bar'
-          },
-          expenses: currentSubcategories.expenses || {}
-        };
-      } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = typedReport.salary_expenses || {};
-        updatedData.salary_expenses = {
-          ...currentSalaryExpenses,
-          [name]: value
-        };
-      } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = typedReport.distributor_expenses || {};
-        updatedData.distributor_expenses = {
-          ...currentDistributorExpenses,
-          [name]: value
-        };
-      } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = typedReport.utilities_expenses || {};
-        updatedData.utilities_expenses = {
-          ...currentUtilitiesExpenses,
-          [name]: value
-        };
-        
-        // Track the subcategory
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentExpenseSubcategories = currentSubcategories.expenses || {};
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: currentSubcategories.revenueItems || {},
-          expenses: {
-            ...currentExpenseSubcategories,
-            [name]: 'Utilitati'
-          }
-        };
-      } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = typedReport.operational_expenses || {};
-        updatedData.operational_expenses = {
-          ...currentOperationalExpenses,
-          [name]: value
-        };
-        
-        // Track the subcategory
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentExpenseSubcategories = currentSubcategories.expenses || {};
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: currentSubcategories.revenueItems || {},
-          expenses: {
-            ...currentExpenseSubcategories,
-            [name]: 'Operationale'
-          }
-        };
-      } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = typedReport.other_expenses || {};
-        updatedData.other_expenses = {
-          ...currentOtherExpenses,
-          [name]: value
-        };
-        
-        // Track the subcategory
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentExpenseSubcategories = currentSubcategories.expenses || {};
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: currentSubcategories.revenueItems || {},
-          expenses: {
-            ...currentExpenseSubcategories,
-            [name]: 'Alte Cheltuieli'
-          }
-        };
+    // Map the category to the database column
+    const columnMap: Record<string, string> = {
+      'bucatarieItems': 'bucatarie_items',
+      'barItems': 'bar_items',
+      'salaryExpenses': 'salary_expenses',
+      'distributorExpenses': 'distributor_expenses',
+      'utilitiesExpenses': 'utilities_expenses',
+      'operationalExpenses': 'operational_expenses',
+      'otherExpenses': 'other_expenses'
+    };
+    
+    const dbColumn = columnMap[category];
+    if (!dbColumn) {
+      console.error(`Unknown category: ${category}`);
+      return;
+    }
+    
+    // Get the items for this category
+    const items = data[dbColumn] || {};
+    
+    // Add the new item
+    items[name] = value;
+    
+    // Update subcategories if needed
+    if (category === 'bucatarieItems' || category === 'barItems') {
+      const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
+      if (!subcategories.revenueItems) {
+        subcategories.revenueItems = {};
       }
+      subcategories.revenueItems[name] = subcategory || (category === 'bucatarieItems' ? 'Bucatarie' : 'Bar');
       
-      updatedData.updated_at = new Date().toISOString();
+      // Update the database with the modified items
+      const updateData: Record<string, any> = {
+        [dbColumn]: items,
+        subcategories: subcategories
+      };
       
       const { error: updateError } = await supabase
         .from('pl_reports')
-        .update(updatedData)
-        .eq('id', existingReport.id);
+        .update(updateData)
+        .eq('date', dateKey);
       
       if (updateError) {
-        console.error("Error updating report:", updateError);
-        throw updateError;
+        console.error(`Error adding ${name} to ${category}:`, updateError);
+      } else {
+        console.log(`Successfully added ${name} to ${category}`);
+      }
+    } else if (['utilitiesExpenses', 'operationalExpenses', 'otherExpenses'].includes(category)) {
+      const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
+      if (!subcategories.expenses) {
+        subcategories.expenses = {};
       }
       
-      console.log(`Successfully added ${name} to ${category} with value ${value}`);
-    } else {
-      // Creating a new report
-      const initialSubcategories: {
-        revenueItems: Record<string, string>;
-        expenses: Record<string, string>;
-      } = {
-        revenueItems: {},
-        expenses: {}
+      let expenseCategory;
+      if (category === 'utilitiesExpenses') {
+        expenseCategory = 'Utilitati';
+      } else if (category === 'operationalExpenses') {
+        expenseCategory = 'Operationale';
+      } else {
+        expenseCategory = 'Alte Cheltuieli';
+      }
+      
+      subcategories.expenses[name] = subcategory || expenseCategory;
+      
+      // Update the database with the modified items
+      const updateData: Record<string, any> = {
+        [dbColumn]: items,
+        subcategories: subcategories
       };
       
-      // Initialize default empty objects for all item types
-      const revenue_items: Record<string, number> = {};
-      const bucatarie_items: Record<string, number> = {};
-      const bar_items: Record<string, number> = {};
-      const cost_of_goods_items: Record<string, number> = {};
-      const salary_expenses: Record<string, number> = {};
-      const distributor_expenses: Record<string, number> = {};
-      const utilities_expenses: Record<string, number> = {};
-      const operational_expenses: Record<string, number> = {};
-      const other_expenses: Record<string, number> = {};
-      
-      // Add the new item to the appropriate category
-      if (category === 'bucatarieItems') {
-        bucatarie_items[name] = value;
-        revenue_items[name] = value; // Also add to combined revenue items
-        initialSubcategories.revenueItems[name] = 'Bucatarie';
-      } else if (category === 'barItems') {
-        bar_items[name] = value;
-        revenue_items[name] = value; // Also add to combined revenue items
-        initialSubcategories.revenueItems[name] = 'Bar';
-      } else if (category === 'salaryExpenses') {
-        salary_expenses[name] = value;
-      } else if (category === 'distributorExpenses') {
-        distributor_expenses[name] = value;
-      } else if (category === 'utilitiesExpenses') {
-        utilities_expenses[name] = value;
-        initialSubcategories.expenses[name] = 'Utilitati';
-      } else if (category === 'operationalExpenses') {
-        operational_expenses[name] = value;
-        initialSubcategories.expenses[name] = 'Operationale';
-      } else if (category === 'otherExpenses') {
-        other_expenses[name] = value;
-        initialSubcategories.expenses[name] = 'Alte Cheltuieli';
-      }
-      
-      const { error: insertError } = await supabase
+      const { error: updateError } = await supabase
         .from('pl_reports')
-        .insert({
-          date: dateKey,
-          user_id: user.id,
-          revenue_items,
-          bucatarie_items,
-          bar_items,
-          cost_of_goods_items,
-          salary_expenses,
-          distributor_expenses,
-          utilities_expenses,
-          operational_expenses,
-          other_expenses,
-          subcategories: initialSubcategories as Record<string, unknown> // Type cast to avoid TS error
-        });
+        .update(updateData)
+        .eq('date', dateKey);
       
-      if (insertError) {
-        console.error("Error inserting report:", insertError);
-        throw insertError;
+      if (updateError) {
+        console.error(`Error adding ${name} to ${category}:`, updateError);
+      } else {
+        console.log(`Successfully added ${name} to ${category}`);
       }
+    } else {
+      // For other categories without subcategories
+      const updateData: Record<string, any> = {
+        [dbColumn]: items
+      };
       
-      console.log(`Successfully created new report and added ${name} to ${category} with value ${value}`);
+      const { error: updateError } = await supabase
+        .from('pl_reports')
+        .update(updateData)
+        .eq('date', dateKey);
+      
+      if (updateError) {
+        console.error(`Error adding ${name} to ${category}:`, updateError);
+      } else {
+        console.log(`Successfully added ${name} to ${category}`);
+      }
     }
   } catch (error) {
-    console.error("Error adding item to Supabase:", error);
-    throw error;
+    console.error("Error in addItemToSupabase:", error);
   }
 };
 
 export const updateItemInSupabase = async (
-  month: Date,
-  category: string,
-  name: string,
+  date: Date, 
+  category: string, 
+  name: string, 
   value: number
-): Promise<void> => {
+) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    if (!user) {
-      throw new Error("User not authenticated");
+    // Map the category to the database column
+    const columnMap: Record<string, string> = {
+      'bucatarieItems': 'bucatarie_items',
+      'barItems': 'bar_items',
+      'salaryExpenses': 'salary_expenses',
+      'distributorExpenses': 'distributor_expenses',
+      'utilitiesExpenses': 'utilities_expenses',
+      'operationalExpenses': 'operational_expenses',
+      'otherExpenses': 'other_expenses'
+    };
+    
+    const dbColumn = columnMap[category];
+    if (!dbColumn) {
+      console.error(`Unknown category: ${category}`);
+      return;
     }
     
-    const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
-    
-    const { data: existingReport, error: fetchError } = await supabase
+    // First, get the current data
+    const { data, error } = await supabase
       .from('pl_reports')
-      .select('*')
+      .select(dbColumn)
       .eq('date', dateKey)
-      .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
+    if (error || !data) {
+      console.error("Error fetching report for update:", error);
+      return;
     }
     
-    if (existingReport) {
-      const typedReport = existingReport as unknown as SupabaseReport;
-      let updatedData: Record<string, any> = {};
-      
-      if (category === 'bucatarieItems') {
-        // Update separate bucatarie_items
-        const currentBucatarieItems = typedReport.bucatarie_items || {};
-        updatedData.bucatarie_items = {
-          ...currentBucatarieItems,
-          [name]: value
-        };
-        
-        // Update the combined revenue_items
-        const currentRevenueItems = typedReport.revenue_items || {};
-        updatedData.revenue_items = {
-          ...currentRevenueItems,
-          [name]: value
-        };
-      } else if (category === 'barItems') {
-        // Update separate bar_items
-        const currentBarItems = typedReport.bar_items || {};
-        updatedData.bar_items = {
-          ...currentBarItems,
-          [name]: value
-        };
-        
-        // Update the combined revenue_items
-        const currentRevenueItems = typedReport.revenue_items || {};
-        updatedData.revenue_items = {
-          ...currentRevenueItems,
-          [name]: value
-        };
-      } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = typedReport.salary_expenses || {};
-        updatedData.salary_expenses = {
-          ...currentSalaryExpenses,
-          [name]: value
-        };
-      } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = typedReport.distributor_expenses || {};
-        updatedData.distributor_expenses = {
-          ...currentDistributorExpenses,
-          [name]: value
-        };
-      } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = typedReport.utilities_expenses || {};
-        updatedData.utilities_expenses = {
-          ...currentUtilitiesExpenses,
-          [name]: value
-        };
-      } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = typedReport.operational_expenses || {};
-        updatedData.operational_expenses = {
-          ...currentOperationalExpenses,
-          [name]: value
-        };
-      } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = typedReport.other_expenses || {};
-        updatedData.other_expenses = {
-          ...currentOtherExpenses,
-          [name]: value
-        };
-      }
-      
-      updatedData.updated_at = new Date().toISOString();
-      
-      const { error: updateError } = await supabase
-        .from('pl_reports')
-        .update(updatedData)
-        .eq('id', existingReport.id);
-      
-      if (updateError) {
-        console.error("Error updating report:", updateError);
-        throw updateError;
-      }
+    // Get the items for this category
+    const items = data[dbColumn] || {};
+    
+    // Update the item
+    items[name] = value;
+    
+    // Update the database with the modified items
+    const updateData: Record<string, any> = {
+      [dbColumn]: items
+    };
+    
+    const { error: updateError } = await supabase
+      .from('pl_reports')
+      .update(updateData)
+      .eq('date', dateKey);
+    
+    if (updateError) {
+      console.error(`Error updating ${name} in ${category}:`, updateError);
     } else {
-      console.log("Report not found, cannot update item.");
-      // Handle the case when the report doesn't exist yet by creating it
-      await addItemToSupabase(month, category, name, value);
+      console.log(`Successfully updated ${name} in ${category} to ${value}`);
     }
   } catch (error) {
-    console.error("Error updating item in Supabase:", error);
-    throw error;
+    console.error("Error in updateItemInSupabase:", error);
   }
 };
 
 export const renameItemInSupabase = async (
-  month: Date,
-  category: string,
-  oldName: string,
+  date: Date, 
+  category: string, 
+  oldName: string, 
   newName: string
-): Promise<void> => {
+) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
-    
-    const { data: existingReport, error: fetchError } = await supabase
+    // First, get the current data
+    const { data, error } = await supabase
       .from('pl_reports')
       .select('*')
       .eq('date', dateKey)
-      .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
+    if (error || !data) {
+      console.error("Error fetching report for rename:", error);
+      return;
     }
     
-    if (existingReport) {
-      const typedReport = existingReport as unknown as SupabaseReport;
-      let updatedData: Record<string, any> = {};
+    // Map the category to the database column
+    const columnMap: Record<string, string> = {
+      'bucatarieItems': 'bucatarie_items',
+      'barItems': 'bar_items',
+      'salaryExpenses': 'salary_expenses',
+      'distributorExpenses': 'distributor_expenses',
+      'utilitiesExpenses': 'utilities_expenses',
+      'operationalExpenses': 'operational_expenses',
+      'otherExpenses': 'other_expenses'
+    };
+    
+    const dbColumn = columnMap[category];
+    if (!dbColumn) {
+      console.error(`Unknown category: ${category}`);
+      return;
+    }
+    
+    // Get the items for this category
+    const items = data[dbColumn] || {};
+    
+    // Check if the old name exists
+    if (items[oldName] === undefined) {
+      console.error(`Item ${oldName} not found in ${category}`);
+      return;
+    }
+    
+    // Create a new object with the renamed key
+    const value = items[oldName];
+    const newItems = { ...items };
+    delete newItems[oldName];
+    newItems[newName] = value;
+    
+    // Update subcategories if needed
+    if (category === 'bucatarieItems' || category === 'barItems') {
+      const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
+      if (subcategories.revenueItems && subcategories.revenueItems[oldName]) {
+        const subcategory = subcategories.revenueItems[oldName];
+        const newRevenueSubcategories = { ...subcategories.revenueItems };
+        delete newRevenueSubcategories[oldName];
+        newRevenueSubcategories[newName] = subcategory;
+        subcategories.revenueItems = newRevenueSubcategories;
+      }
       
-      if (category === 'bucatarieItems') {
-        const currentBucatarieItems = typedReport.bucatarie_items || {};
-        
-        if (currentBucatarieItems[oldName] !== undefined) {
-          const value = currentBucatarieItems[oldName];
-          const newBucatarieItems = { ...currentBucatarieItems };
-          delete newBucatarieItems[oldName];
-          newBucatarieItems[newName] = value;
-          updatedData.bucatarie_items = newBucatarieItems;
-          
-          // Update combined revenue items
+      // Update the database with the modified items
+      const updateData: Record<string, any> = {
+        [dbColumn]: newItems,
+        subcategories: subcategories
+      };
+      
+      const { error: updateError } = await supabase
+        .from('pl_reports')
+        .update(updateData)
+        .eq('date', dateKey);
+      
+      if (updateError) {
+        console.error(`Error renaming ${oldName} to ${newName} in ${category}:`, updateError);
+      } else {
+        console.log(`Successfully renamed ${oldName} to ${newName} in ${category}`);
+      }
+    } else if (['utilitiesExpenses', 'operationalExpenses', 'otherExpenses'].includes(category)) {
+      const subcategories = data.subcategories || { revenueItems: {}, expenses: {} };
+      if (subcategories.expenses && subcategories.expenses[oldName]) {
+        const subcategory = subcategories.expenses[oldName];
+        const newExpenseSubcategories = { ...subcategories.expenses };
+        delete newExpenseSubcategories[oldName];
+        newExpenseSubcategories[newName] = subcategory;
+        subcategories.expenses = newExpenseSubcategories;
+      }
+      
+      // Update the database with the modified items
+      const updateData: Record<string, any> = {
+        [dbColumn]: newItems,
+        subcategories: subcategories
+      };
+      
+      const { error: updateError } = await supabase
+        .from('pl_reports')
+        .update(updateData)
+        .eq('date', dateKey);
+      
+      if (updateError) {
+        console.error(`Error renaming ${oldName} to ${newName} in ${category}:`, updateError);
+      } else {
+        console.log(`Successfully renamed ${oldName} to ${newName} in ${category}`);
+      }
+    } else {
+      // For other categories without subcategories
+      const updateData: Record<string, any> = {
+        [dbColumn]: newItems
+      };
+      
+      const { error: updateError } = await supabase
+        .from('pl_reports')
+        .update(updateData)
+        .eq('date', dateKey);
+      
+      if (updateError) {
+        console.error(`Error renaming ${oldName} to ${newName} in ${category}:`, updateError);
+      } else {
+        console.log(`Successfully renamed ${oldName} to ${newName} in ${category}`);
+      }
+    }
+  } catch (error) {
+    console.error("Error in renameItemInSupabase:", error);
+  }
+};
+
+export const exportToCsv = (report: PLReport) => {
+  try {
+    // Format date for display
+    const dateObj = parse(report.date, 'yyyy-MM', new Date());
+    const formattedDate = format(dateObj, 'MMMM yyyy');
+    
+    // Create CSV content
+    let csvContent = `P&L Report - ${formattedDate}\n\n`;
+    
+    // Revenue section
+    csvContent += "REVENUE\n";
+    let totalRevenue = 0;
+    
+    // Bucatarie items
+    if (report.bucatarieItems && Object.keys(report.bucatarieItems).length > 0) {
+      csvContent += "Bucatarie:\n";
+      let bucatarieTotal = 0;
+      
+      Object.entries(report.bucatarieItems).forEach(([name, value]) => {
+        csvContent += `${name},${value}\n`;
+        bucatarieTotal += value;
+        totalRevenue += value;
+      });
+      
+      csvContent += `Bucatarie Total,${bucatarieTotal}\n\n`;
+    }
+    
+    // Bar items
+    if (report.barItems && Object.keys(report.barItems).length > 0) {
+      csvContent += "Bar:\n";
+      let barTotal = 0;
+      
+      Object.entries(report.barItems).forEach(([name, value]) => {
+        csvContent += `${name},${value}\n`;
+        barTotal += value;
+        totalRevenue += value;
+      });
+      
+      csvContent += `Bar Total,${barTotal}\n\n`;
+    }
+    
+    // Other revenue items
+    const bucatarieKeys = report.bucatarieItems ? Object.keys(report.bucatarieItems) : [];
+    const barKeys = report.barItems ? Object.keys(report.barItems) : [];
+    const otherRevenueItems = Object.entries(report.revenueItems).filter(
+      ([name]) => !bucatarieKeys.includes(name) && !barKeys.includes(name)
+    );
+    
+    if (otherRevenueItems.length > 0) {
+      csvContent += "Other Revenue:\n";
+      let otherRevenueTotal = 0;
+      
+      otherRevenueItems.forEach(([name, value]) => {
+        csvContent += `${name},${value}\n`;
+        otherRevenueTotal += value;
+        totalRevenue += value;
+      });
+      
+      csvContent += `Other Revenue Total,${otherRevenueTotal}\n\n`;
+    }
+    
+    csvContent += `TOTAL REVENUE,${totalRevenue}\n\n`;
+    
+    // Expenses section
+    csvContent += "EXPENSES\n";
+    let totalExpenses = 0;
+    
+    // Salary expenses
+    if (Object.keys(report.salaryExpenses).length > 0) {
+      csvContent += "Salary Expenses:\n";
+      let salaryTotal = 0;
+      
+      Object.entries(report.salaryExpenses).forEach(([name, value]) => {
+        csvContent += `${name},${value}\n`;
+        salaryTotal += value;
+      });
+      
+      csvContent += `Salary Total,${salaryTotal}\n\n`;
+      totalExpenses += salaryTotal;
+    }
+    
+    // Distributor expenses
+    if (Object.keys(report.distributorExpenses).length > 0) {
+      csvContent += "Distributor Expenses:\n";
+      let distributorTotal = 0;
+      
+      Object.entries(report.distributorExpenses).forEach(([name, value]) => {
+        csvContent += `${name},${value}\n`;
+        distributorTotal += value;
+      });
+      
+      csvContent += `Distributor Total,${distributorTotal}\n\n`;
+      totalExpenses += distributorTotal;
+    }
+    
+    // Utilities expenses
+    if (Object.keys(report.utilitiesExpenses).length > 0) {
+      csvContent += "Utilities Expenses:\n";
+      let utilitiesTotal = 0;
+      
+      Object.entries(report.utilitiesExpenses).forEach(([name, value]) => {
+        csvContent += `${name},${value}\n`;
+        utilitiesTotal += value;
+      });
+      
+      csvContent += `Utilities Total,${utilitiesTotal}\n\n`;
+      totalExpenses += utilitiesTotal;
+    }
+    
+    // Operational expenses
+    if (Object.keys(report.operationalExpenses).length > 0) {
+      csvContent += "Operational Expenses:\n";
+      let operationalTotal = 0;
+      
+      Object.entries(report.operationalExpenses).forEach(([name, value]) => {
+        csvContent += `${name},${value}\n`;
+        operationalTotal += value;
+      });
+      
+      csvContent += `Operational Total,${operationalTotal}\n\n`;
+      totalExpenses += operationalTotal;
+    }
+    
+    // Other expenses
+    if (Object.keys(report.otherExpenses).length > 0) {
+      csvContent += "Other Expenses:\n";
+      let otherTotal = 0;
+      
+      Object.entries(report.otherExpenses).forEach(([name, value]) => {
+        csvContent += `${name},${value}\n`;
+        otherTotal += value;
+      });
+      
+      csvContent += `Other Total,${otherTotal}\n\n`;
+      totalExpenses += otherTotal;
+    }
+    
+    csvContent += `TOTAL EXPENSES,${totalExpenses}\n\n`;
+    
+    // Profit calculation
+    const grossProfit = totalRevenue;
+    const netProfit = grossProfit - totalExpenses;
+    
+    csvContent += `GROSS PROFIT,${grossProfit}\n`;
+    csvContent += `NET PROFIT,${netProfit}\n\n`;
+    
+    // Budget comparison if available
+    if (report.budget) {
+      csvContent += "BUDGET COMPARISON\n";
+      csvContent += `Target Revenue,${report.budget.targetRevenue}\n`;
+      csvContent += `Actual Revenue,${totalRevenue}\n`;
+      csvContent += `Revenue Variance,${totalRevenue - report.budget.targetRevenue}\n\n`;
+      
+      csvContent += `Target Expenses,${report.budget.targetExpenses}\n`;
+      csvContent += `Actual Expenses,${totalExpenses}\n`;
+      csvContent += `Expenses Variance,${totalExpenses - report.budget.targetExpenses}\n\n`;
+      
+      csvContent += `Target Profit,${report.budget.targetProfit}\n`;
+      csvContent += `Actual Profit,${netProfit}\n`;
+      csvContent += `Profit Variance,${netProfit - report.budget.targetProfit}\n`;
+    }
+    
+    // Create and download the CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `P&L_Report_${report.date}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error("Error in exportToCsv:", error);
+  }
+};
+
+export const exportToPdf = () => {
+  try {
+    window.print();
+  } catch (error) {
+    console.error("Error in exportToPdf:", error);
+  }
+};
