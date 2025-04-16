@@ -91,7 +91,6 @@ const Index = () => {
     targetProfit: number;
   } | undefined>(undefined);
   
-  // Add a state for tracking changes to know when to save
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
 
   useEffect(() => {
@@ -141,7 +140,6 @@ const Index = () => {
         setOtherExpenses(report.otherExpenses || {});
         setBudget(report.budget);
         
-        // Clear deleted items on load
         setDeletedBucatarieItems({});
         setDeletedBarItems({});
         setDeletedSalaryItems({});
@@ -157,7 +155,6 @@ const Index = () => {
     fetchReport();
   }, [selectedMonth]);
   
-  // Save data when there are unsaved changes
   useEffect(() => {
     if (hasUnsavedChanges) {
       const saveData = async () => {
@@ -200,11 +197,9 @@ const Index = () => {
   const handleRevenueUpdate = async (name: string, value: number) => {
     if (Object.keys(bucatarieItems).includes(name)) {
       setBucatarieItems(prev => ({ ...prev, [name]: value }));
-      // Update in Supabase
       await updateItemInSupabase(selectedMonth, 'bucatarieItems', name, value);
     } else {
       setBarItems(prev => ({ ...prev, [name]: value }));
-      // Update in Supabase
       await updateItemInSupabase(selectedMonth, 'barItems', name, value);
     }
     setHasUnsavedChanges(true);
@@ -212,35 +207,30 @@ const Index = () => {
 
   const handleSalaryUpdate = async (name: string, value: number) => {
     setSalaryExpenses(prev => ({ ...prev, [name]: value }));
-    // Update in Supabase
     await updateItemInSupabase(selectedMonth, 'salaryExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
   const handleDistributorUpdate = async (name: string, value: number) => {
     setDistributorExpenses(prev => ({ ...prev, [name]: value }));
-    // Update in Supabase
     await updateItemInSupabase(selectedMonth, 'distributorExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
   const handleUtilitiesUpdate = async (name: string, value: number) => {
     setUtilitiesExpenses(prev => ({ ...prev, [name]: value }));
-    // Update in Supabase
     await updateItemInSupabase(selectedMonth, 'utilitiesExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
   const handleOperationalUpdate = async (name: string, value: number) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: value }));
-    // Update in Supabase
     await updateItemInSupabase(selectedMonth, 'operationalExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
   const handleOtherExpensesUpdate = async (name: string, value: number) => {
     setOtherExpenses(prev => ({ ...prev, [name]: value }));
-    // Update in Supabase
     await updateItemInSupabase(selectedMonth, 'otherExpenses', name, value);
     setHasUnsavedChanges(true);
   };
@@ -255,7 +245,6 @@ const Index = () => {
         delete newItems[oldName];
         return { ...newItems, [newName]: value };
       });
-      // Update in Supabase
       await renameItemInSupabase(selectedMonth, 'bucatarieItems', oldName, newName);
     } else if (oldName in barItems) {
       setBarItems(prev => {
@@ -264,7 +253,6 @@ const Index = () => {
         delete newItems[oldName];
         return { ...newItems, [newName]: value };
       });
-      // Update in Supabase
       await renameItemInSupabase(selectedMonth, 'barItems', oldName, newName);
     }
     setHasUnsavedChanges(true);
@@ -279,7 +267,6 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
-    // Update in Supabase
     await renameItemInSupabase(selectedMonth, 'salaryExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
@@ -293,7 +280,6 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
-    // Update in Supabase
     await renameItemInSupabase(selectedMonth, 'distributorExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
@@ -307,7 +293,6 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
-    // Update in Supabase
     await renameItemInSupabase(selectedMonth, 'utilitiesExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
@@ -321,7 +306,6 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
-    // Update in Supabase
     await renameItemInSupabase(selectedMonth, 'operationalExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
@@ -335,7 +319,6 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
-    // Update in Supabase
     await renameItemInSupabase(selectedMonth, 'otherExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
@@ -343,11 +326,9 @@ const Index = () => {
   const handleAddRevenue = async (name: string, subsectionTitle?: string) => {
     if (subsectionTitle === "Bucatarie") {
       setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
-      // Add to Supabase
       await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0);
     } else if (subsectionTitle === "Bar") {
       setBarItems(prev => ({ ...prev, [name]: 0 }));
-      // Add to Supabase
       await addItemToSupabase(selectedMonth, 'barItems', name, 0);
     }
     setHasUnsavedChanges(true);
@@ -355,35 +336,30 @@ const Index = () => {
 
   const handleAddSalary = async (name: string) => {
     setSalaryExpenses(prev => ({ ...prev, [name]: 0 }));
-    // Add to Supabase
     await addItemToSupabase(selectedMonth, 'salaryExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
   const handleAddDistributor = async (name: string) => {
     setDistributorExpenses(prev => ({ ...prev, [name]: 0 }));
-    // Add to Supabase
     await addItemToSupabase(selectedMonth, 'distributorExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
   const handleAddUtilities = async (name: string) => {
     setUtilitiesExpenses(prev => ({ ...prev, [name]: 0 }));
-    // Add to Supabase
     await addItemToSupabase(selectedMonth, 'utilitiesExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
   const handleAddOperational = async (name: string) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: 0 }));
-    // Add to Supabase
     await addItemToSupabase(selectedMonth, 'operationalExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
   const handleAddOtherExpenses = async (name: string) => {
     setOtherExpenses(prev => ({ ...prev, [name]: 0 }));
-    // Add to Supabase
     await addItemToSupabase(selectedMonth, 'otherExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
@@ -399,7 +375,6 @@ const Index = () => {
         return newItems;
       });
       
-      // Delete from Supabase
       await deleteItemFromSupabase(selectedMonth, 'bucatarieItems', name);
       
       toast({
@@ -427,7 +402,6 @@ const Index = () => {
         return newItems;
       });
       
-      // Delete from Supabase
       await deleteItemFromSupabase(selectedMonth, 'barItems', name);
       
       toast({
@@ -458,7 +432,6 @@ const Index = () => {
       return newItems;
     });
     
-    // Delete from Supabase
     await deleteItemFromSupabase(selectedMonth, 'salaryExpenses', name);
     
     toast({
@@ -488,7 +461,6 @@ const Index = () => {
       return newItems;
     });
     
-    // Delete from Supabase
     await deleteItemFromSupabase(selectedMonth, 'distributorExpenses', name);
     
     toast({
@@ -519,7 +491,6 @@ const Index = () => {
         return newItems;
       });
       
-      // Delete from Supabase
       await deleteItemFromSupabase(selectedMonth, 'utilitiesExpenses', name);
       
       toast({
@@ -547,7 +518,6 @@ const Index = () => {
         return newItems;
       });
       
-      // Delete from Supabase
       await deleteItemFromSupabase(selectedMonth, 'operationalExpenses', name);
       
       toast({
@@ -575,7 +545,6 @@ const Index = () => {
         return newItems;
       });
       
-      // Delete from Supabase
       await deleteItemFromSupabase(selectedMonth, 'otherExpenses', name);
       
       toast({
@@ -604,7 +573,6 @@ const Index = () => {
         [name]: value
       }));
       
-      // Add back to Supabase
       await addItemToSupabase(selectedMonth, 'bucatarieItems', name, value);
       
       setDeletedBucatarieItems(prev => {
@@ -630,7 +598,6 @@ const Index = () => {
         [name]: value
       }));
       
-      // Add back to Supabase
       await addItemToSupabase(selectedMonth, 'barItems', name, value);
       
       setDeletedBarItems(prev => {
@@ -656,7 +623,6 @@ const Index = () => {
         [name]: value
       }));
       
-      // Add back to Supabase
       await addItemToSupabase(selectedMonth, 'salaryExpenses', name, value);
       
       setDeletedSalaryItems(prev => {
@@ -682,7 +648,6 @@ const Index = () => {
         [name]: value
       }));
       
-      // Add back to Supabase
       await addItemToSupabase(selectedMonth, 'distributorExpenses', name, value);
       
       setDeletedDistributorItems(prev => {
@@ -708,7 +673,6 @@ const Index = () => {
         [name]: value
       }));
       
-      // Add back to Supabase
       await addItemToSupabase(selectedMonth, 'utilitiesExpenses', name, value);
       
       setDeletedUtilitiesItems(prev => {
@@ -734,7 +698,6 @@ const Index = () => {
         [name]: value
       }));
       
-      // Add back to Supabase
       await addItemToSupabase(selectedMonth, 'operationalExpenses', name, value);
       
       setDeletedOperationalItems(prev => {
@@ -760,7 +723,6 @@ const Index = () => {
         [name]: value
       }));
       
-      // Add back to Supabase
       await addItemToSupabase(selectedMonth, 'otherExpenses', name, value);
       
       setDeletedOtherItems(prev => {
@@ -814,7 +776,6 @@ const Index = () => {
     }
   };
 
-  
   return (
     <RequireAuth>
       <div className="min-h-screen bg-gray-50 print:bg-white">
@@ -946,4 +907,52 @@ const Index = () => {
             
             <TabsContent value="advanced">
               <div className="space-y-8">
-                <ProductProfitability
+                <ProductProfitability 
+                  revenueItems={getRevenueItems()}
+                  salaryExpenses={salaryExpenses}
+                  distributorExpenses={distributorExpenses}
+                  utilitiesExpenses={utilitiesExpenses}
+                  operationalExpenses={operationalExpenses}
+                  otherExpenses={otherExpenses}
+                />
+                
+                <LaborAnalysis 
+                  salaryExpenses={salaryExpenses}
+                  totalRevenue={totalRevenue}
+                />
+                
+                <ComparisonView
+                  revenueItems={getRevenueItems()}
+                  costOfGoodsItems={{}}
+                  salaryExpenses={salaryExpenses}
+                  distributorExpenses={distributorExpenses}
+                  utilitiesExpenses={utilitiesExpenses}
+                  operationalExpenses={operationalExpenses}
+                  otherExpenses={otherExpenses}
+                />
+                
+                <BudgetAnalysis
+                  budget={budget}
+                  totalRevenue={totalRevenue}
+                  totalExpenses={totalExpenses}
+                  netProfit={netProfit}
+                />
+                
+                <CashFlowProjection
+                  revenueItems={getRevenueItems()}
+                  salaryExpenses={salaryExpenses}
+                  distributorExpenses={distributorExpenses}
+                  utilitiesExpenses={utilitiesExpenses}
+                  operationalExpenses={operationalExpenses}
+                  otherExpenses={otherExpenses}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </RequireAuth>
+  );
+};
+
+export default Index;
