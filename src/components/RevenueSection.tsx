@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, getDefaultIfEmpty } from "@/lib/formatters";
 import { Edit, Plus, Save, Trash, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface SubsectionType {
   title: string;
@@ -29,6 +30,7 @@ const RevenueSection = ({
   onDeleteItem,
   subsections
 }: RevenueSectionProps) => {
+  const { toast } = useToast();
   const [editingName, setEditingName] = useState<string | null>(null);
   const [newName, setNewName] = useState<string>("");
   const [newItemName, setNewItemName] = useState<string>("");

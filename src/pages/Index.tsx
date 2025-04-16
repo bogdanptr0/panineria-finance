@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -11,7 +10,8 @@ import ComparisonView from "@/components/ComparisonView";
 import BudgetAnalysis from "@/components/BudgetAnalysis";
 import CashFlowProjection from "@/components/CashFlowProjection";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { loadReport, updateAllReportsWithDefaultSalaries, saveReport } from "@/lib/persistence";
+import { loadReport, updateAllReportsWithDefaultSalaries, saveReport, 
+  deleteItemFromSupabase, addItemToSupabase, updateItemInSupabase, renameItemInSupabase } from "@/lib/persistence";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -177,7 +177,7 @@ const Index = () => {
       
       saveData();
     }
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, selectedMonth, salaryExpenses, distributorExpenses, utilitiesExpenses, operationalExpenses, otherExpenses, budget]);
 
   const calculateTotal = (items: Record<string, number>) => {
     return Object.values(items).reduce((sum, value) => sum + value, 0);
@@ -197,41 +197,55 @@ const Index = () => {
   const grossProfit = totalRevenue;
   const netProfit = grossProfit - totalExpenses;
 
-  const handleRevenueUpdate = (name: string, value: number) => {
+  const handleRevenueUpdate = async (name: string, value: number) => {
     if (Object.keys(bucatarieItems).includes(name)) {
       setBucatarieItems(prev => ({ ...prev, [name]: value }));
+      // Update in Supabase
+      await updateItemInSupabase(selectedMonth, 'bucatarieItems', name, value);
     } else {
       setBarItems(prev => ({ ...prev, [name]: value }));
+      // Update in Supabase
+      await updateItemInSupabase(selectedMonth, 'barItems', name, value);
     }
     setHasUnsavedChanges(true);
   };
 
-  const handleSalaryUpdate = (name: string, value: number) => {
+  const handleSalaryUpdate = async (name: string, value: number) => {
     setSalaryExpenses(prev => ({ ...prev, [name]: value }));
+    // Update in Supabase
+    await updateItemInSupabase(selectedMonth, 'salaryExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
-  const handleDistributorUpdate = (name: string, value: number) => {
+  const handleDistributorUpdate = async (name: string, value: number) => {
     setDistributorExpenses(prev => ({ ...prev, [name]: value }));
+    // Update in Supabase
+    await updateItemInSupabase(selectedMonth, 'distributorExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
-  const handleUtilitiesUpdate = (name: string, value: number) => {
+  const handleUtilitiesUpdate = async (name: string, value: number) => {
     setUtilitiesExpenses(prev => ({ ...prev, [name]: value }));
+    // Update in Supabase
+    await updateItemInSupabase(selectedMonth, 'utilitiesExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
-  const handleOperationalUpdate = (name: string, value: number) => {
+  const handleOperationalUpdate = async (name: string, value: number) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: value }));
+    // Update in Supabase
+    await updateItemInSupabase(selectedMonth, 'operationalExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
-  const handleOtherExpensesUpdate = (name: string, value: number) => {
+  const handleOtherExpensesUpdate = async (name: string, value: number) => {
     setOtherExpenses(prev => ({ ...prev, [name]: value }));
+    // Update in Supabase
+    await updateItemInSupabase(selectedMonth, 'otherExpenses', name, value);
     setHasUnsavedChanges(true);
   };
 
-  const handleRevenueRename = (oldName: string, newName: string) => {
+  const handleRevenueRename = async (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
     if (oldName in bucatarieItems) {
@@ -241,6 +255,8 @@ const Index = () => {
         delete newItems[oldName];
         return { ...newItems, [newName]: value };
       });
+      // Update in Supabase
+      await renameItemInSupabase(selectedMonth, 'bucatarieItems', oldName, newName);
     } else if (oldName in barItems) {
       setBarItems(prev => {
         const value = prev[oldName];
@@ -248,11 +264,13 @@ const Index = () => {
         delete newItems[oldName];
         return { ...newItems, [newName]: value };
       });
+      // Update in Supabase
+      await renameItemInSupabase(selectedMonth, 'barItems', oldName, newName);
     }
     setHasUnsavedChanges(true);
   };
 
-  const handleSalaryRename = (oldName: string, newName: string) => {
+  const handleSalaryRename = async (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
     setSalaryExpenses(prev => {
@@ -261,10 +279,12 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    // Update in Supabase
+    await renameItemInSupabase(selectedMonth, 'salaryExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
-  const handleDistributorRename = (oldName: string, newName: string) => {
+  const handleDistributorRename = async (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
     setDistributorExpenses(prev => {
@@ -273,10 +293,12 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    // Update in Supabase
+    await renameItemInSupabase(selectedMonth, 'distributorExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
-  const handleUtilitiesRename = (oldName: string, newName: string) => {
+  const handleUtilitiesRename = async (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
     setUtilitiesExpenses(prev => {
@@ -285,10 +307,12 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    // Update in Supabase
+    await renameItemInSupabase(selectedMonth, 'utilitiesExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
-  const handleOperationalRename = (oldName: string, newName: string) => {
+  const handleOperationalRename = async (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
     setOperationalExpenses(prev => {
@@ -297,10 +321,12 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    // Update in Supabase
+    await renameItemInSupabase(selectedMonth, 'operationalExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
-  const handleOtherExpensesRename = (oldName: string, newName: string) => {
+  const handleOtherExpensesRename = async (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
     setOtherExpenses(prev => {
@@ -309,44 +335,60 @@ const Index = () => {
       delete newItems[oldName];
       return { ...newItems, [newName]: value };
     });
+    // Update in Supabase
+    await renameItemInSupabase(selectedMonth, 'otherExpenses', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
-  const handleAddRevenue = (name: string, subsectionTitle?: string) => {
+  const handleAddRevenue = async (name: string, subsectionTitle?: string) => {
     if (subsectionTitle === "Bucatarie") {
       setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
+      // Add to Supabase
+      await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0);
     } else if (subsectionTitle === "Bar") {
       setBarItems(prev => ({ ...prev, [name]: 0 }));
+      // Add to Supabase
+      await addItemToSupabase(selectedMonth, 'barItems', name, 0);
     }
     setHasUnsavedChanges(true);
   };
 
-  const handleAddSalary = (name: string) => {
+  const handleAddSalary = async (name: string) => {
     setSalaryExpenses(prev => ({ ...prev, [name]: 0 }));
+    // Add to Supabase
+    await addItemToSupabase(selectedMonth, 'salaryExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
-  const handleAddDistributor = (name: string) => {
+  const handleAddDistributor = async (name: string) => {
     setDistributorExpenses(prev => ({ ...prev, [name]: 0 }));
+    // Add to Supabase
+    await addItemToSupabase(selectedMonth, 'distributorExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
-  const handleAddUtilities = (name: string) => {
+  const handleAddUtilities = async (name: string) => {
     setUtilitiesExpenses(prev => ({ ...prev, [name]: 0 }));
+    // Add to Supabase
+    await addItemToSupabase(selectedMonth, 'utilitiesExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
-  const handleAddOperational = (name: string) => {
+  const handleAddOperational = async (name: string) => {
     setOperationalExpenses(prev => ({ ...prev, [name]: 0 }));
+    // Add to Supabase
+    await addItemToSupabase(selectedMonth, 'operationalExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
-  const handleAddOtherExpenses = (name: string) => {
+  const handleAddOtherExpenses = async (name: string) => {
     setOtherExpenses(prev => ({ ...prev, [name]: 0 }));
+    // Add to Supabase
+    await addItemToSupabase(selectedMonth, 'otherExpenses', name, 0);
     setHasUnsavedChanges(true);
   };
 
-  const handleDeleteRevenue = (name: string) => {
+  const handleDeleteRevenue = async (name: string) => {
     if (Object.keys(bucatarieItems).includes(name)) {
       const value = bucatarieItems[name];
       setDeletedBucatarieItems(prev => ({ ...prev, [name]: value }));
@@ -357,7 +399,10 @@ const Index = () => {
         return newItems;
       });
       
-      const toastId = toast({
+      // Delete from Supabase
+      await deleteItemFromSupabase(selectedMonth, 'bucatarieItems', name);
+      
+      toast({
         title: "Item deleted",
         description: `"${name}" has been removed`,
         action: (
@@ -382,7 +427,10 @@ const Index = () => {
         return newItems;
       });
       
-      const toastId = toast({
+      // Delete from Supabase
+      await deleteItemFromSupabase(selectedMonth, 'barItems', name);
+      
+      toast({
         title: "Item deleted",
         description: `"${name}" has been removed`,
         action: (
@@ -400,7 +448,7 @@ const Index = () => {
     }
   };
 
-  const handleDeleteSalary = (name: string) => {
+  const handleDeleteSalary = async (name: string) => {
     const value = salaryExpenses[name];
     setDeletedSalaryItems(prev => ({ ...prev, [name]: value }));
     
@@ -410,7 +458,10 @@ const Index = () => {
       return newItems;
     });
     
-    const toastId = toast({
+    // Delete from Supabase
+    await deleteItemFromSupabase(selectedMonth, 'salaryExpenses', name);
+    
+    toast({
       title: "Salary item deleted",
       description: `"${name}" has been removed`,
       action: (
@@ -427,7 +478,7 @@ const Index = () => {
     setHasUnsavedChanges(true);
   };
 
-  const handleDeleteDistributor = (name: string) => {
+  const handleDeleteDistributor = async (name: string) => {
     const value = distributorExpenses[name];
     setDeletedDistributorItems(prev => ({ ...prev, [name]: value }));
     
@@ -437,7 +488,10 @@ const Index = () => {
       return newItems;
     });
     
-    const toastId = toast({
+    // Delete from Supabase
+    await deleteItemFromSupabase(selectedMonth, 'distributorExpenses', name);
+    
+    toast({
       title: "Distributor item deleted",
       description: `"${name}" has been removed`,
       action: (
@@ -454,7 +508,7 @@ const Index = () => {
     setHasUnsavedChanges(true);
   };
 
-  const handleDeleteOperationalItem = (name: string) => {
+  const handleDeleteOperationalItem = async (name: string) => {
     if (Object.keys(utilitiesExpenses).includes(name)) {
       const value = utilitiesExpenses[name];
       setDeletedUtilitiesItems(prev => ({ ...prev, [name]: value }));
@@ -465,7 +519,10 @@ const Index = () => {
         return newItems;
       });
       
-      const toastId = toast({
+      // Delete from Supabase
+      await deleteItemFromSupabase(selectedMonth, 'utilitiesExpenses', name);
+      
+      toast({
         title: "Utilities item deleted",
         description: `"${name}" has been removed`,
         action: (
@@ -490,7 +547,10 @@ const Index = () => {
         return newItems;
       });
       
-      const toastId = toast({
+      // Delete from Supabase
+      await deleteItemFromSupabase(selectedMonth, 'operationalExpenses', name);
+      
+      toast({
         title: "Operational item deleted",
         description: `"${name}" has been removed`,
         action: (
@@ -515,7 +575,10 @@ const Index = () => {
         return newItems;
       });
       
-      const toastId = toast({
+      // Delete from Supabase
+      await deleteItemFromSupabase(selectedMonth, 'otherExpenses', name);
+      
+      toast({
         title: "Other expense item deleted",
         description: `"${name}" has been removed`,
         action: (
@@ -533,12 +596,16 @@ const Index = () => {
     }
   };
 
-  const handleUndoDeleteBucatarie = (name: string) => {
+  const handleUndoDeleteBucatarie = async (name: string) => {
     if (deletedBucatarieItems[name] !== undefined) {
+      const value = deletedBucatarieItems[name];
       setBucatarieItems(prev => ({
         ...prev,
-        [name]: deletedBucatarieItems[name]
+        [name]: value
       }));
+      
+      // Add back to Supabase
+      await addItemToSupabase(selectedMonth, 'bucatarieItems', name, value);
       
       setDeletedBucatarieItems(prev => {
         const newItems = { ...prev };
@@ -555,12 +622,16 @@ const Index = () => {
     }
   };
 
-  const handleUndoDeleteBar = (name: string) => {
+  const handleUndoDeleteBar = async (name: string) => {
     if (deletedBarItems[name] !== undefined) {
+      const value = deletedBarItems[name];
       setBarItems(prev => ({
         ...prev,
-        [name]: deletedBarItems[name]
+        [name]: value
       }));
+      
+      // Add back to Supabase
+      await addItemToSupabase(selectedMonth, 'barItems', name, value);
       
       setDeletedBarItems(prev => {
         const newItems = { ...prev };
@@ -577,12 +648,16 @@ const Index = () => {
     }
   };
 
-  const handleUndoDeleteSalary = (name: string) => {
+  const handleUndoDeleteSalary = async (name: string) => {
     if (deletedSalaryItems[name] !== undefined) {
+      const value = deletedSalaryItems[name];
       setSalaryExpenses(prev => ({
         ...prev,
-        [name]: deletedSalaryItems[name]
+        [name]: value
       }));
+      
+      // Add back to Supabase
+      await addItemToSupabase(selectedMonth, 'salaryExpenses', name, value);
       
       setDeletedSalaryItems(prev => {
         const newItems = { ...prev };
@@ -599,12 +674,16 @@ const Index = () => {
     }
   };
 
-  const handleUndoDeleteDistributor = (name: string) => {
+  const handleUndoDeleteDistributor = async (name: string) => {
     if (deletedDistributorItems[name] !== undefined) {
+      const value = deletedDistributorItems[name];
       setDistributorExpenses(prev => ({
         ...prev,
-        [name]: deletedDistributorItems[name]
+        [name]: value
       }));
+      
+      // Add back to Supabase
+      await addItemToSupabase(selectedMonth, 'distributorExpenses', name, value);
       
       setDeletedDistributorItems(prev => {
         const newItems = { ...prev };
@@ -621,12 +700,16 @@ const Index = () => {
     }
   };
 
-  const handleUndoDeleteUtilities = (name: string) => {
+  const handleUndoDeleteUtilities = async (name: string) => {
     if (deletedUtilitiesItems[name] !== undefined) {
+      const value = deletedUtilitiesItems[name];
       setUtilitiesExpenses(prev => ({
         ...prev,
-        [name]: deletedUtilitiesItems[name]
+        [name]: value
       }));
+      
+      // Add back to Supabase
+      await addItemToSupabase(selectedMonth, 'utilitiesExpenses', name, value);
       
       setDeletedUtilitiesItems(prev => {
         const newItems = { ...prev };
@@ -643,12 +726,16 @@ const Index = () => {
     }
   };
 
-  const handleUndoDeleteOperational = (name: string) => {
+  const handleUndoDeleteOperational = async (name: string) => {
     if (deletedOperationalItems[name] !== undefined) {
+      const value = deletedOperationalItems[name];
       setOperationalExpenses(prev => ({
         ...prev,
-        [name]: deletedOperationalItems[name]
+        [name]: value
       }));
+      
+      // Add back to Supabase
+      await addItemToSupabase(selectedMonth, 'operationalExpenses', name, value);
       
       setDeletedOperationalItems(prev => {
         const newItems = { ...prev };
@@ -665,12 +752,16 @@ const Index = () => {
     }
   };
 
-  const handleUndoDeleteOther = (name: string) => {
+  const handleUndoDeleteOther = async (name: string) => {
     if (deletedOtherItems[name] !== undefined) {
+      const value = deletedOtherItems[name];
       setOtherExpenses(prev => ({
         ...prev,
-        [name]: deletedOtherItems[name]
+        [name]: value
       }));
+      
+      // Add back to Supabase
+      await addItemToSupabase(selectedMonth, 'otherExpenses', name, value);
       
       setDeletedOtherItems(prev => {
         const newItems = { ...prev };
@@ -713,16 +804,17 @@ const Index = () => {
     }
   ];
 
-  const handleSubsectionAddItem = (subsectionTitle: string, name: string) => {
+  const handleSubsectionAddItem = async (subsectionTitle: string, name: string) => {
     if (subsectionTitle === "Utilitati") {
-      handleAddUtilities(name);
+      await handleAddUtilities(name);
     } else if (subsectionTitle === "Operationale") {
-      handleAddOperational(name);
+      await handleAddOperational(name);
     } else if (subsectionTitle === "Alte Cheltuieli") {
-      handleAddOtherExpenses(name);
+      await handleAddOtherExpenses(name);
     }
   };
 
+  
   return (
     <RequireAuth>
       <div className="min-h-screen bg-gray-50 print:bg-white">
@@ -815,7 +907,7 @@ const Index = () => {
                       }
                     }}
                     onAddItem={(name, subsectionTitle) => {
-                      handleSubsectionAddItem(subsectionTitle || operationalExpensesSubsections[2].title, name);
+                      handleSubsectionAddItem(subsectionTitle || "Alte Cheltuieli", name);
                     }}
                     onDeleteItem={handleDeleteOperationalItem}
                     subsections={operationalExpensesSubsections}
@@ -854,151 +946,4 @@ const Index = () => {
             
             <TabsContent value="advanced">
               <div className="space-y-8">
-                <ProductProfitability 
-                  revenueItems={getRevenueItems()}
-                  costOfGoodsItems={{}}
-                />
-                
-                <LaborAnalysis 
-                  salaryExpenses={salaryExpenses}
-                  totalRevenue={totalRevenue}
-                />
-                
-                <ComparisonView 
-                  currentMonth={selectedMonth}
-                  currentReport={{
-                    totalRevenue,
-                    totalCogs: 0,
-                    grossProfit,
-                    totalExpenses,
-                    netProfit
-                  }}
-                />
-                
-                <BudgetAnalysis 
-                  selectedMonth={selectedMonth}
-                  totalRevenue={totalRevenue}
-                  totalExpenses={totalExpenses}
-                  netProfit={netProfit}
-                  revenueItems={getRevenueItems()}
-                  costOfGoodsItems={{}}
-                  salaryExpenses={salaryExpenses}
-                  distributorExpenses={distributorExpenses}
-                  utilitiesExpenses={utilitiesExpenses}
-                  operationalExpenses={operationalExpenses}
-                  otherExpenses={otherExpenses}
-                  budget={budget}
-                  onBudgetSave={setBudget}
-                />
-                
-                <CashFlowProjection 
-                  currentRevenue={totalRevenue}
-                  currentExpenses={totalExpenses}
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-          
-          <div className="hidden print:block">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold">Raport P&L Panineria</h1>
-              <p className="text-xl">{formatDate(selectedMonth)}</p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-6 mb-8">
-              <RevenueSection 
-                revenueItems={getRevenueItems()}
-                onUpdateItem={handleRevenueUpdate}
-                totalRevenue={totalRevenue}
-                onRenameItem={handleRevenueRename}
-                onAddItem={handleAddRevenue}
-                onDeleteItem={handleDeleteRevenue}
-                subsections={revenueSubsections}
-              />
-              
-              <div className="space-y-6">
-                <ExpensesSection 
-                  title="CHELTUIELI SALARIALE"
-                  items={salaryExpenses}
-                  onUpdateItem={handleSalaryUpdate}
-                  totalExpenses={totalSalaryExpenses}
-                  onRenameItem={handleSalaryRename}
-                  onAddItem={handleAddSalary}
-                  onDeleteItem={handleDeleteSalary}
-                />
-                
-                <div className="bg-gray-100 p-4 rounded-md">
-                  <div className="flex justify-between items-center font-semibold">
-                    <span className="text-lg">TOTAL CHELTUIELI</span>
-                    <span className="text-lg">{formatCurrency(totalExpenses)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="page-break"></div>
-            
-            <div className="grid grid-cols-2 gap-6 mb-8">
-              <div className="space-y-6">
-                
-              </div>
-              
-              <div className="space-y-6">
-                <ExpensesSection 
-                  title="CHELTUIELI DISTRIBUITORI"
-                  items={distributorExpenses}
-                  onUpdateItem={handleDistributorUpdate}
-                  totalExpenses={totalDistributorExpenses}
-                  onRenameItem={handleDistributorRename}
-                  onAddItem={handleAddDistributor}
-                  onDeleteItem={handleDeleteDistributor}
-                />
-                
-                <ExpensesSection 
-                  title="CHELTUIELI OPERATIONALE"
-                  items={{
-                    ...utilitiesExpenses,
-                    ...operationalExpenses,
-                    ...otherExpenses
-                  }}
-                  onUpdateItem={(name, value) => {
-                    if (operationalExpensesSubsections[0].items.includes(name)) {
-                      handleUtilitiesUpdate(name, value);
-                    } else if (operationalExpensesSubsections[1].items.includes(name)) {
-                      handleOperationalUpdate(name, value);
-                    } else {
-                      handleOtherExpensesUpdate(name, value);
-                    }
-                  }}
-                  totalExpenses={totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses}
-                  onRenameItem={(oldName, newName) => {
-                    if (operationalExpensesSubsections[0].items.includes(oldName)) {
-                      handleUtilitiesRename(oldName, newName);
-                    } else if (operationalExpensesSubsections[1].items.includes(oldName)) {
-                      handleOperationalRename(oldName, newName);
-                    } else {
-                      handleOtherExpensesRename(oldName, newName);
-                    }
-                  }}
-                  onAddItem={(name) => {
-                    handleSubsectionAddItem(operationalExpensesSubsections[2].title, name);
-                  }}
-                  onDeleteItem={handleDeleteOperationalItem}
-                  subsections={operationalExpensesSubsections}
-                />
-              </div>
-            </div>
-            
-            <ProfitSummary 
-              grossProfit={grossProfit} 
-              totalExpenses={totalExpenses} 
-              netProfit={netProfit} 
-            />
-          </div>
-        </div>
-      </div>
-    </RequireAuth>
-  );
-};
-
-export default Index;
+                <ProductProfitability

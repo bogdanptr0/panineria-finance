@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -944,4 +943,418 @@ export const getMonthlyReport = async (
     operationalExpenses: { ...DEFAULT_OPERATIONAL_EXPENSES },
     otherExpenses: {}
   };
+};
+
+export const deleteItemFromSupabase = async (
+  date: Date,
+  category: string,
+  itemName: string,
+): Promise<boolean> => {
+  try {
+    // Create date key in format YYYY-MM
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.log("User not authenticated, can't delete from Supabase");
+      return false;
+    }
+    
+    // Load the current report
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', dateKey)
+      .maybeSingle();
+    
+    if (error || !data) {
+      console.error('Error loading report for deletion:', error);
+      return false;
+    }
+    
+    // Map category string to the actual field name in the database
+    let fieldName = '';
+    switch (category) {
+      case 'bucatarieItems':
+      case 'barItems':
+        fieldName = 'revenue_items';
+        break;
+      case 'salaryExpenses':
+        fieldName = 'salary_expenses';
+        break;
+      case 'distributorExpenses':
+        fieldName = 'distributor_expenses';
+        break;
+      case 'utilitiesExpenses':
+        fieldName = 'utilities_expenses';
+        break;
+      case 'operationalExpenses':
+        fieldName = 'operational_expenses';
+        break;
+      case 'otherExpenses':
+        fieldName = 'other_expenses';
+        break;
+      default:
+        console.error('Unknown category:', category);
+        return false;
+    }
+    
+    // Get the current value
+    const currentItems = data[fieldName] || {};
+    
+    // Remove the item
+    if (fieldName === 'revenue_items') {
+      if (currentItems[itemName] !== undefined) {
+        delete currentItems[itemName];
+      } else {
+        console.log(`Item ${itemName} not found in ${fieldName}`);
+        return false;
+      }
+    } else {
+      if (currentItems[itemName] !== undefined) {
+        delete currentItems[itemName];
+      } else {
+        console.log(`Item ${itemName} not found in ${fieldName}`);
+        return false;
+      }
+    }
+    
+    // Create update object
+    const updateData = {
+      [fieldName]: currentItems,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Update the report
+    const { error: updateError } = await supabase
+      .from('pl_reports')
+      .update(updateData)
+      .eq('id', data.id);
+    
+    if (updateError) {
+      console.error('Error updating report after deletion:', updateError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteItemFromSupabase:', error);
+    return false;
+  }
+};
+
+export const addItemToSupabase = async (
+  date: Date,
+  category: string,
+  itemName: string,
+  value: number = 0
+): Promise<boolean> => {
+  try {
+    // Create date key in format YYYY-MM
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.log("User not authenticated, can't add to Supabase");
+      return false;
+    }
+    
+    // Load the current report
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', dateKey)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error loading report for adding item:', error);
+      return false;
+    }
+    
+    // Map category string to the actual field name in the database
+    let fieldName = '';
+    switch (category) {
+      case 'bucatarieItems':
+      case 'barItems':
+        fieldName = 'revenue_items';
+        break;
+      case 'salaryExpenses':
+        fieldName = 'salary_expenses';
+        break;
+      case 'distributorExpenses':
+        fieldName = 'distributor_expenses';
+        break;
+      case 'utilitiesExpenses':
+        fieldName = 'utilities_expenses';
+        break;
+      case 'operationalExpenses':
+        fieldName = 'operational_expenses';
+        break;
+      case 'otherExpenses':
+        fieldName = 'other_expenses';
+        break;
+      default:
+        console.error('Unknown category:', category);
+        return false;
+    }
+    
+    // If the report doesn't exist yet, create it with the new item
+    if (!data) {
+      const newReport: any = {
+        user_id: user.id,
+        date: dateKey,
+        revenue_items: DEFAULT_REVENUE_ITEMS,
+        cost_of_goods_items: {},
+        salary_expenses: DEFAULT_SALARY_EXPENSES,
+        distributor_expenses: DEFAULT_DISTRIBUTOR_EXPENSES,
+        utilities_expenses: DEFAULT_UTILITIES_EXPENSES,
+        operational_expenses: DEFAULT_OPERATIONAL_EXPENSES,
+        other_expenses: {}
+      };
+      
+      if (fieldName === 'revenue_items' && category === 'bucatarieItems') {
+        newReport.revenue_items = { ...newReport.revenue_items, [itemName]: value };
+      } else if (fieldName === 'revenue_items' && category === 'barItems') {
+        newReport.revenue_items = { ...newReport.revenue_items, [itemName]: value };
+      } else {
+        newReport[fieldName] = { ...newReport[fieldName], [itemName]: value };
+      }
+      
+      const { error: insertError } = await supabase
+        .from('pl_reports')
+        .insert(newReport);
+      
+      if (insertError) {
+        console.error('Error creating new report with item:', insertError);
+        return false;
+      }
+      
+      return true;
+    }
+    
+    // Get the current items
+    const currentItems = data[fieldName] || {};
+    
+    // Add the new item
+    const updatedItems = { ...currentItems, [itemName]: value };
+    
+    // Create update object
+    const updateData = {
+      [fieldName]: updatedItems,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Update the report
+    const { error: updateError } = await supabase
+      .from('pl_reports')
+      .update(updateData)
+      .eq('id', data.id);
+    
+    if (updateError) {
+      console.error('Error updating report after adding item:', updateError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in addItemToSupabase:', error);
+    return false;
+  }
+};
+
+export const updateItemInSupabase = async (
+  date: Date,
+  category: string,
+  itemName: string,
+  value: number
+): Promise<boolean> => {
+  try {
+    // Create date key in format YYYY-MM
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.log("User not authenticated, can't update in Supabase");
+      return false;
+    }
+    
+    // Load the current report
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', dateKey)
+      .maybeSingle();
+    
+    if (error || !data) {
+      console.error('Error loading report for updating item:', error);
+      return false;
+    }
+    
+    // Map category string to the actual field name in the database
+    let fieldName = '';
+    switch (category) {
+      case 'bucatarieItems':
+      case 'barItems':
+        fieldName = 'revenue_items';
+        break;
+      case 'salaryExpenses':
+        fieldName = 'salary_expenses';
+        break;
+      case 'distributorExpenses':
+        fieldName = 'distributor_expenses';
+        break;
+      case 'utilitiesExpenses':
+        fieldName = 'utilities_expenses';
+        break;
+      case 'operationalExpenses':
+        fieldName = 'operational_expenses';
+        break;
+      case 'otherExpenses':
+        fieldName = 'other_expenses';
+        break;
+      default:
+        console.error('Unknown category:', category);
+        return false;
+    }
+    
+    // Get the current items
+    const currentItems = data[fieldName] || {};
+    
+    // Update the item
+    if (currentItems[itemName] === undefined) {
+      console.warn(`Item ${itemName} not found in ${fieldName}, will add it`);
+    }
+    
+    const updatedItems = { ...currentItems, [itemName]: value };
+    
+    // Create update object
+    const updateData = {
+      [fieldName]: updatedItems,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Update the report
+    const { error: updateError } = await supabase
+      .from('pl_reports')
+      .update(updateData)
+      .eq('id', data.id);
+    
+    if (updateError) {
+      console.error('Error updating item value:', updateError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in updateItemInSupabase:', error);
+    return false;
+  }
+};
+
+export const renameItemInSupabase = async (
+  date: Date,
+  category: string,
+  oldName: string,
+  newName: string
+): Promise<boolean> => {
+  try {
+    // Create date key in format YYYY-MM
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.log("User not authenticated, can't rename in Supabase");
+      return false;
+    }
+    
+    // Load the current report
+    const { data, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', dateKey)
+      .maybeSingle();
+    
+    if (error || !data) {
+      console.error('Error loading report for renaming item:', error);
+      return false;
+    }
+    
+    // Map category string to the actual field name in the database
+    let fieldName = '';
+    switch (category) {
+      case 'bucatarieItems':
+      case 'barItems':
+        fieldName = 'revenue_items';
+        break;
+      case 'salaryExpenses':
+        fieldName = 'salary_expenses';
+        break;
+      case 'distributorExpenses':
+        fieldName = 'distributor_expenses';
+        break;
+      case 'utilitiesExpenses':
+        fieldName = 'utilities_expenses';
+        break;
+      case 'operationalExpenses':
+        fieldName = 'operational_expenses';
+        break;
+      case 'otherExpenses':
+        fieldName = 'other_expenses';
+        break;
+      default:
+        console.error('Unknown category:', category);
+        return false;
+    }
+    
+    // Get the current items
+    const currentItems = data[fieldName] || {};
+    
+    // Check if the old name exists
+    if (currentItems[oldName] === undefined) {
+      console.error(`Item ${oldName} not found in ${fieldName}`);
+      return false;
+    }
+    
+    // Get the value of the old item
+    const value = currentItems[oldName];
+    
+    // Create a new object without the old item but with the new item
+    const updatedItems = { ...currentItems };
+    delete updatedItems[oldName];
+    updatedItems[newName] = value;
+    
+    // Create update object
+    const updateData = {
+      [fieldName]: updatedItems,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Update the report
+    const { error: updateError } = await supabase
+      .from('pl_reports')
+      .update(updateData)
+      .eq('id', data.id);
+    
+    if (updateError) {
+      console.error('Error renaming item:', updateError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in renameItemInSupabase:', error);
+    return false;
+  }
 };
