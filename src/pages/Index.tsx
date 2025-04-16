@@ -121,15 +121,18 @@ const Index = () => {
         Object.entries(allRevenueItems).forEach(([key, value]) => {
           const subcat = revenueSubcategories[key];
           
-          if (subcat === 'Bucatarie' || 
-             (!subcat && ['Il Classico', 'Il Prosciutto', 'Il Piccante', 'La Porchetta', 'La Mortadella', 'La Buffala', 'Tiramisu', 'Platou'].includes(key))) {
+          if (subcat === 'Bucatarie') {
             bucatarie[key] = value;
-            if (!subcat) {
-              revenueSubcategories[key] = 'Bucatarie';
-            }
-          } else {
+          } else if (subcat === 'Bar') {
             bar[key] = value;
-            if (!subcat) {
+          } else {
+            const bucatarieDefaultItems = ['Il Classico', 'Il Prosciutto', 'Il Piccante', 'La Porchetta', 'La Mortadella', 'La Buffala', 'Tiramisu', 'Platou'];
+            
+            if (bucatarieDefaultItems.includes(key)) {
+              bucatarie[key] = value;
+              revenueSubcategories[key] = 'Bucatarie';
+            } else {
+              bar[key] = value;
               revenueSubcategories[key] = 'Bar';
             }
           }
@@ -137,6 +140,11 @@ const Index = () => {
         
         setBucatarieItems(bucatarie);
         setBarItems(bar);
+        
+        setSubcategories(prev => ({
+          ...prev,
+          revenueItems: revenueSubcategories
+        }));
         
         setSalaryExpenses(report.salaryExpenses);
         setDistributorExpenses(report.distributorExpenses);
