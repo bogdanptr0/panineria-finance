@@ -98,13 +98,41 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
     "Platou": 0
   });
   
-  const [barItems, setBarItems] = useState<Record<string, number>>({});
+  const [barItems, setBarItems] = useState<Record<string, number>>({
+    "Espresso": 0,
+    "Cappuccino": 0,
+    "Aperol Spritz": 0,
+    "Hugo": 0,
+    "Vin roșu": 0,
+    "Vin alb": 0,
+    "Bere": 0,
+    "Apa plată": 0,
+    "Apa minerală": 0
+  });
   
   const [subcategories, setSubcategories] = useState<{
     revenueItems?: Record<string, string>;
     expenses?: Record<string, string>;
   }>({
-    revenueItems: {},
+    revenueItems: {
+      "Il Classico": "Bucatarie",
+      "Il Prosciutto": "Bucatarie",
+      "Il Piccante": "Bucatarie",
+      "La Porchetta": "Bucatarie",
+      "La Mortadella": "Bucatarie",
+      "La Buffala": "Bucatarie",
+      "Tiramisu": "Bucatarie",
+      "Platou": "Bucatarie",
+      "Espresso": "Bar",
+      "Cappuccino": "Bar",
+      "Aperol Spritz": "Bar",
+      "Hugo": "Bar",
+      "Vin roșu": "Bar",
+      "Vin alb": "Bar",
+      "Bere": "Bar",
+      "Apa plată": "Bar",
+      "Apa minerală": "Bar"
+    },
     expenses: {}
   });
   
@@ -169,10 +197,65 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
     const fetchReport = async () => {
       const report = await loadReport(selectedMonth);
       if (report) {
-        setSubcategories(report.subcategories || { revenueItems: {}, expenses: {} });
+        setSubcategories(report.subcategories || { 
+          revenueItems: {
+            "Il Classico": "Bucatarie",
+            "Il Prosciutto": "Bucatarie",
+            "Il Piccante": "Bucatarie",
+            "La Porchetta": "Bucatarie",
+            "La Mortadella": "Bucatarie",
+            "La Buffala": "Bucatarie",
+            "Tiramisu": "Bucatarie",
+            "Platou": "Bucatarie",
+            "Espresso": "Bar",
+            "Cappuccino": "Bar",
+            "Aperol Spritz": "Bar",
+            "Hugo": "Bar",
+            "Vin roșu": "Bar",
+            "Vin alb": "Bar",
+            "Bere": "Bar",
+            "Apa plată": "Bar",
+            "Apa minerală": "Bar"
+          }, 
+          expenses: {} 
+        });
         
-        setBucatarieItems(report.bucatarieItems || {});
-        setBarItems(report.barItems || {});
+        const defaultBucatarieItems = {
+          "Il Classico": 0,
+          "Il Prosciutto": 0,
+          "Il Piccante": 0,
+          "La Porchetta": 0,
+          "La Mortadella": 0,
+          "La Buffala": 0,
+          "Tiramisu": 0,
+          "Platou": 0
+        };
+        
+        const mergedBucatarieItems = {
+          ...defaultBucatarieItems,
+          ...(report.bucatarieItems || {})
+        };
+        
+        setBucatarieItems(mergedBucatarieItems);
+        
+        const defaultBarItems = {
+          "Espresso": 0,
+          "Cappuccino": 0,
+          "Aperol Spritz": 0,
+          "Hugo": 0,
+          "Vin roșu": 0,
+          "Vin alb": 0,
+          "Bere": 0,
+          "Apa plată": 0,
+          "Apa minerală": 0
+        };
+        
+        const mergedBarItems = {
+          ...defaultBarItems,
+          ...(report.barItems || {})
+        };
+        
+        setBarItems(mergedBarItems);
         
         setSalaryExpenses(report.salaryExpenses);
         setDistributorExpenses(report.distributorExpenses);
@@ -481,7 +564,7 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bucatarie`
+          description: `"${name}" has been added to Bucatarie"
         });
       } else if (subsectionTitle === "Bar") {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
@@ -498,7 +581,7 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bar`
+          description: `"${name}" has been added to Bar"
         });
       } else {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
@@ -515,7 +598,7 @@ export const ReportProvider = ({ children }: ReportProviderProps) => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to revenue items`
+          description: `"${name}" has been added to revenue items"
         });
       }
       

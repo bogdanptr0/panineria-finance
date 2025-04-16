@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { format, parse } from "date-fns";
 
@@ -42,7 +43,7 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
     if (!data) {
       console.log("No report found for date:", dateKey);
       
-      // Create default report
+      // Create default report with updated default items
       const defaultReport: PLReport = {
         date: dateKey,
         revenueItems: {},
@@ -80,7 +81,25 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
         },
         otherExpenses: {},
         subcategories: {
-          revenueItems: {},
+          revenueItems: {
+            "Il Classico": "Bucatarie",
+            "Il Prosciutto": "Bucatarie",
+            "Il Piccante": "Bucatarie",
+            "La Porchetta": "Bucatarie",
+            "La Mortadella": "Bucatarie",
+            "La Buffala": "Bucatarie",
+            "Tiramisu": "Bucatarie",
+            "Platou": "Bucatarie",
+            "Espresso": "Bar",
+            "Cappuccino": "Bar",
+            "Aperol Spritz": "Bar",
+            "Hugo": "Bar",
+            "Vin roșu": "Bar",
+            "Vin alb": "Bar",
+            "Bere": "Bar",
+            "Apa plată": "Bar",
+            "Apa minerală": "Bar"
+          },
           expenses: {}
         },
         bucatarieItems: {
@@ -93,7 +112,17 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
           "Tiramisu": 0,
           "Platou": 0
         },
-        barItems: {}
+        barItems: {
+          "Espresso": 0,
+          "Cappuccino": 0,
+          "Aperol Spritz": 0,
+          "Hugo": 0,
+          "Vin roșu": 0,
+          "Vin alb": 0,
+          "Bere": 0,
+          "Apa plată": 0,
+          "Apa minerală": 0
+        }
       };
       
       await saveReport(
@@ -124,10 +153,10 @@ export const loadReport = async (date: Date): Promise<PLReport | null> => {
       utilitiesExpenses: data.utilities_expenses || {},
       operationalExpenses: data.operational_expenses || {},
       otherExpenses: data.other_expenses || {},
-      subcategories: data.subcategories || { revenueItems: {}, expenses: {} },
+      subcategories: data.subcategories as any || { revenueItems: {}, expenses: {} },
       budget: data.budget as any,
-      bucatarieItems: data.bucatarie_items || {},
-      barItems: data.bar_items || {}
+      bucatarieItems: data.bucatarie_items as any || {},
+      barItems: data.bar_items as any || {}
     };
     
     return report;
@@ -868,10 +897,10 @@ export const getAllReports = async (): Promise<PLReport[]> => {
         utilitiesExpenses: item.utilities_expenses || {},
         operationalExpenses: item.operational_expenses || {},
         otherExpenses: item.other_expenses || {},
-        subcategories: item.subcategories || { revenueItems: {}, expenses: {} },
+        subcategories: item.subcategories as any || { revenueItems: {}, expenses: {} },
         budget: item.budget as any,
-        bucatarieItems: item.bucatarie_items || {},
-        barItems: item.bar_items || {}
+        bucatarieItems: item.bucatarie_items as any || {},
+        barItems: item.bar_items as any || {}
       };
       return report;
     });
