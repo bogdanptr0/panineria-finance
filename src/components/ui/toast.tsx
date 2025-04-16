@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -15,7 +14,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed bottom-4 left-4 right-4 z-[100] flex max-h-screen w-auto flex-col-reverse p-4 sm:left-auto sm:flex-col md:max-w-[420px] md:right-4 sticky", // Added 'sticky' class
+      "absolute bottom-8 right-8 z-[100] flex max-h-screen w-auto flex-col-reverse p-4 md:max-w-[420px]",
       className
     )}
     {...props}
