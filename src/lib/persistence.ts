@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PLReport {
@@ -364,17 +363,19 @@ export const deleteItemFromSupabase = async (
         delete newRevenueItems[name];
         updatedData.revenue_items = newRevenueItems;
         
-        // Also remove from subcategories tracking
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
-        const newRevenueSubcategories = { ...currentRevenueSubcategories };
-        delete newRevenueSubcategories[name];
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: newRevenueSubcategories,
-          expenses: currentSubcategories.expenses || {}
-        };
+        // Also remove from subcategories tracking if it exists
+        if (typedReport.subcategories?.revenueItems) {
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
+          const newRevenueSubcategories = { ...currentRevenueSubcategories };
+          delete newRevenueSubcategories[name];
+          
+          updatedData.subcategories = {
+            ...currentSubcategories,
+            revenueItems: newRevenueSubcategories,
+            expenses: currentSubcategories.expenses || {}
+          };
+        }
       } else if (category === 'salaryExpenses') {
         const currentSalaryExpenses = typedReport.salary_expenses || {};
         const newSalaryExpenses = { ...currentSalaryExpenses };
@@ -391,51 +392,57 @@ export const deleteItemFromSupabase = async (
         delete newUtilitiesExpenses[name];
         updatedData.utilities_expenses = newUtilitiesExpenses;
         
-        // Also remove from subcategories tracking
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentExpenseSubcategories = currentSubcategories.expenses || {};
-        const newExpenseSubcategories = { ...currentExpenseSubcategories };
-        delete newExpenseSubcategories[name];
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: currentSubcategories.revenueItems || {},
-          expenses: newExpenseSubcategories
-        };
+        // Also remove from subcategories tracking if it exists
+        if (typedReport.subcategories?.expenses) {
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentExpenseSubcategories = currentSubcategories.expenses || {};
+          const newExpenseSubcategories = { ...currentExpenseSubcategories };
+          delete newExpenseSubcategories[name];
+          
+          updatedData.subcategories = {
+            ...currentSubcategories,
+            revenueItems: currentSubcategories.revenueItems || {},
+            expenses: newExpenseSubcategories
+          };
+        }
       } else if (category === 'operationalExpenses') {
         const currentOperationalExpenses = typedReport.operational_expenses || {};
         const newOperationalExpenses = { ...currentOperationalExpenses };
         delete newOperationalExpenses[name];
         updatedData.operational_expenses = newOperationalExpenses;
         
-        // Also remove from subcategories tracking
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentExpenseSubcategories = currentSubcategories.expenses || {};
-        const newExpenseSubcategories = { ...currentExpenseSubcategories };
-        delete newExpenseSubcategories[name];
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: currentSubcategories.revenueItems || {},
-          expenses: newExpenseSubcategories
-        };
+        // Also remove from subcategories tracking if it exists
+        if (typedReport.subcategories?.expenses) {
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentExpenseSubcategories = currentSubcategories.expenses || {};
+          const newExpenseSubcategories = { ...currentExpenseSubcategories };
+          delete newExpenseSubcategories[name];
+          
+          updatedData.subcategories = {
+            ...currentSubcategories,
+            revenueItems: currentSubcategories.revenueItems || {},
+            expenses: newExpenseSubcategories
+          };
+        }
       } else if (category === 'otherExpenses') {
         const currentOtherExpenses = typedReport.other_expenses || {};
         const newOtherExpenses = { ...currentOtherExpenses };
         delete newOtherExpenses[name];
         updatedData.other_expenses = newOtherExpenses;
         
-        // Also remove from subcategories tracking
-        const currentSubcategories = typedReport.subcategories || {};
-        const currentExpenseSubcategories = currentSubcategories.expenses || {};
-        const newExpenseSubcategories = { ...currentExpenseSubcategories };
-        delete newExpenseSubcategories[name];
-        
-        updatedData.subcategories = {
-          ...currentSubcategories,
-          revenueItems: currentSubcategories.revenueItems || {},
-          expenses: newExpenseSubcategories
-        };
+        // Also remove from subcategories tracking if it exists
+        if (typedReport.subcategories?.expenses) {
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentExpenseSubcategories = currentSubcategories.expenses || {};
+          const newExpenseSubcategories = { ...currentExpenseSubcategories };
+          delete newExpenseSubcategories[name];
+          
+          updatedData.subcategories = {
+            ...currentSubcategories,
+            revenueItems: currentSubcategories.revenueItems || {},
+            expenses: newExpenseSubcategories
+          };
+        }
       }
       
       updatedData.updated_at = new Date().toISOString();
@@ -449,6 +456,8 @@ export const deleteItemFromSupabase = async (
         console.error("Error updating report:", updateError);
         throw updateError;
       }
+      
+      console.log(`Successfully deleted ${name} from ${category}`);
     } else {
       console.log("Report not found, cannot delete item.");
     }
@@ -590,6 +599,8 @@ export const addItemToSupabase = async (
         console.error("Error updating report:", updateError);
         throw updateError;
       }
+      
+      console.log(`Successfully added ${name} to ${category} with value ${value}`);
     } else {
       // Creating a new report
       const initialSubcategories: {
@@ -653,6 +664,8 @@ export const addItemToSupabase = async (
         console.error("Error inserting report:", insertError);
         throw insertError;
       }
+      
+      console.log(`Successfully created new report and added ${name} to ${category} with value ${value}`);
     }
   } catch (error) {
     console.error("Error adding item to Supabase:", error);

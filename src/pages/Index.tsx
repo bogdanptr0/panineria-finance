@@ -580,8 +580,6 @@ const Index = () => {
   const handleDeleteRevenue = async (name: string) => {
     try {
       if (Object.keys(bucatarieItems).includes(name)) {
-        const value = bucatarieItems[name];
-        
         setBucatarieItems(prev => {
           const newItems = { ...prev };
           delete newItems[name];
@@ -605,11 +603,7 @@ const Index = () => {
           title: "Item deleted",
           description: `"${name}" has been removed`
         });
-        
-        setHasUnsavedChanges(true);
       } else if (Object.keys(barItems).includes(name)) {
-        const value = barItems[name];
-        
         setBarItems(prev => {
           const newItems = { ...prev };
           delete newItems[name];
@@ -633,9 +627,9 @@ const Index = () => {
           title: "Item deleted",
           description: `"${name}" has been removed`
         });
-        
-        setHasUnsavedChanges(true);
       }
+      
+      setHasUnsavedChanges(true);
     } catch (error) {
       console.error("Error deleting item:", error);
       toast({
