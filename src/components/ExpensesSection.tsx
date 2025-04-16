@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, getDefaultIfEmpty } from "@/lib/formatters";
-import { Edit, Plus, Save, X } from "lucide-react";
+import { Edit, Plus, Save, Trash, X } from "lucide-react";
 
 interface SubsectionType {
   title: string;
@@ -17,6 +17,7 @@ interface ExpensesSectionProps {
   totalExpenses: number;
   onRenameItem: (oldName: string, newName: string) => void;
   onAddItem: (name: string, subsectionTitle?: string) => void;
+  onDeleteItem?: (name: string) => void;
   subsections?: SubsectionType[];
 }
 
@@ -27,6 +28,7 @@ const ExpensesSection = ({
   totalExpenses, 
   onRenameItem, 
   onAddItem,
+  onDeleteItem,
   subsections 
 }: ExpensesSectionProps) => {
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -70,6 +72,12 @@ const ExpensesSection = ({
   const handleStartAddToSubsection = (subsectionTitle: string) => {
     setAddingToSubsection(subsectionTitle);
     setShowAddForm(true);
+  };
+
+  const handleDeleteItem = (name: string) => {
+    if (onDeleteItem) {
+      onDeleteItem(name);
+    }
   };
 
   return (
@@ -126,6 +134,16 @@ const ExpensesSection = ({
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {onDeleteItem && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteItem(name)}
+                            className="h-8 w-8 text-gray-500 hover:text-red-500"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     )}
                     <div className="flex items-center w-32">
@@ -232,6 +250,16 @@ const ExpensesSection = ({
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
+                    {onDeleteItem && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteItem(name)}
+                        className="h-8 w-8 text-gray-500 hover:text-red-500"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 )}
                 <div className="flex items-center w-32">

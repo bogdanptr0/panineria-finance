@@ -281,6 +281,60 @@ const Index = () => {
     setOtherExpenses(prev => ({ ...prev, [name]: 0 }));
   };
 
+  const handleDeleteRevenue = (name: string) => {
+    if (Object.keys(bucatarieItems).includes(name)) {
+      setBucatarieItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+    } else if (Object.keys(barItems).includes(name)) {
+      setBarItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+    }
+  };
+
+  const handleDeleteSalary = (name: string) => {
+    setSalaryExpenses(prev => {
+      const newItems = { ...prev };
+      delete newItems[name];
+      return newItems;
+    });
+  };
+
+  const handleDeleteDistributor = (name: string) => {
+    setDistributorExpenses(prev => {
+      const newItems = { ...prev };
+      delete newItems[name];
+      return newItems;
+    });
+  };
+
+  const handleDeleteOperationalItem = (name: string) => {
+    if (Object.keys(utilitiesExpenses).includes(name)) {
+      setUtilitiesExpenses(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+    } else if (Object.keys(operationalExpenses).includes(name)) {
+      setOperationalExpenses(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+    } else if (Object.keys(otherExpenses).includes(name)) {
+      setOtherExpenses(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+    }
+  };
+
   const operationalExpensesSubsections = [
     {
       title: "Utilitati",
@@ -349,6 +403,7 @@ const Index = () => {
                     totalRevenue={totalRevenue}
                     onRenameItem={handleRevenueRename}
                     onAddItem={handleAddRevenue}
+                    onDeleteItem={handleDeleteRevenue}
                     subsections={revenueSubsections}
                   />
                   
@@ -368,6 +423,7 @@ const Index = () => {
                     totalExpenses={totalSalaryExpenses}
                     onRenameItem={handleSalaryRename}
                     onAddItem={handleAddSalary}
+                    onDeleteItem={handleDeleteSalary}
                   />
                   
                   <ExpensesSection 
@@ -377,6 +433,7 @@ const Index = () => {
                     totalExpenses={totalDistributorExpenses}
                     onRenameItem={handleDistributorRename}
                     onAddItem={handleAddDistributor}
+                    onDeleteItem={handleDeleteDistributor}
                   />
                   
                   <ExpensesSection 
@@ -408,6 +465,7 @@ const Index = () => {
                     onAddItem={(name, subsectionTitle) => {
                       handleSubsectionAddItem(subsectionTitle || operationalExpensesSubsections[2].title, name);
                     }}
+                    onDeleteItem={handleDeleteOperationalItem}
                     subsections={operationalExpensesSubsections}
                   />
                   
@@ -502,6 +560,7 @@ const Index = () => {
                 totalRevenue={totalRevenue}
                 onRenameItem={handleRevenueRename}
                 onAddItem={handleAddRevenue}
+                onDeleteItem={handleDeleteRevenue}
                 subsections={revenueSubsections}
               />
               
@@ -513,6 +572,7 @@ const Index = () => {
                   totalExpenses={totalSalaryExpenses}
                   onRenameItem={handleSalaryRename}
                   onAddItem={handleAddSalary}
+                  onDeleteItem={handleDeleteSalary}
                 />
                 
                 <div className="bg-gray-100 p-4 rounded-md">
@@ -539,6 +599,7 @@ const Index = () => {
                   totalExpenses={totalDistributorExpenses}
                   onRenameItem={handleDistributorRename}
                   onAddItem={handleAddDistributor}
+                  onDeleteItem={handleDeleteDistributor}
                 />
                 
                 <ExpensesSection 
@@ -570,6 +631,7 @@ const Index = () => {
                   onAddItem={(name) => {
                     handleSubsectionAddItem(operationalExpensesSubsections[2].title, name);
                   }}
+                  onDeleteItem={handleDeleteOperationalItem}
                   subsections={operationalExpensesSubsections}
                 />
               </div>
