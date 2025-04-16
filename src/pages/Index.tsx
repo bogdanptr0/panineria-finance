@@ -158,18 +158,22 @@ const Index = () => {
   useEffect(() => {
     if (hasUnsavedChanges) {
       const saveData = async () => {
-        await saveReport(
-          selectedMonth,
-          getRevenueItems(),
-          {},
-          salaryExpenses,
-          distributorExpenses,
-          utilitiesExpenses,
-          operationalExpenses,
-          otherExpenses,
-          budget
-        );
-        setHasUnsavedChanges(false);
+        try {
+          await saveReport(
+            selectedMonth,
+            getRevenueItems(),
+            {},
+            salaryExpenses,
+            distributorExpenses,
+            utilitiesExpenses,
+            operationalExpenses,
+            otherExpenses,
+            budget
+          );
+          setHasUnsavedChanges(false);
+        } catch (error) {
+          console.error("Error saving report:", error);
+        }
       };
       
       saveData();
@@ -365,119 +369,146 @@ const Index = () => {
   };
 
   const handleDeleteRevenue = async (name: string) => {
-    if (Object.keys(bucatarieItems).includes(name)) {
-      const value = bucatarieItems[name];
-      setDeletedBucatarieItems(prev => ({ ...prev, [name]: value }));
-      
-      setBucatarieItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      await deleteItemFromSupabase(selectedMonth, 'bucatarieItems', name);
-      
+    try {
+      if (Object.keys(bucatarieItems).includes(name)) {
+        const value = bucatarieItems[name];
+        setDeletedBucatarieItems(prev => ({ ...prev, [name]: value }));
+        
+        setBucatarieItems(prev => {
+          const newItems = { ...prev };
+          delete newItems[name];
+          return newItems;
+        });
+        
+        await deleteItemFromSupabase(selectedMonth, 'bucatarieItems', name);
+        
+        toast({
+          title: "Item deleted",
+          description: `"${name}" has been removed`,
+          action: (
+            <Button 
+              variant="outline" 
+              onClick={() => handleUndoDeleteBucatarie(name)}
+              className="bg-white hover:bg-gray-100"
+            >
+              Undo
+            </Button>
+          ),
+        });
+        
+        setHasUnsavedChanges(true);
+      } else if (Object.keys(barItems).includes(name)) {
+        const value = barItems[name];
+        setDeletedBarItems(prev => ({ ...prev, [name]: value }));
+        
+        setBarItems(prev => {
+          const newItems = { ...prev };
+          delete newItems[name];
+          return newItems;
+        });
+        
+        await deleteItemFromSupabase(selectedMonth, 'barItems', name);
+        
+        toast({
+          title: "Item deleted",
+          description: `"${name}" has been removed`,
+          action: (
+            <Button 
+              variant="outline" 
+              onClick={() => handleUndoDeleteBar(name)}
+              className="bg-white hover:bg-gray-100"
+            >
+              Undo
+            </Button>
+          ),
+        });
+        
+        setHasUnsavedChanges(true);
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
       toast({
-        title: "Item deleted",
-        description: `"${name}" has been removed`,
-        action: (
-          <Button 
-            variant="outline" 
-            onClick={() => handleUndoDeleteBucatarie(name)}
-            className="bg-white hover:bg-gray-100"
-          >
-            Undo
-          </Button>
-        ),
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive",
       });
-      
-      setHasUnsavedChanges(true);
-    } else if (Object.keys(barItems).includes(name)) {
-      const value = barItems[name];
-      setDeletedBarItems(prev => ({ ...prev, [name]: value }));
-      
-      setBarItems(prev => {
-        const newItems = { ...prev };
-        delete newItems[name];
-        return newItems;
-      });
-      
-      await deleteItemFromSupabase(selectedMonth, 'barItems', name);
-      
-      toast({
-        title: "Item deleted",
-        description: `"${name}" has been removed`,
-        action: (
-          <Button 
-            variant="outline" 
-            onClick={() => handleUndoDeleteBar(name)}
-            className="bg-white hover:bg-gray-100"
-          >
-            Undo
-          </Button>
-        ),
-      });
-      
-      setHasUnsavedChanges(true);
     }
   };
 
   const handleDeleteSalary = async (name: string) => {
-    const value = salaryExpenses[name];
-    setDeletedSalaryItems(prev => ({ ...prev, [name]: value }));
-    
-    setSalaryExpenses(prev => {
-      const newItems = { ...prev };
-      delete newItems[name];
-      return newItems;
-    });
-    
-    await deleteItemFromSupabase(selectedMonth, 'salaryExpenses', name);
-    
-    toast({
-      title: "Salary item deleted",
-      description: `"${name}" has been removed`,
-      action: (
-        <Button 
-          variant="outline" 
-          onClick={() => handleUndoDeleteSalary(name)}
-          className="bg-white hover:bg-gray-100"
-        >
-          Undo
-        </Button>
-      ),
-    });
-    
-    setHasUnsavedChanges(true);
+    try {
+      const value = salaryExpenses[name];
+      setDeletedSalaryItems(prev => ({ ...prev, [name]: value }));
+      
+      setSalaryExpenses(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      await deleteItemFromSupabase(selectedMonth, 'salaryExpenses', name);
+      
+      toast({
+        title: "Salary item deleted",
+        description: `"${name}" has been removed`,
+        action: (
+          <Button 
+            variant="outline" 
+            onClick={() => handleUndoDeleteSalary(name)}
+            className="bg-white hover:bg-gray-100"
+          >
+            Undo
+          </Button>
+        ),
+      });
+      
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error deleting salary item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteDistributor = async (name: string) => {
-    const value = distributorExpenses[name];
-    setDeletedDistributorItems(prev => ({ ...prev, [name]: value }));
-    
-    setDistributorExpenses(prev => {
-      const newItems = { ...prev };
-      delete newItems[name];
-      return newItems;
-    });
-    
-    await deleteItemFromSupabase(selectedMonth, 'distributorExpenses', name);
-    
-    toast({
-      title: "Distributor item deleted",
-      description: `"${name}" has been removed`,
-      action: (
-        <Button 
-          variant="outline" 
-          onClick={() => handleUndoDeleteDistributor(name)}
-          className="bg-white hover:bg-gray-100"
-        >
-          Undo
-        </Button>
-      ),
-    });
-    
-    setHasUnsavedChanges(true);
+    try {
+      const value = distributorExpenses[name];
+      setDeletedDistributorItems(prev => ({ ...prev, [name]: value }));
+      
+      setDistributorExpenses(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      await deleteItemFromSupabase(selectedMonth, 'distributorExpenses', name);
+      
+      toast({
+        title: "Distributor item deleted",
+        description: `"${name}" has been removed`,
+        action: (
+          <Button 
+            variant="outline" 
+            onClick={() => handleUndoDeleteDistributor(name)}
+            className="bg-white hover:bg-gray-100"
+          >
+            Undo
+          </Button>
+        ),
+      });
+      
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error deleting distributor item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteOperationalItem = async (name: string) => {
