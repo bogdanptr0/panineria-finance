@@ -18,10 +18,12 @@ export type Database = {
           distributor_expenses: Json
           id: string
           operational_expenses: Json
+          other_expenses: Json | null
           revenue_items: Json
           salary_expenses: Json
           updated_at: string
           user_id: string
+          utilities_expenses: Json | null
         }
         Insert: {
           budget?: Json | null
@@ -31,10 +33,12 @@ export type Database = {
           distributor_expenses: Json
           id?: string
           operational_expenses: Json
+          other_expenses?: Json | null
           revenue_items: Json
           salary_expenses: Json
           updated_at?: string
           user_id: string
+          utilities_expenses?: Json | null
         }
         Update: {
           budget?: Json | null
@@ -44,10 +48,12 @@ export type Database = {
           distributor_expenses?: Json
           id?: string
           operational_expenses?: Json
+          other_expenses?: Json | null
           revenue_items?: Json
           salary_expenses?: Json
           updated_at?: string
           user_id?: string
+          utilities_expenses?: Json | null
         }
         Relationships: []
       }
