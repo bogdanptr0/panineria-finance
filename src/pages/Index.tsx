@@ -15,8 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { RequireAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
+  const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState<boolean>(false);
   
@@ -30,6 +32,14 @@ const Index = () => {
     "Tiramisu": 0,
     "Platou": 0
   });
+  
+  const [deletedBucatarieItems, setDeletedBucatarieItems] = useState<Record<string, number>>({});
+  const [deletedBarItems, setDeletedBarItems] = useState<Record<string, number>>({});
+  const [deletedSalaryItems, setDeletedSalaryItems] = useState<Record<string, number>>({});
+  const [deletedDistributorItems, setDeletedDistributorItems] = useState<Record<string, number>>({});
+  const [deletedUtilitiesItems, setDeletedUtilitiesItems] = useState<Record<string, number>>({});
+  const [deletedOperationalItems, setDeletedOperationalItems] = useState<Record<string, number>>({});
+  const [deletedOtherItems, setDeletedOtherItems] = useState<Record<string, number>>({});
   
   const [barItems, setBarItems] = useState<Record<string, number>>({});
   
@@ -283,54 +293,306 @@ const Index = () => {
 
   const handleDeleteRevenue = (name: string) => {
     if (Object.keys(bucatarieItems).includes(name)) {
+      const value = bucatarieItems[name];
+      setDeletedBucatarieItems(prev => ({ ...prev, [name]: value }));
+      
       setBucatarieItems(prev => {
         const newItems = { ...prev };
         delete newItems[name];
         return newItems;
       });
+      
+      toast({
+        title: "Item deleted",
+        description: `"${name}" has been removed`,
+        action: (
+          <Button 
+            variant="outline" 
+            onClick={() => handleUndoDeleteBucatarie(name)}
+          >
+            Undo
+          </Button>
+        ),
+      });
     } else if (Object.keys(barItems).includes(name)) {
+      const value = barItems[name];
+      setDeletedBarItems(prev => ({ ...prev, [name]: value }));
+      
       setBarItems(prev => {
         const newItems = { ...prev };
         delete newItems[name];
         return newItems;
       });
+      
+      toast({
+        title: "Item deleted",
+        description: `"${name}" has been removed`,
+        action: (
+          <Button 
+            variant="outline" 
+            onClick={() => handleUndoDeleteBar(name)}
+          >
+            Undo
+          </Button>
+        ),
+      });
     }
   };
 
   const handleDeleteSalary = (name: string) => {
+    const value = salaryExpenses[name];
+    setDeletedSalaryItems(prev => ({ ...prev, [name]: value }));
+    
     setSalaryExpenses(prev => {
       const newItems = { ...prev };
       delete newItems[name];
       return newItems;
     });
+    
+    toast({
+      title: "Salary item deleted",
+      description: `"${name}" has been removed`,
+      action: (
+        <Button 
+          variant="outline" 
+          onClick={() => handleUndoDeleteSalary(name)}
+        >
+          Undo
+        </Button>
+      ),
+    });
   };
 
   const handleDeleteDistributor = (name: string) => {
+    const value = distributorExpenses[name];
+    setDeletedDistributorItems(prev => ({ ...prev, [name]: value }));
+    
     setDistributorExpenses(prev => {
       const newItems = { ...prev };
       delete newItems[name];
       return newItems;
     });
+    
+    toast({
+      title: "Distributor item deleted",
+      description: `"${name}" has been removed`,
+      action: (
+        <Button 
+          variant="outline" 
+          onClick={() => handleUndoDeleteDistributor(name)}
+        >
+          Undo
+        </Button>
+      ),
+    });
   };
 
   const handleDeleteOperationalItem = (name: string) => {
     if (Object.keys(utilitiesExpenses).includes(name)) {
+      const value = utilitiesExpenses[name];
+      setDeletedUtilitiesItems(prev => ({ ...prev, [name]: value }));
+      
       setUtilitiesExpenses(prev => {
         const newItems = { ...prev };
         delete newItems[name];
         return newItems;
       });
+      
+      toast({
+        title: "Utilities item deleted",
+        description: `"${name}" has been removed`,
+        action: (
+          <Button 
+            variant="outline" 
+            onClick={() => handleUndoDeleteUtilities(name)}
+          >
+            Undo
+          </Button>
+        ),
+      });
     } else if (Object.keys(operationalExpenses).includes(name)) {
+      const value = operationalExpenses[name];
+      setDeletedOperationalItems(prev => ({ ...prev, [name]: value }));
+      
       setOperationalExpenses(prev => {
         const newItems = { ...prev };
         delete newItems[name];
         return newItems;
       });
+      
+      toast({
+        title: "Operational item deleted",
+        description: `"${name}" has been removed`,
+        action: (
+          <Button 
+            variant="outline" 
+            onClick={() => handleUndoDeleteOperational(name)}
+          >
+            Undo
+          </Button>
+        ),
+      });
     } else if (Object.keys(otherExpenses).includes(name)) {
+      const value = otherExpenses[name];
+      setDeletedOtherItems(prev => ({ ...prev, [name]: value }));
+      
       setOtherExpenses(prev => {
         const newItems = { ...prev };
         delete newItems[name];
         return newItems;
+      });
+      
+      toast({
+        title: "Other expense item deleted",
+        description: `"${name}" has been removed`,
+        action: (
+          <Button 
+            variant="outline" 
+            onClick={() => handleUndoDeleteOther(name)}
+          >
+            Undo
+          </Button>
+        ),
+      });
+    }
+  };
+
+  const handleUndoDeleteBucatarie = (name: string) => {
+    if (deletedBucatarieItems[name] !== undefined) {
+      setBucatarieItems(prev => ({
+        ...prev,
+        [name]: deletedBucatarieItems[name]
+      }));
+      
+      setDeletedBucatarieItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      toast({
+        title: "Item restored",
+        description: `"${name}" has been restored`,
+      });
+    }
+  };
+
+  const handleUndoDeleteBar = (name: string) => {
+    if (deletedBarItems[name] !== undefined) {
+      setBarItems(prev => ({
+        ...prev,
+        [name]: deletedBarItems[name]
+      }));
+      
+      setDeletedBarItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      toast({
+        title: "Item restored",
+        description: `"${name}" has been restored`,
+      });
+    }
+  };
+
+  const handleUndoDeleteSalary = (name: string) => {
+    if (deletedSalaryItems[name] !== undefined) {
+      setSalaryExpenses(prev => ({
+        ...prev,
+        [name]: deletedSalaryItems[name]
+      }));
+      
+      setDeletedSalaryItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      toast({
+        title: "Salary item restored",
+        description: `"${name}" has been restored`,
+      });
+    }
+  };
+
+  const handleUndoDeleteDistributor = (name: string) => {
+    if (deletedDistributorItems[name] !== undefined) {
+      setDistributorExpenses(prev => ({
+        ...prev,
+        [name]: deletedDistributorItems[name]
+      }));
+      
+      setDeletedDistributorItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      toast({
+        title: "Distributor item restored",
+        description: `"${name}" has been restored`,
+      });
+    }
+  };
+
+  const handleUndoDeleteUtilities = (name: string) => {
+    if (deletedUtilitiesItems[name] !== undefined) {
+      setUtilitiesExpenses(prev => ({
+        ...prev,
+        [name]: deletedUtilitiesItems[name]
+      }));
+      
+      setDeletedUtilitiesItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      toast({
+        title: "Utilities item restored",
+        description: `"${name}" has been restored`,
+      });
+    }
+  };
+
+  const handleUndoDeleteOperational = (name: string) => {
+    if (deletedOperationalItems[name] !== undefined) {
+      setOperationalExpenses(prev => ({
+        ...prev,
+        [name]: deletedOperationalItems[name]
+      }));
+      
+      setDeletedOperationalItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      toast({
+        title: "Operational item restored",
+        description: `"${name}" has been restored`,
+      });
+    }
+  };
+
+  const handleUndoDeleteOther = (name: string) => {
+    if (deletedOtherItems[name] !== undefined) {
+      setOtherExpenses(prev => ({
+        ...prev,
+        [name]: deletedOtherItems[name]
+      }));
+      
+      setDeletedOtherItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      toast({
+        title: "Other expense item restored",
+        description: `"${name}" has been restored`,
       });
     }
   };
