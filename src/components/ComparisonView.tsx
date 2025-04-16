@@ -7,8 +7,8 @@ import { TrendingUp, TrendingDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ComparisonViewProps {
-  currentMonth: Date;
-  currentReport: {
+  currentMonth?: Date;
+  currentReport?: {
     totalRevenue: number;
     totalCogs: number;
     grossProfit: number;
@@ -17,7 +17,16 @@ interface ComparisonViewProps {
   };
 }
 
-const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) => {
+const ComparisonView = ({ 
+  currentMonth = new Date(), 
+  currentReport = {
+    totalRevenue: 0,
+    totalCogs: 0,
+    grossProfit: 0,
+    totalExpenses: 0,
+    netProfit: 0
+  } 
+}: ComparisonViewProps) => {
   const [reports, setReports] = useState<PLReport[]>([]);
   const [trendData, setTrendData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +45,7 @@ const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) =>
           
           const totalSalary = Object.values(report.salaryExpenses).reduce((sum, val) => sum + (val as number), 0);
           const totalDistributor = Object.values(report.distributorExpenses).reduce((sum, val) => sum + (val as number), 0);
-          const totalOperational = Object.values(report.operationalExpenses).reduce((sum, val) => sum + (val as number), 0);
+          const totalOperational = Object.values(report.operationalExpenses || {}).reduce((sum, val) => sum + (val as number), 0);
           const totalExpenses = totalSalary + totalDistributor + totalOperational;
           
           const netProfit = grossProfit - totalExpenses;
@@ -63,11 +72,15 @@ const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) =>
   }, [currentMonth]);
 
   // Find previous month report
-  const currentMonthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonthKey = currentMonth ? 
+    `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}` : 
+    '';
   
   // Find the previous month's data
-  const previousMonth = new Date(currentMonth);
-  previousMonth.setMonth(previousMonth.getMonth() - 1);
+  const previousMonth = currentMonth ? new Date(currentMonth) : new Date();
+  if (currentMonth) {
+    previousMonth.setMonth(previousMonth.getMonth() - 1);
+  }
   const previousMonthKey = `${previousMonth.getFullYear()}-${String(previousMonth.getMonth() + 1).padStart(2, '0')}`;
   
   const previousReport = reports.find(r => r.date === previousMonthKey);
@@ -81,7 +94,7 @@ const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) =>
     
     const totalSalary = Object.values(previousReport.salaryExpenses).reduce((sum, val) => sum + (val as number), 0);
     const totalDistributor = Object.values(previousReport.distributorExpenses).reduce((sum, val) => sum + (val as number), 0);
-    const totalOperational = Object.values(previousReport.operationalExpenses).reduce((sum, val) => sum + (val as number), 0);
+    const totalOperational = Object.values(previousReport.operationalExpenses || {}).reduce((sum, val) => sum + (val as number), 0);
     const totalExpenses = totalSalary + totalDistributor + totalOperational;
     
     const netProfit = grossProfit - totalExpenses;
