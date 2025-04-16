@@ -44,6 +44,8 @@ const ExportTools = ({
   const handleSave = async () => {
     try {
       setIsSaving(true);
+      console.log("Saving report with revenue items:", revenueItems);
+      
       await saveReport(
         selectedMonth, 
         revenueItems,

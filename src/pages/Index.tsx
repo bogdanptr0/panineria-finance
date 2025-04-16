@@ -328,17 +328,42 @@ const Index = () => {
   };
 
   const handleAddRevenue = async (name: string, subsectionTitle?: string) => {
-    if (subsectionTitle === "Bucatarie") {
-      setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
-      await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0);
-    } else if (subsectionTitle === "Bar") {
-      setBarItems(prev => ({ ...prev, [name]: 0 }));
-      await addItemToSupabase(selectedMonth, 'barItems', name, 0);
-    } else {
-      setBarItems(prev => ({ ...prev, [name]: 0 }));
-      await addItemToSupabase(selectedMonth, 'barItems', name, 0);
+    try {
+      if (subsectionTitle === "Bucatarie") {
+        setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
+        await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0);
+        
+        toast({
+          title: "Item added",
+          description: `"${name}" has been added to Bucatarie`,
+        });
+      } else if (subsectionTitle === "Bar") {
+        setBarItems(prev => ({ ...prev, [name]: 0 }));
+        await addItemToSupabase(selectedMonth, 'barItems', name, 0);
+        
+        toast({
+          title: "Item added",
+          description: `"${name}" has been added to Bar`,
+        });
+      } else {
+        setBarItems(prev => ({ ...prev, [name]: 0 }));
+        await addItemToSupabase(selectedMonth, 'barItems', name, 0);
+        
+        toast({
+          title: "Item added",
+          description: `"${name}" has been added to revenue items`,
+        });
+      }
+      
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error adding revenue item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add item. Please try again.",
+        variant: "destructive"
+      });
     }
-    setHasUnsavedChanges(true);
   };
 
   const handleAddSalary = async (name: string) => {
