@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { formatMonth } from "@/lib/formatters";
-
-import { DEFAULT_SALARY_EXPENSES } from "./constants";
+import { DEFAULT_SALARY_EXPENSES } from "@/lib/constants";
 
 // Utility function to handle empty strings and return a default value
 export const getDefaultIfEmpty = (value: string, defaultValue: string = ""): string => {
@@ -383,38 +382,85 @@ export const addItemToSupabase = async (
       return false;
     }
     
-    let items: Record<string, number> = {};
+    // Create a new report if none exists
+    if (!reportData) {
+      const defaultReport = {
+        date: formattedDate,
+        user_id: user.id,
+        revenue_items: {},
+        cost_of_goods_items: DEFAULT_EMPTY_COGS_ITEMS,
+        salary_expenses: DEFAULT_SALARY_EXPENSES,
+        distributor_expenses: DEFAULT_DISTRIBUTOR_EXPENSES,
+        utilities_expenses: DEFAULT_UTILITIES_EXPENSES,
+        operational_expenses: DEFAULT_OPERATIONAL_EXPENSES,
+        other_expenses: {}
+      };
+      
+      if (category === 'bucatarieItems' || category === 'tazzItems' || category === 'barItems') {
+        defaultReport.revenue_items = {
+          ...defaultReport.revenue_items,
+          [itemName]: value
+        };
+      } else {
+        defaultReport[category] = {
+          [itemName]: value
+        };
+      }
+      
+      const { error: insertError } = await supabase
+        .from('pl_reports')
+        .insert(defaultReport);
+      
+      if (insertError) {
+        console.error('Error creating report with new item:', insertError);
+        return false;
+      }
+      
+      return true;
+    }
     
-    if (reportData) {
+    // Handle updating existing report
+    let items: Record<string, number> = {};
+    let updatePayload: any = {};
+    
+    if (category === 'bucatarieItems' || category === 'tazzItems' || category === 'barItems') {
+      // For subcategories of revenue, we update the revenue_items
+      items = reportData.revenue_items || {};
+      items[itemName] = value;
+      updatePayload = {
+        revenue_items: items,
+        updated_at: new Date().toISOString()
+      };
+    } else {
+      // For other categories, we update the specific category
       switch (category) {
         case 'revenueItems':
-          items = (reportData.revenue_items || {}) as Record<string, number>;
+          items = reportData.revenue_items || {};
           break;
         case 'salaryExpenses':
-          items = (reportData.salary_expenses || {}) as Record<string, number>;
+          items = reportData.salary_expenses || {};
           break;
         case 'distributorExpenses':
-          items = (reportData.distributor_expenses || {}) as Record<string, number>;
+          items = reportData.distributor_expenses || {};
           break;
         case 'utilitiesExpenses':
-          items = (reportData.utilities_expenses || {}) as Record<string, number>;
+          items = reportData.utilities_expenses || {};
           break;
         case 'operationalExpenses':
-          items = (reportData.operational_expenses || {}) as Record<string, number>;
+          items = reportData.operational_expenses || {};
           break;
         case 'otherExpenses':
-          items = (reportData.other_expenses || {}) as Record<string, number>;
+          items = reportData.other_expenses || {};
           break;
         default:
           console.error('Invalid category:', category);
           return false;
       }
+      
+      items[itemName] = value;
+      updatePayload[category.replace('Items', '_items')] = items;
+      updatePayload.updated_at = new Date().toISOString();
     }
-    
-    items[itemName] = value;
-    
-    let updatePayload: any = {};
-    updatePayload[category] = items;
     
     const { error: updateError } = await supabase
       .from('pl_reports')
@@ -720,5 +766,87 @@ export const updateAllReportsWithDefaultSalaries = async () => {
     }
   } catch (error) {
     console.error('Error updating reports with default salaries:', error);
+  }
+};
+
+export const handleAddRevenueItem = async (
+  date: Date,
+  subcategory: 'bucatarieItems' | 'tazzItems' | 'barItems',
+  name: string,
+  value: number = 0
+) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('User not logged in.');
+      return false;
+    }
+    
+    const formattedDate = formatMonth(date);
+    
+    // Fetch the report for the given month and user
+    const { data: reportData, error: fetchError } = await supabase
+      .from('pl_reports')
+      .select('revenue_items')
+      .eq('date', formattedDate)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error('Error fetching report:', fetchError);
+      return false;
+    }
+    
+    // Create report if it doesn't exist
+    if (!reportData) {
+      const defaultRevenue: Record<string, number> = {
+        [name]: value
+      };
+      
+      const { error: insertError } = await supabase
+        .from('pl_reports')
+        .insert({
+          date: formattedDate,
+          user_id: user.id,
+          revenue_items: defaultRevenue,
+          cost_of_goods_items: DEFAULT_EMPTY_COGS_ITEMS,
+          salary_expenses: DEFAULT_SALARY_EXPENSES,
+          distributor_expenses: DEFAULT_DISTRIBUTOR_EXPENSES,
+          utilities_expenses: DEFAULT_UTILITIES_EXPENSES,
+          operational_expenses: DEFAULT_OPERATIONAL_EXPENSES,
+          other_expenses: {}
+        });
+      
+      if (insertError) {
+        console.error('Error creating report with new item:', insertError);
+        return false;
+      }
+      
+      return true;
+    }
+    
+    // Update existing report
+    const revenueItems = reportData.revenue_items || {};
+    revenueItems[name] = value;
+    
+    const { error: updateError } = await supabase
+      .from('pl_reports')
+      .update({
+        revenue_items: revenueItems,
+        updated_at: new Date().toISOString()
+      })
+      .eq('date', formattedDate)
+      .eq('user_id', user.id);
+    
+    if (updateError) {
+      console.error('Error updating report:', updateError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error adding item to subcategory:', error);
+    return false;
   }
 };

@@ -350,13 +350,34 @@ const Index = () => {
   const handleAddRevenue = async (name: string, subsectionTitle?: string) => {
     if (subsectionTitle === "Bucatarie") {
       setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
-      await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0);
+      const success = await handleAddRevenueItem(selectedMonth, 'bucatarieItems', name, 0);
+      if (!success) {
+        toast({
+          title: "Error",
+          description: "Failed to add item to Bucatarie. Please try again.",
+          variant: "destructive"
+        });
+      }
     } else if (subsectionTitle === "Tazz") {
       setTazzItems(prev => ({ ...prev, [name]: 0 }));
-      await addItemToSupabase(selectedMonth, 'tazzItems', name, 0);
+      const success = await handleAddRevenueItem(selectedMonth, 'tazzItems', name, 0);
+      if (!success) {
+        toast({
+          title: "Error",
+          description: "Failed to add item to Tazz. Please try again.",
+          variant: "destructive"
+        });
+      }
     } else if (subsectionTitle === "Bar") {
       setBarItems(prev => ({ ...prev, [name]: 0 }));
-      await addItemToSupabase(selectedMonth, 'barItems', name, 0);
+      const success = await handleAddRevenueItem(selectedMonth, 'barItems', name, 0);
+      if (!success) {
+        toast({
+          title: "Error",
+          description: "Failed to add item to Bar. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
     setHasUnsavedChanges(true);
   };
@@ -408,7 +429,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed from Bucatarie`
+          description: `"${name}" has been removed from Bucatarie"
         });
       } else if (isTazzItem) {
         setTazzItems(prev => {
@@ -421,7 +442,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed from Tazz`
+          description: `"${name}" has been removed from Tazz"
         });
       } else if (isBarItem) {
         setBarItems(prev => {
@@ -434,7 +455,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed from Bar`
+          description: `"${name}" has been removed from Bar"
         });
       }
       
