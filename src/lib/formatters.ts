@@ -37,3 +37,12 @@ export const formatDate = (date: Date): string => {
     month: 'long'
   });
 };
+
+/**
+ * Format date to YYYY-MM format for database storage
+ */
+export const formatMonth = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  return `${year}-${month.toString().padStart(2, '0')}`;
+};
