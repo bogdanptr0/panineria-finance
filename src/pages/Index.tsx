@@ -104,14 +104,12 @@ const Index = () => {
         const bucatarie: Record<string, number> = {};
         const bar: Record<string, number> = {};
         
-        // Define default bucatarie items that should appear first
         const bucatarieKeys = [
           "Il Classico", "Il Prosciutto", "Il Piccante", 
           "La Porchetta", "La Mortadella", "La Buffala", 
           "Tiramisu", "Platou"
         ];
         
-        // Separate bucatarie and bar items
         Object.entries(report.revenueItems).forEach(([key, value]) => {
           if (bucatarieKeys.includes(key)) {
             bucatarie[key] = value;
@@ -387,7 +385,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed"
+          description: `"${name}" has been removed`
         });
         
         setHasUnsavedChanges(true);
@@ -404,7 +402,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed"
+          description: `"${name}" has been removed`
         });
         
         setHasUnsavedChanges(true);
@@ -433,7 +431,7 @@ const Index = () => {
       
       toast({
         title: "Salary item deleted",
-        description: `"${name}" has been removed"
+        description: `"${name}" has been removed`
       });
       
       setHasUnsavedChanges(true);
@@ -461,7 +459,7 @@ const Index = () => {
       
       toast({
         title: "Distributor item deleted",
-        description: `"${name}" has been removed"
+        description: `"${name}" has been removed`
       });
       
       setHasUnsavedChanges(true);
@@ -488,7 +486,7 @@ const Index = () => {
         
         toast({
           title: "Utilities item deleted",
-          description: `"${name}" has been removed"
+          description: `"${name}" has been removed`
         });
         
         setHasUnsavedChanges(true);
@@ -503,7 +501,7 @@ const Index = () => {
         
         toast({
           title: "Operational item deleted",
-          description: `"${name}" has been removed"
+          description: `"${name}" has been removed`
         });
         
         setHasUnsavedChanges(true);
@@ -518,7 +516,7 @@ const Index = () => {
         
         toast({
           title: "Other expense item deleted",
-          description: `"${name}" has been removed"
+          description: `"${name}" has been removed`
         });
         
         setHasUnsavedChanges(true);
