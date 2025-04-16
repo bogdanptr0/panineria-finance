@@ -71,9 +71,16 @@ export const RequireAuth = ({ children }: { children: ReactNode }) => {
     }
   }, [user, loading, navigate]);
 
+  // Return a simple loading indicator while checking authentication
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
+  // If user is null but loading is false, we know authentication failed
+  // But let the navigation happen asynchronously
   return user ? <>{children}</> : null;
 };

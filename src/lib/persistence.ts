@@ -1,8 +1,12 @@
+
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define the storage key constant
+const STORAGE_KEY = "pl_reports_data";
+
 export interface PLReport {
-  date: Date;
+  date: string; // Changed from Date to string to match how it's used
   revenueItems: Record<string, number>;
   costOfGoodsItems: Record<string, number>;
   salaryExpenses: Record<string, number>;
@@ -112,39 +116,39 @@ export const saveReport = async (
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
     // Ensure the report has the default items
-    const revenueItems = {
+    const updatedRevenueItems = {
       ...DEFAULT_REVENUE_ITEMS,
       ...revenueItems
     };
     
-    const salaryExpenses = {
+    const updatedSalaryExpenses = {
       ...DEFAULT_SALARY_EXPENSES,
       ...salaryExpenses
     };
     
-    const distributorExpenses = {
+    const updatedDistributorExpenses = {
       ...DEFAULT_DISTRIBUTOR_EXPENSES,
       ...distributorExpenses
     };
     
-    const utilitiesExpenses = {
+    const updatedUtilitiesExpenses = {
       ...DEFAULT_UTILITIES_EXPENSES,
       ...utilitiesExpenses
     };
     
-    const operationalExpenses = {
+    const updatedOperationalExpenses = {
       ...DEFAULT_OPERATIONAL_EXPENSES,
       ...operationalExpenses
     };
     
     const report: PLReport = {
       date: dateKey,
-      revenueItems,
+      revenueItems: updatedRevenueItems,
       costOfGoodsItems,
-      salaryExpenses,
-      distributorExpenses,
-      utilitiesExpenses,
-      operationalExpenses,
+      salaryExpenses: updatedSalaryExpenses,
+      distributorExpenses: updatedDistributorExpenses,
+      utilitiesExpenses: updatedUtilitiesExpenses,
+      operationalExpenses: updatedOperationalExpenses,
       otherExpenses
     };
 
@@ -912,8 +916,9 @@ export const exportToPdf = (): void => {
 };
 
 export const createDefaultReport = (date: Date): PLReport => {
+  const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   return {
-    date,
+    date: dateKey,
     revenueItems: { ...DEFAULT_REVENUE_ITEMS },
     costOfGoodsItems: { ...DEFAULT_EMPTY_COGS_ITEMS },
     salaryExpenses: { ...DEFAULT_SALARY_EXPENSES },
@@ -928,8 +933,9 @@ export const getMonthlyReport = async (
   year: number,
   month: number
 ): Promise<PLReport> => {
+  const dateKey = `${year}-${String(month).padStart(2, '0')}`;
   return {
-    date: new Date(year, month - 1, 1),
+    date: dateKey,
     revenueItems: { ...DEFAULT_REVENUE_ITEMS },
     costOfGoodsItems: { ...DEFAULT_EMPTY_COGS_ITEMS },
     salaryExpenses: { ...DEFAULT_SALARY_EXPENSES },

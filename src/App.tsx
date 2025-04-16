@@ -6,16 +6,19 @@ import NotFound from "./pages/NotFound";
 import { Toaster } from "./components/ui/toaster";
 import "./App.css";
 import "./print-styles.css";
+import { AuthProvider } from "./lib/auth";
 
 function App() {
   return (
     <>
       <Router>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </Router>
       <Toaster />
     </>
