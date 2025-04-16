@@ -34,7 +34,31 @@ const Index = () => {
     "Platou": 0
   });
   
+  const [tazzItems, setTazzItems] = useState<Record<string, number>>({
+    "[MINI] Il Classico": 0,
+    "[MINI] Il Prosciutto": 0,
+    "[MINI] Il Piccante": 0,
+    "[MINI] La Porchetta": 0,
+    "[MINI] La Mortadella": 0,
+    "[MINI] La Buffala": 0,
+    "Il Classico": 0,
+    "Il Prosciutto": 0,
+    "Il Piccante": 0,
+    "La Porchetta": 0,
+    "La Mortadella": 0,
+    "La Buffala": 0,
+    "Tiramisu": 0,
+    "Apa plata - 0,5": 0,
+    "Apa minerala - 0,5": 0,
+    "Coca Cola": 0,
+    "Coca Cola Zero": 0,
+    "Sprite": 0,
+    "Fanta": 0,
+    "Bere Peroni 0% alcool": 0
+  });
+  
   const [deletedBucatarieItems, setDeletedBucatarieItems] = useState<Record<string, number>>({});
+  const [deletedTazzItems, setDeletedTazzItems] = useState<Record<string, number>>({});
   const [deletedBarItems, setDeletedBarItems] = useState<Record<string, number>>({});
   const [deletedSalaryItems, setDeletedSalaryItems] = useState<Record<string, number>>({});
   const [deletedDistributorItems, setDeletedDistributorItems] = useState<Record<string, number>>({});
@@ -45,7 +69,7 @@ const Index = () => {
   const [barItems, setBarItems] = useState<Record<string, number>>({});
   
   const getRevenueItems = (): Record<string, number> => {
-    return { ...bucatarieItems, ...barItems };
+    return { ...bucatarieItems, ...tazzItems, ...barItems };
   };
 
   const [salaryExpenses, setSalaryExpenses] = useState<Record<string, number>>({
@@ -102,6 +126,7 @@ const Index = () => {
       const report = await loadReport(selectedMonth);
       if (report) {
         const bucatarie: Record<string, number> = {};
+        const tazz: Record<string, number> = {};
         const bar: Record<string, number> = {};
         
         const bucatarieKeys = [
@@ -110,15 +135,28 @@ const Index = () => {
           "Tiramisu", "Platou"
         ];
         
+        const tazzKeys = [
+          "[MINI] Il Classico", "[MINI] Il Prosciutto", "[MINI] Il Piccante",
+          "[MINI] La Porchetta", "[MINI] La Mortadella", "[MINI] La Buffala",
+          "Il Classico", "Il Prosciutto", "Il Piccante",
+          "La Porchetta", "La Mortadella", "La Buffala",
+          "Tiramisu", "Apa plata - 0,5", "Apa minerala - 0,5",
+          "Coca Cola", "Coca Cola Zero", "Sprite", "Fanta", 
+          "Bere Peroni 0% alcool"
+        ];
+        
         Object.entries(report.revenueItems).forEach(([key, value]) => {
           if (bucatarieKeys.includes(key)) {
             bucatarie[key] = value;
+          } else if (tazzKeys.includes(key)) {
+            tazz[key] = value;
           } else {
             bar[key] = value;
           }
         });
         
         setBucatarieItems(bucatarie);
+        setTazzItems(tazz);
         setBarItems(bar);
         
         setSalaryExpenses(report.salaryExpenses);
@@ -140,6 +178,7 @@ const Index = () => {
         setOtherExpenses(report.otherExpenses || {});
         setBudget(report.budget);
         
+        setDeletedTazzItems({});
         setDeletedBucatarieItems({});
         setDeletedBarItems({});
         setDeletedSalaryItems({});
@@ -185,8 +224,9 @@ const Index = () => {
   };
 
   const totalBucatarieRevenue = calculateTotal(bucatarieItems);
+  const totalTazzRevenue = calculateTotal(tazzItems);
   const totalBarRevenue = calculateTotal(barItems);
-  const totalRevenue = totalBucatarieRevenue + totalBarRevenue;
+  const totalRevenue = totalBucatarieRevenue + totalTazzRevenue + totalBarRevenue;
   const totalSalaryExpenses = calculateTotal(salaryExpenses);
   const totalDistributorExpenses = calculateTotal(distributorExpenses);
   const totalUtilitiesExpenses = calculateTotal(utilitiesExpenses);
@@ -202,6 +242,9 @@ const Index = () => {
     if (Object.keys(bucatarieItems).includes(name)) {
       setBucatarieItems(prev => ({ ...prev, [name]: value }));
       await updateItemInSupabase(selectedMonth, 'bucatarieItems', name, value);
+    } else if (Object.keys(tazzItems).includes(name)) {
+      setTazzItems(prev => ({ ...prev, [name]: value }));
+      await updateItemInSupabase(selectedMonth, 'tazzItems', name, value);
     } else {
       setBarItems(prev => ({ ...prev, [name]: value }));
       await updateItemInSupabase(selectedMonth, 'barItems', name, value);
@@ -251,6 +294,15 @@ const Index = () => {
       });
       
       await renameItemInSupabase(selectedMonth, 'bucatarieItems', oldName, newName);
+    } else if (oldName in tazzItems) {
+      setTazzItems(prev => {
+        const value = prev[oldName];
+        const newItems = { ...prev };
+        delete newItems[oldName];
+        return { ...newItems, [newName]: value };
+      });
+      
+      await renameItemInSupabase(selectedMonth, 'tazzItems', oldName, newName);
     } else if (oldName in barItems) {
       setBarItems(prev => {
         const value = prev[oldName];
@@ -333,6 +385,9 @@ const Index = () => {
     if (subsectionTitle === "Bucatarie") {
       setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
       await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0);
+    } else if (subsectionTitle === "Tazz") {
+      setTazzItems(prev => ({ ...prev, [name]: 0 }));
+      await addItemToSupabase(selectedMonth, 'tazzItems', name, 0);
     } else if (subsectionTitle === "Bar") {
       setBarItems(prev => ({ ...prev, [name]: 0 }));
       await addItemToSupabase(selectedMonth, 'barItems', name, 0);
@@ -382,6 +437,23 @@ const Index = () => {
         });
         
         await deleteItemFromSupabase(selectedMonth, 'bucatarieItems', name);
+        
+        toast({
+          title: "Item deleted",
+          description: `"${name}" has been removed`
+        });
+        
+        setHasUnsavedChanges(true);
+      } else if (Object.keys(tazzItems).includes(name)) {
+        const value = tazzItems[name];
+        
+        setTazzItems(prev => {
+          const newItems = { ...prev };
+          delete newItems[name];
+          return newItems;
+        });
+        
+        await deleteItemFromSupabase(selectedMonth, 'tazzItems', name);
         
         toast({
           title: "Item deleted",
@@ -550,6 +622,10 @@ const Index = () => {
     {
       title: "Bucatarie",
       items: Object.keys(bucatarieItems)
+    },
+    {
+      title: "Tazz",
+      items: Object.keys(tazzItems)
     },
     {
       title: "Bar",

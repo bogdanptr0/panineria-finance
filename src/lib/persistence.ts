@@ -28,7 +28,20 @@ export const DEFAULT_REVENUE_ITEMS: Record<string, number> = {
   "La Mortadella": 0,
   "La Buffala": 0,
   "Tiramisu": 0,
-  "Platou": 0
+  "Platou": 0,
+  "[MINI] Il Classico": 0,
+  "[MINI] Il Prosciutto": 0,
+  "[MINI] Il Piccante": 0,
+  "[MINI] La Porchetta": 0,
+  "[MINI] La Mortadella": 0,
+  "[MINI] La Buffala": 0,
+  "Apa plata - 0,5": 0,
+  "Apa minerala - 0,5": 0,
+  "Coca Cola": 0,
+  "Coca Cola Zero": 0,
+  "Sprite": 0,
+  "Fanta": 0,
+  "Bere Peroni 0% alcool": 0
 };
 
 export const DEFAULT_EMPTY_COGS_ITEMS: Record<string, number> = {};

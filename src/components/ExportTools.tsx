@@ -1,15 +1,10 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Download, Printer, Save } from "lucide-react";
-import { saveReport, exportToCsv, exportToPdf, PLReport } from "@/lib/persistence";
-import { useToast } from "@/components/ui/use-toast";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowDownToLine, FileText } from 'lucide-react';
+import { exportToCsv, exportToPdf, PLReport } from '@/lib/persistence';
+import { formatDate } from '@/lib/formatters';
 
 interface ExportToolsProps {
   selectedMonth: Date;
@@ -38,27 +33,7 @@ const ExportTools = ({
   otherExpenses,
   budget
 }: ExportToolsProps) => {
-  const { toast } = useToast();
-  
-  const handleSave = () => {
-    saveReport(selectedMonth, {
-      revenueItems,
-      costOfGoodsItems,
-      salaryExpenses,
-      distributorExpenses,
-      utilitiesExpenses,
-      operationalExpenses,
-      otherExpenses,
-      budget
-    });
-    
-    toast({
-      title: "Saved",
-      description: "Report has been saved successfully.",
-    });
-  };
-  
-  const handleExportCsv = () => {
+  const handleExportToCsv = () => {
     const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
     
     const report: PLReport = {
@@ -69,46 +44,45 @@ const ExportTools = ({
       distributorExpenses,
       utilitiesExpenses,
       operationalExpenses,
-      otherExpenses,
-      budget
+      otherExpenses
     };
+    
+    if (budget) {
+      report.budget = budget;
+    }
     
     exportToCsv(report);
   };
-  
-  const handleExportPdf = () => {
+
+  const handleExportToPdf = () => {
     exportToPdf();
   };
-  
+
   return (
-    <div className="flex gap-2">
-      <Button variant="outline" onClick={handleSave} className="flex items-center gap-2">
-        <Save className="h-4 w-4" />
-        <span>Save</span>
-      </Button>
-      
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            <span>Export</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem onClick={handleExportCsv}>
-            Export as CSV
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleExportPdf}>
-            Export as PDF
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      
-      <Button variant="outline" onClick={handleExportPdf} className="flex items-center gap-2">
-        <Printer className="h-4 w-4" />
-        <span>Print</span>
-      </Button>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Export Data</CardTitle>
+        <CardDescription>Download your report in different formats</CardDescription>
+      </CardHeader>
+      <CardContent className="flex gap-4">
+        <Button 
+          onClick={handleExportToCsv}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <FileText className="h-4 w-4" />
+          <span>Export to CSV</span>
+        </Button>
+        <Button 
+          onClick={handleExportToPdf}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <ArrowDownToLine className="h-4 w-4" />
+          <span>Export to PDF</span>
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 

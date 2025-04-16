@@ -1,9 +1,12 @@
 
-import { useState } from "react";
-import { formatCurrency, formatPercentage, calculatePercentageChange } from "@/lib/formatters";
-import { Input } from "@/components/ui/input";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { saveReport } from "@/lib/persistence";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatCurrency, formatPercentage } from '@/lib/formatters';
+import { calculateTotal } from '@/lib/utils';
 
 interface BudgetAnalysisProps {
   selectedMonth: Date;
@@ -20,10 +23,14 @@ interface BudgetAnalysisProps {
     targetExpenses: number;
     targetProfit: number;
   };
-  onBudgetSave: (budget: { targetRevenue: number, targetExpenses: number, targetProfit: number }) => void;
+  onBudgetSave: (budget: {
+    targetRevenue: number;
+    targetExpenses: number;
+    targetProfit: number;
+  }) => void;
 }
 
-const BudgetAnalysis = ({ 
+const BudgetAnalysis = ({
   selectedMonth,
   totalRevenue,
   totalExpenses,
@@ -36,199 +43,131 @@ const BudgetAnalysis = ({
   budget,
   onBudgetSave
 }: BudgetAnalysisProps) => {
-  const [targetRevenue, setTargetRevenue] = useState<number>(budget?.targetRevenue || totalRevenue || 0);
-  const [targetExpenses, setTargetExpenses] = useState<number>(budget?.targetExpenses || totalExpenses || 0);
-  const [targetProfit, setTargetProfit] = useState<number>(budget?.targetProfit || netProfit || 0);
-  const [isEditing, setIsEditing] = useState<boolean>(!budget);
-  
+  const [targetRevenue, setTargetRevenue] = useState<number>(budget?.targetRevenue || 0);
+  const [targetExpenses, setTargetExpenses] = useState<number>(budget?.targetExpenses || 0);
+  const [targetProfit, setTargetProfit] = useState<number>(budget?.targetProfit || 0);
+
   const handleSaveBudget = () => {
-    const newBudget = {
+    onBudgetSave({
       targetRevenue,
       targetExpenses,
       targetProfit
-    };
-    
-    onBudgetSave(newBudget);
-    
-    // Save to persistence
-    saveReport(selectedMonth, {
-      revenueItems,
-      costOfGoodsItems,
-      salaryExpenses,
-      distributorExpenses,
-      operationalExpenses,
-      budget: newBudget
     });
-    
-    setIsEditing(false);
   };
+
+  const revenueVariance = totalRevenue - targetRevenue;
+  const revenueVariancePercent = targetRevenue ? (revenueVariance / targetRevenue) * 100 : 0;
   
-  // Calculate variances
-  const revenueVariance = budget ? totalRevenue - budget.targetRevenue : 0;
-  const revenueVariancePercentage = budget && budget.targetRevenue !== 0 
-    ? calculatePercentageChange(totalRevenue, budget.targetRevenue)
-    : 0;
-    
-  const expensesVariance = budget ? totalExpenses - budget.targetExpenses : 0;
-  const expensesVariancePercentage = budget && budget.targetExpenses !== 0 
-    ? calculatePercentageChange(totalExpenses, budget.targetExpenses)
-    : 0;
-    
-  const profitVariance = budget ? netProfit - budget.targetProfit : 0;
-  const profitVariancePercentage = budget && budget.targetProfit !== 0 
-    ? calculatePercentageChange(netProfit, budget.targetProfit)
-    : 0;
+  const expensesVariance = totalExpenses - targetExpenses;
+  const expensesVariancePercent = targetExpenses ? (expensesVariance / targetExpenses) * 100 : 0;
   
+  const profitVariance = netProfit - targetProfit;
+  const profitVariancePercent = targetProfit ? (profitVariance / targetProfit) * 100 : 0;
+
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Budget vs. Actual Analysis</h2>
-        {!isEditing && (
-          <Button variant="outline" onClick={() => setIsEditing(true)}>
-            Edit Budget
+    <Card>
+      <CardHeader>
+        <CardTitle>Budget vs. Actual Analysis</CardTitle>
+        <CardDescription>Compare actual performance against budget targets</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">Target Revenue</label>
+            <Input
+              type="number"
+              min="0"
+              value={targetRevenue}
+              onChange={(e) => setTargetRevenue(Number(e.target.value))}
+              className="mb-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Target Expenses</label>
+            <Input
+              type="number"
+              min="0"
+              value={targetExpenses}
+              onChange={(e) => setTargetExpenses(Number(e.target.value))}
+              className="mb-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Target Profit</label>
+            <Input
+              type="number"
+              min="0"
+              value={targetProfit}
+              onChange={(e) => setTargetProfit(Number(e.target.value))}
+              className="mb-2"
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end mb-6">
+          <Button onClick={handleSaveBudget}>
+            Save Budget
           </Button>
-        )}
-      </div>
-      
-      {isEditing ? (
-        <div className="space-y-4 border p-4 rounded-lg">
-          <h3 className="font-semibold">Set Budget Targets</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Target Revenue</label>
-              <Input 
-                type="number" 
-                value={targetRevenue}
-                onChange={(e) => setTargetRevenue(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Target Expenses</label>
-              <Input 
-                type="number" 
-                value={targetExpenses}
-                onChange={(e) => setTargetExpenses(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Target Profit</label>
-              <Input 
-                type="number" 
-                value={targetProfit}
-                onChange={(e) => setTargetProfit(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-          </div>
-          
-          <div className="flex justify-end">
-            <Button onClick={handleSaveBudget}>Save Budget</Button>
-          </div>
         </div>
-      ) : budget ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="border rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-2">Revenue</h3>
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-sm text-gray-500">Budget</div>
-                  <div className="text-lg font-medium">{formatCurrency(budget.targetRevenue)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Actual</div>
-                  <div className="text-lg font-medium">{formatCurrency(totalRevenue)}</div>
-                </div>
-              </div>
-              <div className="mt-2 pt-2 border-t">
-                <div className="text-sm text-gray-500">Variance</div>
-                <div className={`text-lg font-medium flex items-center ${revenueVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(revenueVariance)}
-                  <span className="text-xs ml-2">
-                    ({revenueVariance >= 0 ? '+' : ''}{formatPercentage(revenueVariancePercentage)})
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="border rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-2">Expenses</h3>
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-sm text-gray-500">Budget</div>
-                  <div className="text-lg font-medium">{formatCurrency(budget.targetExpenses)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Actual</div>
-                  <div className="text-lg font-medium">{formatCurrency(totalExpenses)}</div>
-                </div>
-              </div>
-              <div className="mt-2 pt-2 border-t">
-                <div className="text-sm text-gray-500">Variance</div>
-                <div className={`text-lg font-medium flex items-center ${expensesVariance <= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(expensesVariance)}
-                  <span className="text-xs ml-2">
-                    ({expensesVariance >= 0 ? '+' : ''}{formatPercentage(expensesVariancePercentage)})
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="border rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-2">Profit</h3>
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-sm text-gray-500">Budget</div>
-                  <div className="text-lg font-medium">{formatCurrency(budget.targetProfit)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Actual</div>
-                  <div className="text-lg font-medium">{formatCurrency(netProfit)}</div>
-                </div>
-              </div>
-              <div className="mt-2 pt-2 border-t">
-                <div className="text-sm text-gray-500">Variance</div>
-                <div className={`text-lg font-medium flex items-center ${profitVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(profitVariance)}
-                  <span className="text-xs ml-2">
-                    ({profitVariance >= 0 ? '+' : ''}{formatPercentage(profitVariancePercentage)})
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold mb-2">Summary</h3>
-            <div className="space-y-1 text-sm">
-              {revenueVariance >= 0 ? (
-                <p className="text-green-700">Revenue is {formatPercentage(Math.abs(revenueVariancePercentage))} above target ({formatCurrency(revenueVariance)} more than budgeted)</p>
-              ) : (
-                <p className="text-red-700">Revenue is {formatPercentage(Math.abs(revenueVariancePercentage))} below target ({formatCurrency(Math.abs(revenueVariance))} less than budgeted)</p>
-              )}
-              
-              {expensesVariance <= 0 ? (
-                <p className="text-green-700">Expenses are {formatPercentage(Math.abs(expensesVariancePercentage))} below target ({formatCurrency(Math.abs(expensesVariance))} less than budgeted)</p>
-              ) : (
-                <p className="text-red-700">Expenses are {formatPercentage(Math.abs(expensesVariancePercentage))} above target ({formatCurrency(expensesVariance)} more than budgeted)</p>
-              )}
-              
-              {profitVariance >= 0 ? (
-                <p className="text-green-700">Profit is {formatPercentage(Math.abs(profitVariancePercentage))} above target ({formatCurrency(profitVariance)} more than budgeted)</p>
-              ) : (
-                <p className="text-red-700">Profit is {formatPercentage(Math.abs(profitVariancePercentage))} below target ({formatCurrency(Math.abs(profitVariance))} less than budgeted)</p>
-              )}
-            </div>
-          </div>
+        
+        <Separator className="my-6" />
+        
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Category</TableHead>
+              <TableHead>Budget</TableHead>
+              <TableHead>Actual</TableHead>
+              <TableHead>Variance</TableHead>
+              <TableHead>% Variance</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="font-medium">Revenue</TableCell>
+              <TableCell>{formatCurrency(targetRevenue)}</TableCell>
+              <TableCell>{formatCurrency(totalRevenue)}</TableCell>
+              <TableCell className={revenueVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatCurrency(revenueVariance)}
+              </TableCell>
+              <TableCell className={revenueVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatPercentage(revenueVariancePercent)}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Expenses</TableCell>
+              <TableCell>{formatCurrency(targetExpenses)}</TableCell>
+              <TableCell>{formatCurrency(totalExpenses)}</TableCell>
+              <TableCell className={expensesVariance <= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatCurrency(expensesVariance)}
+              </TableCell>
+              <TableCell className={expensesVariance <= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatPercentage(expensesVariancePercent)}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Profit</TableCell>
+              <TableCell>{formatCurrency(targetProfit)}</TableCell>
+              <TableCell>{formatCurrency(netProfit)}</TableCell>
+              <TableCell className={profitVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatCurrency(profitVariance)}
+              </TableCell>
+              <TableCell className={profitVariance >= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatPercentage(profitVariancePercent)}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+        
+        <Separator className="my-6" />
+        
+        <div className="text-sm text-gray-500">
+          <p>Variance = Actual - Budget</p>
+          <p>% Variance = (Variance / Budget) * 100</p>
+          <p>Green values indicate positive performance against budget.</p>
         </div>
-      ) : (
-        <div className="text-gray-500 italic">
-          No budget set for this month. Click "Edit Budget" to set targets.
-        </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
