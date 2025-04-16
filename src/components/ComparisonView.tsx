@@ -20,35 +20,46 @@ interface ComparisonViewProps {
 const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) => {
   const [reports, setReports] = useState<PLReport[]>([]);
   const [trendData, setTrendData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const allReports = getAllReports();
-    setReports(allReports);
+    async function loadReports() {
+      try {
+        const allReports = await getAllReports();
+        setReports(allReports);
+        
+        // Transform reports into trend data
+        const transformedData = allReports.map(report => {
+          const totalRevenue = Object.values(report.revenueItems).reduce((sum, val) => sum + (val as number), 0);
+          const totalCogs = Object.values(report.costOfGoodsItems).reduce((sum, val) => sum + (val as number), 0);
+          const grossProfit = totalRevenue - totalCogs;
+          
+          const totalSalary = Object.values(report.salaryExpenses).reduce((sum, val) => sum + (val as number), 0);
+          const totalDistributor = Object.values(report.distributorExpenses).reduce((sum, val) => sum + (val as number), 0);
+          const totalOperational = Object.values(report.operationalExpenses).reduce((sum, val) => sum + (val as number), 0);
+          const totalExpenses = totalSalary + totalDistributor + totalOperational;
+          
+          const netProfit = grossProfit - totalExpenses;
+          
+          return {
+            month: report.date,
+            revenue: totalRevenue,
+            cogs: totalCogs,
+            grossProfit,
+            expenses: totalExpenses,
+            netProfit
+          };
+        });
+        
+        setTrendData(transformedData);
+      } catch (error) {
+        console.error("Error loading reports:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
     
-    // Transform reports into trend data
-    const transformedData = allReports.map(report => {
-      const totalRevenue = Object.values(report.revenueItems).reduce((sum, val) => sum + val, 0);
-      const totalCogs = Object.values(report.costOfGoodsItems).reduce((sum, val) => sum + val, 0);
-      const grossProfit = totalRevenue - totalCogs;
-      
-      const totalSalary = Object.values(report.salaryExpenses).reduce((sum, val) => sum + val, 0);
-      const totalDistributor = Object.values(report.distributorExpenses).reduce((sum, val) => sum + val, 0);
-      const totalOperational = Object.values(report.operationalExpenses).reduce((sum, val) => sum + val, 0);
-      const totalExpenses = totalSalary + totalDistributor + totalOperational;
-      
-      const netProfit = grossProfit - totalExpenses;
-      
-      return {
-        month: report.date,
-        revenue: totalRevenue,
-        cogs: totalCogs,
-        grossProfit,
-        expenses: totalExpenses,
-        netProfit
-      };
-    });
-    
-    setTrendData(transformedData);
+    loadReports();
   }, [currentMonth]);
 
   // Find previous month report
@@ -64,13 +75,13 @@ const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) =>
   // Calculate previous month metrics if available
   let previousMonthMetrics = null;
   if (previousReport) {
-    const totalRevenue = Object.values(previousReport.revenueItems).reduce((sum, val) => sum + val, 0);
-    const totalCogs = Object.values(previousReport.costOfGoodsItems).reduce((sum, val) => sum + val, 0);
+    const totalRevenue = Object.values(previousReport.revenueItems).reduce((sum, val) => sum + (val as number), 0);
+    const totalCogs = Object.values(previousReport.costOfGoodsItems).reduce((sum, val) => sum + (val as number), 0);
     const grossProfit = totalRevenue - totalCogs;
     
-    const totalSalary = Object.values(previousReport.salaryExpenses).reduce((sum, val) => sum + val, 0);
-    const totalDistributor = Object.values(previousReport.distributorExpenses).reduce((sum, val) => sum + val, 0);
-    const totalOperational = Object.values(previousReport.operationalExpenses).reduce((sum, val) => sum + val, 0);
+    const totalSalary = Object.values(previousReport.salaryExpenses).reduce((sum, val) => sum + (val as number), 0);
+    const totalDistributor = Object.values(previousReport.distributorExpenses).reduce((sum, val) => sum + (val as number), 0);
+    const totalOperational = Object.values(previousReport.operationalExpenses).reduce((sum, val) => sum + (val as number), 0);
     const totalExpenses = totalSalary + totalDistributor + totalOperational;
     
     const netProfit = grossProfit - totalExpenses;
@@ -88,7 +99,13 @@ const ComparisonView = ({ currentMonth, currentReport }: ComparisonViewProps) =>
     <div className="bg-white p-4 rounded-lg shadow">
       <h2 className="text-xl font-bold mb-4">Comparison View</h2>
       
-      {previousMonthMetrics ? (
+      {loading ? (
+        <div className="flex items-center justify-center h-40 text-gray-500">
+          Loading comparison data...
+        </div>
+      ) : reports.length === 0 ? (
+        <div className="text-gray-500 italic mb-4">No historical data available for comparison</div>
+      ) : previousMonthMetrics ? (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-2">Month-over-Month Comparison</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

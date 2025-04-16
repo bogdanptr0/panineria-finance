@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -129,12 +130,12 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
     if (data) {
       return {
         date: data.date,
-        revenueItems: data.revenue_items,
-        costOfGoodsItems: data.cost_of_goods_items,
-        salaryExpenses: data.salary_expenses,
-        distributorExpenses: data.distributor_expenses,
-        operationalExpenses: data.operational_expenses,
-        budget: data.budget
+        revenueItems: data.revenue_items as Record<string, number>,
+        costOfGoodsItems: data.cost_of_goods_items as Record<string, number>,
+        salaryExpenses: data.salary_expenses as Record<string, number>,
+        distributorExpenses: data.distributor_expenses as Record<string, number>,
+        operationalExpenses: data.operational_expenses as Record<string, number>,
+        budget: data.budget as PLReport['budget']
       };
     }
     
@@ -193,12 +194,12 @@ export const getAllReports = async (): Promise<PLReport[]> => {
     if (data && data.length > 0) {
       return data.map(report => ({
         date: report.date,
-        revenueItems: report.revenue_items,
-        costOfGoodsItems: report.cost_of_goods_items,
-        salaryExpenses: report.salary_expenses,
-        distributorExpenses: report.distributor_expenses,
-        operationalExpenses: report.operational_expenses,
-        budget: report.budget
+        revenueItems: report.revenue_items as Record<string, number>,
+        costOfGoodsItems: report.cost_of_goods_items as Record<string, number>,
+        salaryExpenses: report.salary_expenses as Record<string, number>,
+        distributorExpenses: report.distributor_expenses as Record<string, number>,
+        operationalExpenses: report.operational_expenses as Record<string, number>,
+        budget: report.budget as PLReport['budget']
       }));
     }
     
