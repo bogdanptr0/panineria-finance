@@ -24,18 +24,12 @@ const Index = () => {
   
   // State for revenue items
   const [revenueItems, setRevenueItems] = useState<Record<string, number>>({
-    "Produs #1": 0,
-    "Produs #2": 0,
-    "Produs #3": 0,
     "Bere": 0,
     "Vin": 0
   });
 
   // State for cost of goods sold
   const [costOfGoodsItems, setCostOfGoodsItems] = useState<Record<string, number>>({
-    "Produs #1": 0,
-    "Produs #2": 0,
-    "Produs #3": 0,
     "Bere": 0,
     "Vin": 0
   });

@@ -22,7 +22,6 @@ const ProductProfitability = ({ revenueItems, costOfGoodsItems }: ProductProfita
     return {
       name,
       revenue,
-      cost,
       profit,
       margin
     };
@@ -42,7 +41,6 @@ const ProductProfitability = ({ revenueItems, costOfGoodsItems }: ProductProfita
               <TableRow>
                 <TableHead>Product</TableHead>
                 <TableHead className="text-right">Revenue</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">Profit</TableHead>
                 <TableHead className="text-right">Margin</TableHead>
               </TableRow>
@@ -52,7 +50,6 @@ const ProductProfitability = ({ revenueItems, costOfGoodsItems }: ProductProfita
                 <TableRow key={product.name}>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell className="text-right">{formatCurrency(product.revenue)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(product.cost)}</TableCell>
                   <TableCell className="text-right font-medium">
                     <span className={product.profit >= 0 ? "text-green-600" : "text-red-600"}>
                       {formatCurrency(product.profit)}

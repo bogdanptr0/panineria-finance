@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -222,16 +221,10 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
     return {
       date: dateKey,
       revenueItems: {
-        "Produs #1": 0,
-        "Produs #2": 0,
-        "Produs #3": 0,
         "Bere": 0,
         "Vin": 0
       },
       costOfGoodsItems: {
-        "Produs #1": 0,
-        "Produs #2": 0,
-        "Produs #3": 0,
         "Bere": 0,
         "Vin": 0
       },
