@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface PLReport {
   date: string;
   revenueItems: Record<string, number>;
+  bucatarieItems: Record<string, number>; // Add separate bucatarieItems
+  barItems: Record<string, number>; // Add separate barItems
   costOfGoodsItems: Record<string, number>;
   salaryExpenses: Record<string, number>;
   distributorExpenses: Record<string, number>;
@@ -25,6 +27,8 @@ interface SupabaseReport {
   date: string;
   user_id: string;
   revenue_items: Record<string, number>;
+  bucatarie_items: Record<string, number>; // Add separate bucatarie_items in DB
+  bar_items: Record<string, number>; // Add separate bar_items in DB
   cost_of_goods_items: Record<string, number>;
   salary_expenses: Record<string, number>;
   distributor_expenses: Record<string, number>;
@@ -75,9 +79,17 @@ export const loadReport = async (month: Date): Promise<PLReport | null> => {
     // Safely handle subcategories with default empty objects
     const subcategories = report.subcategories || { revenueItems: {}, expenses: {} };
 
+    // Combine bucatarie and bar items for revenueItems for backwards compatibility
+    const revenueItems = {
+      ...(report.bucatarie_items || {}),
+      ...(report.bar_items || {})
+    };
+
     return {
       date: report.date,
-      revenueItems: report.revenue_items || {},
+      revenueItems: revenueItems,
+      bucatarieItems: report.bucatarie_items || {},
+      barItems: report.bar_items || {},
       costOfGoodsItems: report.cost_of_goods_items || {},
       salaryExpenses: report.salary_expenses || {},
       distributorExpenses: report.distributor_expenses || {},
@@ -117,9 +129,18 @@ export const getAllReports = async (): Promise<PLReport[]> => {
 
     return pl_reports.map(report => {
       const typedReport = report as unknown as SupabaseReport;
+      
+      // Combine bucatarie and bar items for revenueItems for backwards compatibility
+      const revenueItems = {
+        ...(typedReport.bucatarie_items || {}),
+        ...(typedReport.bar_items || {})
+      };
+      
       return {
         date: typedReport.date,
-        revenueItems: typedReport.revenue_items || {},
+        revenueItems: revenueItems,
+        bucatarieItems: typedReport.bucatarie_items || {},
+        barItems: typedReport.bar_items || {},
         costOfGoodsItems: typedReport.cost_of_goods_items || {},
         salaryExpenses: typedReport.salary_expenses || {},
         distributorExpenses: typedReport.distributor_expenses || {},
@@ -153,7 +174,9 @@ export const saveReport = async (
   subcategories?: {
     revenueItems?: Record<string, string>;
     expenses?: Record<string, string>;
-  }
+  },
+  bucatarieItems?: Record<string, number>, // Added separate parameter
+  barItems?: Record<string, number> // Added separate parameter
 ): Promise<void> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -165,7 +188,6 @@ export const saveReport = async (
     const dateKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
     
     console.log("Saving report for date:", dateKey);
-    console.log("Revenue items:", revenueItems);
     
     const { data: existingReport, error: fetchError } = await supabase
       .from('pl_reports')
@@ -178,17 +200,23 @@ export const saveReport = async (
       throw fetchError;
     }
     
-    // Ensure subcategories is properly structured
+    // Ensure subcategories is properly structured as an object
     const safeSubcategories = {
       revenueItems: subcategories?.revenueItems || {},
       expenses: subcategories?.expenses || {}
     };
+    
+    // Separate bucatarie and bar items
+    const separateBucatarieItems = bucatarieItems || {};
+    const separateBarItems = barItems || {};
     
     if (existingReport) {
       const { error: updateError } = await supabase
         .from('pl_reports')
         .update({
           revenue_items: revenueItems,
+          bucatarie_items: separateBucatarieItems, // Store separately
+          bar_items: separateBarItems, // Store separately
           cost_of_goods_items: costOfGoodsItems,
           salary_expenses: salaryExpenses,
           distributor_expenses: distributorExpenses,
@@ -196,7 +224,7 @@ export const saveReport = async (
           operational_expenses: operationalExpenses,
           other_expenses: otherExpenses,
           budget,
-          subcategories: safeSubcategories,
+          subcategories: safeSubcategories as Record<string, unknown>, // Type cast to avoid TS error
           updated_at: new Date().toISOString()
         })
         .eq('id', existingReport.id);
@@ -212,6 +240,8 @@ export const saveReport = async (
           date: dateKey,
           user_id: user.id,
           revenue_items: revenueItems,
+          bucatarie_items: separateBucatarieItems, // Store separately
+          bar_items: separateBarItems, // Store separately
           cost_of_goods_items: costOfGoodsItems,
           salary_expenses: salaryExpenses,
           distributor_expenses: distributorExpenses,
@@ -219,7 +249,7 @@ export const saveReport = async (
           operational_expenses: operationalExpenses,
           other_expenses: otherExpenses,
           budget,
-          subcategories: safeSubcategories
+          subcategories: safeSubcategories as Record<string, unknown> // Type cast to avoid TS error
         });
       
       if (insertError) {
@@ -357,7 +387,38 @@ export const deleteItemFromSupabase = async (
       const typedReport = existingReport as unknown as SupabaseReport;
       let updatedData: Record<string, any> = {};
       
-      if (category === 'bucatarieItems' || category === 'barItems') {
+      if (category === 'bucatarieItems') {
+        const currentBucatarieItems = typedReport.bucatarie_items || {};
+        const newBucatarieItems = { ...currentBucatarieItems };
+        delete newBucatarieItems[name];
+        updatedData.bucatarie_items = newBucatarieItems;
+        
+        // Update the combined revenue_items
+        const currentRevenueItems = typedReport.revenue_items || {};
+        const newRevenueItems = { ...currentRevenueItems };
+        delete newRevenueItems[name];
+        updatedData.revenue_items = newRevenueItems;
+        
+        // Also remove from subcategories tracking if it exists
+        if (typedReport.subcategories?.revenueItems) {
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
+          const newRevenueSubcategories = { ...currentRevenueSubcategories };
+          delete newRevenueSubcategories[name];
+          
+          updatedData.subcategories = {
+            ...currentSubcategories,
+            revenueItems: newRevenueSubcategories,
+            expenses: currentSubcategories.expenses || {}
+          };
+        }
+      } else if (category === 'barItems') {
+        const currentBarItems = typedReport.bar_items || {};
+        const newBarItems = { ...currentBarItems };
+        delete newBarItems[name];
+        updatedData.bar_items = newBarItems;
+        
+        // Update the combined revenue_items
         const currentRevenueItems = typedReport.revenue_items || {};
         const newRevenueItems = { ...currentRevenueItems };
         delete newRevenueItems[name];
@@ -498,7 +559,15 @@ export const addItemToSupabase = async (
       const typedReport = existingReport as unknown as SupabaseReport;
       let updatedData: Record<string, any> = {};
       
-      if (category === 'bucatarieItems' || category === 'barItems') {
+      if (category === 'bucatarieItems') {
+        // Add to separate bucatarie_items
+        const currentBucatarieItems = typedReport.bucatarie_items || {};
+        updatedData.bucatarie_items = {
+          ...currentBucatarieItems,
+          [name]: value
+        };
+        
+        // Update the combined revenue_items
         const currentRevenueItems = typedReport.revenue_items || {};
         updatedData.revenue_items = {
           ...currentRevenueItems,
@@ -513,7 +582,34 @@ export const addItemToSupabase = async (
           ...currentSubcategories,
           revenueItems: {
             ...currentRevenueSubcategories,
-            [name]: category === 'bucatarieItems' ? 'Bucatarie' : 'Bar'
+            [name]: 'Bucatarie'
+          },
+          expenses: currentSubcategories.expenses || {}
+        };
+      } else if (category === 'barItems') {
+        // Add to separate bar_items
+        const currentBarItems = typedReport.bar_items || {};
+        updatedData.bar_items = {
+          ...currentBarItems,
+          [name]: value
+        };
+        
+        // Update the combined revenue_items
+        const currentRevenueItems = typedReport.revenue_items || {};
+        updatedData.revenue_items = {
+          ...currentRevenueItems,
+          [name]: value
+        };
+        
+        // Track the subcategory
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
+        
+        updatedData.subcategories = {
+          ...currentSubcategories,
+          revenueItems: {
+            ...currentRevenueSubcategories,
+            [name]: 'Bar'
           },
           expenses: currentSubcategories.expenses || {}
         };
@@ -611,18 +707,10 @@ export const addItemToSupabase = async (
         expenses: {}
       };
       
-      if (category === 'bucatarieItems' || category === 'barItems') {
-        initialSubcategories.revenueItems[name] = category === 'bucatarieItems' ? 'Bucatarie' : 'Bar';
-      } else if (category === 'utilitiesExpenses') {
-        initialSubcategories.expenses[name] = 'Utilitati';
-      } else if (category === 'operationalExpenses') {
-        initialSubcategories.expenses[name] = 'Operationale';
-      } else if (category === 'otherExpenses') {
-        initialSubcategories.expenses[name] = 'Alte Cheltuieli';
-      }
-      
       // Initialize default empty objects for all item types
       const revenue_items: Record<string, number> = {};
+      const bucatarie_items: Record<string, number> = {};
+      const bar_items: Record<string, number> = {};
       const cost_of_goods_items: Record<string, number> = {};
       const salary_expenses: Record<string, number> = {};
       const distributor_expenses: Record<string, number> = {};
@@ -631,18 +719,27 @@ export const addItemToSupabase = async (
       const other_expenses: Record<string, number> = {};
       
       // Add the new item to the appropriate category
-      if (category === 'bucatarieItems' || category === 'barItems') {
-        revenue_items[name] = value;
+      if (category === 'bucatarieItems') {
+        bucatarie_items[name] = value;
+        revenue_items[name] = value; // Also add to combined revenue items
+        initialSubcategories.revenueItems[name] = 'Bucatarie';
+      } else if (category === 'barItems') {
+        bar_items[name] = value;
+        revenue_items[name] = value; // Also add to combined revenue items
+        initialSubcategories.revenueItems[name] = 'Bar';
       } else if (category === 'salaryExpenses') {
         salary_expenses[name] = value;
       } else if (category === 'distributorExpenses') {
         distributor_expenses[name] = value;
       } else if (category === 'utilitiesExpenses') {
         utilities_expenses[name] = value;
+        initialSubcategories.expenses[name] = 'Utilitati';
       } else if (category === 'operationalExpenses') {
         operational_expenses[name] = value;
+        initialSubcategories.expenses[name] = 'Operationale';
       } else if (category === 'otherExpenses') {
         other_expenses[name] = value;
+        initialSubcategories.expenses[name] = 'Alte Cheltuieli';
       }
       
       const { error: insertError } = await supabase
@@ -651,13 +748,15 @@ export const addItemToSupabase = async (
           date: dateKey,
           user_id: user.id,
           revenue_items,
+          bucatarie_items,
+          bar_items,
           cost_of_goods_items,
           salary_expenses,
           distributor_expenses,
           utilities_expenses,
           operational_expenses,
           other_expenses,
-          subcategories: initialSubcategories
+          subcategories: initialSubcategories as Record<string, unknown> // Type cast to avoid TS error
         });
       
       if (insertError) {
@@ -703,7 +802,29 @@ export const updateItemInSupabase = async (
       const typedReport = existingReport as unknown as SupabaseReport;
       let updatedData: Record<string, any> = {};
       
-      if (category === 'bucatarieItems' || category === 'barItems') {
+      if (category === 'bucatarieItems') {
+        // Update separate bucatarie_items
+        const currentBucatarieItems = typedReport.bucatarie_items || {};
+        updatedData.bucatarie_items = {
+          ...currentBucatarieItems,
+          [name]: value
+        };
+        
+        // Update the combined revenue_items
+        const currentRevenueItems = typedReport.revenue_items || {};
+        updatedData.revenue_items = {
+          ...currentRevenueItems,
+          [name]: value
+        };
+      } else if (category === 'barItems') {
+        // Update separate bar_items
+        const currentBarItems = typedReport.bar_items || {};
+        updatedData.bar_items = {
+          ...currentBarItems,
+          [name]: value
+        };
+        
+        // Update the combined revenue_items
         const currentRevenueItems = typedReport.revenue_items || {};
         updatedData.revenue_items = {
           ...currentRevenueItems,
@@ -793,152 +914,14 @@ export const renameItemInSupabase = async (
       const typedReport = existingReport as unknown as SupabaseReport;
       let updatedData: Record<string, any> = {};
       
-      if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = typedReport.revenue_items || {};
+      if (category === 'bucatarieItems') {
+        const currentBucatarieItems = typedReport.bucatarie_items || {};
         
-        if (currentRevenueItems[oldName] !== undefined) {
-          const value = currentRevenueItems[oldName];
-          const newRevenueItems = { ...currentRevenueItems };
-          delete newRevenueItems[oldName];
-          newRevenueItems[newName] = value;
-          updatedData.revenue_items = newRevenueItems;
+        if (currentBucatarieItems[oldName] !== undefined) {
+          const value = currentBucatarieItems[oldName];
+          const newBucatarieItems = { ...currentBucatarieItems };
+          delete newBucatarieItems[oldName];
+          newBucatarieItems[newName] = value;
+          updatedData.bucatarie_items = newBucatarieItems;
           
-          // Update subcategories
-          const currentSubcategories = typedReport.subcategories || { revenueItems: {}, expenses: {} };
-          const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
-          
-          if (currentRevenueSubcategories[oldName]) {
-            const categoryType = currentRevenueSubcategories[oldName];
-            const newRevenueSubcategories = { ...currentRevenueSubcategories };
-            delete newRevenueSubcategories[oldName];
-            newRevenueSubcategories[newName] = categoryType;
-            
-            updatedData.subcategories = {
-              ...currentSubcategories,
-              revenueItems: newRevenueSubcategories,
-              expenses: currentSubcategories.expenses || {}
-            };
-          }
-        }
-      } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = typedReport.salary_expenses || {};
-        
-        if (currentSalaryExpenses[oldName] !== undefined) {
-          const value = currentSalaryExpenses[oldName];
-          const newSalaryExpenses = { ...currentSalaryExpenses };
-          delete newSalaryExpenses[oldName];
-          newSalaryExpenses[newName] = value;
-          updatedData.salary_expenses = newSalaryExpenses;
-        }
-      } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = typedReport.distributor_expenses || {};
-        
-        if (currentDistributorExpenses[oldName] !== undefined) {
-          const value = currentDistributorExpenses[oldName];
-          const newDistributorExpenses = { ...currentDistributorExpenses };
-          delete newDistributorExpenses[oldName];
-          newDistributorExpenses[newName] = value;
-          updatedData.distributor_expenses = newDistributorExpenses;
-        }
-      } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = typedReport.utilities_expenses || {};
-        
-        if (currentUtilitiesExpenses[oldName] !== undefined) {
-          const value = currentUtilitiesExpenses[oldName];
-          const newUtilitiesExpenses = { ...currentUtilitiesExpenses };
-          delete newUtilitiesExpenses[oldName];
-          newUtilitiesExpenses[newName] = value;
-          updatedData.utilities_expenses = newUtilitiesExpenses;
-          
-          // Update subcategories
-          const currentSubcategories = typedReport.subcategories || { revenueItems: {}, expenses: {} };
-          const currentExpenseSubcategories = currentSubcategories.expenses || {};
-          
-          if (currentExpenseSubcategories[oldName]) {
-            const subcategory = currentExpenseSubcategories[oldName];
-            const newExpenseSubcategories = { ...currentExpenseSubcategories };
-            delete newExpenseSubcategories[oldName];
-            newExpenseSubcategories[newName] = subcategory;
-            
-            updatedData.subcategories = {
-              ...currentSubcategories,
-              revenueItems: currentSubcategories.revenueItems || {},
-              expenses: newExpenseSubcategories
-            };
-          }
-        }
-      } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = typedReport.operational_expenses || {};
-        
-        if (currentOperationalExpenses[oldName] !== undefined) {
-          const value = currentOperationalExpenses[oldName];
-          const newOperationalExpenses = { ...currentOperationalExpenses };
-          delete newOperationalExpenses[oldName];
-          newOperationalExpenses[newName] = value;
-          updatedData.operational_expenses = newOperationalExpenses;
-          
-          // Update subcategories
-          const currentSubcategories = typedReport.subcategories || { revenueItems: {}, expenses: {} };
-          const currentExpenseSubcategories = currentSubcategories.expenses || {};
-          
-          if (currentExpenseSubcategories[oldName]) {
-            const subcategory = currentExpenseSubcategories[oldName];
-            const newExpenseSubcategories = { ...currentExpenseSubcategories };
-            delete newExpenseSubcategories[oldName];
-            newExpenseSubcategories[newName] = subcategory;
-            
-            updatedData.subcategories = {
-              ...currentSubcategories,
-              revenueItems: currentSubcategories.revenueItems || {},
-              expenses: newExpenseSubcategories
-            };
-          }
-        }
-      } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = typedReport.other_expenses || {};
-        
-        if (currentOtherExpenses[oldName] !== undefined) {
-          const value = currentOtherExpenses[oldName];
-          const newOtherExpenses = { ...currentOtherExpenses };
-          delete newOtherExpenses[oldName];
-          newOtherExpenses[newName] = value;
-          updatedData.other_expenses = newOtherExpenses;
-          
-          // Update subcategories
-          const currentSubcategories = typedReport.subcategories || { revenueItems: {}, expenses: {} };
-          const currentExpenseSubcategories = currentSubcategories.expenses || {};
-          
-          if (currentExpenseSubcategories[oldName]) {
-            const subcategory = currentExpenseSubcategories[oldName];
-            const newExpenseSubcategories = { ...currentExpenseSubcategories };
-            delete newExpenseSubcategories[oldName];
-            newExpenseSubcategories[newName] = subcategory;
-            
-            updatedData.subcategories = {
-              ...currentSubcategories,
-              revenueItems: currentSubcategories.revenueItems || {},
-              expenses: newExpenseSubcategories
-            };
-          }
-        }
-      }
-      
-      updatedData.updated_at = new Date().toISOString();
-      
-      const { error: updateError } = await supabase
-        .from('pl_reports')
-        .update(updatedData)
-        .eq('id', existingReport.id);
-      
-      if (updateError) {
-        console.error("Error updating report:", updateError);
-        throw updateError;
-      }
-    } else {
-      console.log("Report not found, cannot rename item.");
-    }
-  } catch (error) {
-    console.error("Error renaming item in Supabase:", error);
-    throw error;
-  }
-};
+          // Update combined revenue items

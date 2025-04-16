@@ -111,39 +111,12 @@ const Index = () => {
       if (report) {
         setSubcategories(report.subcategories || { revenueItems: {}, expenses: {} });
         
-        const allRevenueItems = report.revenueItems || {};
-        
-        const bucatarie: Record<string, number> = {};
-        const bar: Record<string, number> = {};
-        
-        const revenueSubcategories = report.subcategories?.revenueItems || {};
-        
-        Object.entries(allRevenueItems).forEach(([key, value]) => {
-          const subcat = revenueSubcategories[key];
-          
-          if (subcat === 'Bucatarie') {
-            bucatarie[key] = value;
-          } else if (subcat === 'Bar') {
-            bar[key] = value;
-          } else {
-            const bucatarieDefaultItems = ['Il Classico', 'Il Prosciutto', 'Il Piccante', 'La Porchetta', 'La Mortadella', 'La Buffala', 'Tiramisu', 'Platou'];
-            
-            if (bucatarieDefaultItems.includes(key)) {
-              bucatarie[key] = value;
-              revenueSubcategories[key] = 'Bucatarie';
-            } else {
-              bar[key] = value;
-              revenueSubcategories[key] = 'Bar';
-            }
-          }
-        });
-        
-        setBucatarieItems(bucatarie);
-        setBarItems(bar);
+        setBucatarieItems(report.bucatarieItems || {});
+        setBarItems(report.barItems || {});
         
         setSubcategories(prev => ({
           ...prev,
-          revenueItems: revenueSubcategories
+          revenueItems: report.revenueItems || {}
         }));
         
         setSalaryExpenses(report.salaryExpenses);
@@ -194,7 +167,9 @@ const Index = () => {
             operationalExpenses,
             otherExpenses,
             budget,
-            subcategories
+            subcategories,
+            bucatarieItems,
+            barItems
           );
           setHasUnsavedChanges(false);
         } catch (error) {
@@ -204,7 +179,7 @@ const Index = () => {
       
       saveData();
     }
-  }, [hasUnsavedChanges, selectedMonth, salaryExpenses, distributorExpenses, utilitiesExpenses, operationalExpenses, otherExpenses, budget, subcategories]);
+  }, [hasUnsavedChanges, selectedMonth, bucatarieItems, barItems, salaryExpenses, distributorExpenses, utilitiesExpenses, operationalExpenses, otherExpenses, budget, subcategories]);
 
   const calculateTotal = (items: Record<string, number>) => {
     return Object.values(items).reduce((sum, value) => sum + value, 0);
@@ -451,7 +426,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bucatarie`
+          description: `"${name}" has been added to Bucatarie"
         });
       } else if (subsectionTitle === "Bar") {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
@@ -472,7 +447,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bar`
+          description: `"${name}" has been added to Bar"
         });
       } else {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
@@ -493,7 +468,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to revenue items`
+          description: `"${name}" has been added to revenue items"
         });
       }
       
