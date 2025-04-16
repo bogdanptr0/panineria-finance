@@ -614,7 +614,7 @@ const Index = () => {
       
       toast({
         title: "Item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored`
       });
       
       setHasUnsavedChanges(true);
@@ -639,7 +639,7 @@ const Index = () => {
       
       toast({
         title: "Item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored`
       });
       
       setHasUnsavedChanges(true);
@@ -664,7 +664,7 @@ const Index = () => {
       
       toast({
         title: "Salary item restored",
-        description: `"${name}" has been restored`,
+        description: `"${name}" has been restored`
       });
       
       setHasUnsavedChanges(true);
@@ -689,7 +689,7 @@ const Index = () => {
       
       toast({
         title: "Distributor item restored",
-        description: `"${name}" has been restored",
+        description: `"${name}" has been restored`
       });
       
       setHasUnsavedChanges(true);
@@ -714,7 +714,7 @@ const Index = () => {
       
       toast({
         title: "Utilities item restored",
-        description: `"${name}" has been restored",
+        description: `"${name}" has been restored`
       });
       
       setHasUnsavedChanges(true);
@@ -739,7 +739,7 @@ const Index = () => {
       
       toast({
         title: "Operational item restored",
-        description: `"${name}" has been restored",
+        description: `"${name}" has been restored`
       });
       
       setHasUnsavedChanges(true);
@@ -764,7 +764,7 @@ const Index = () => {
       
       toast({
         title: "Other expense item restored",
-        description: `"${name}" has been restored",
+        description: `"${name}" has been restored`
       });
       
       setHasUnsavedChanges(true);
