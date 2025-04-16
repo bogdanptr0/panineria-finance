@@ -125,11 +125,11 @@ export const loadReport = async (date: Date): Promise<{
       if (data.revenue_items) {
         Object.entries(data.revenue_items as Record<string, number>).forEach(([key, value]) => {
           if (bucatarieKeys.includes(key)) {
-            bucatarie[key] = value;
+            bucatarie[key] = value as number;
           } else if (tazzKeys.includes(key)) {
-            tazz[key] = value;
+            tazz[key] = value as number;
           } else {
-            bar[key] = value;
+            bar[key] = value as number;
           }
         });
       }
@@ -514,53 +514,52 @@ export const updateItemInSupabase = async (
       return false;
     }
     
-    let items: Record<string, number> | undefined = undefined;
+    let items: Record<string, number> = {};
     
     switch (category) {
       case 'revenueItems':
-        items = reportData.revenue_items as Record<string, number>;
+        items = reportData.revenue_items as Record<string, number> || {};
         break;
       case 'salaryExpenses':
-        items = reportData.salary_expenses as Record<string, number>;
+        items = reportData.salary_expenses as Record<string, number> || {};
         break;
       case 'distributorExpenses':
-        items = reportData.distributor_expenses as Record<string, number>;
+        items = reportData.distributor_expenses as Record<string, number> || {};
         break;
       case 'utilitiesExpenses':
-        items = reportData.utilities_expenses as Record<string, number>;
+        items = reportData.utilities_expenses as Record<string, number> || {};
         break;
       case 'operationalExpenses':
-        items = reportData.operational_expenses as Record<string, number>;
+        items = reportData.operational_expenses as Record<string, number> || {};
         break;
       case 'otherExpenses':
-        items = reportData.other_expenses as Record<string, number>;
+        items = reportData.other_expenses as Record<string, number> || {};
         break;
       case 'bucatarieItems':
       case 'tazzItems':
       case 'barItems':
-        items = reportData.revenue_items as Record<string, number>;
+        items = reportData.revenue_items as Record<string, number> || {};
         break;
       default:
         console.error('Invalid category:', category);
         return false;
     }
     
-    if (!items) {
-      console.log('Category not found in the report.');
-      return false;
-    }
-    
     items[itemName] = value;
     
-    let updatePayload: any = {};
-    updatePayload[category] = items;
+    let updatePayload: Record<string, any> = {};
+    
+    if (category === 'bucatarieItems' || category === 'tazzItems' || category === 'barItems') {
+      updatePayload.revenue_items = items;
+    } else {
+      updatePayload[category.replace('Items', '_items')] = items;
+    }
+    
+    updatePayload.updated_at = new Date().toISOString();
     
     const { error: updateError } = await supabase
       .from('pl_reports')
-      .update({
-        revenue_items: items,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('date', formattedDate)
       .eq('user_id', user.id);
     
@@ -610,40 +609,43 @@ export const renameItemInSupabase = async (
       return false;
     }
     
-    let items: Record<string, number> | undefined = undefined;
+    let items: Record<string, number> = {};
+    let updateField: string = '';
     
     switch (category) {
       case 'revenueItems':
-        items = reportData.revenue_items as Record<string, number>;
+        items = reportData.revenue_items as Record<string, number> || {};
+        updateField = 'revenue_items';
         break;
       case 'salaryExpenses':
-        items = reportData.salary_expenses as Record<string, number>;
+        items = reportData.salary_expenses as Record<string, number> || {};
+        updateField = 'salary_expenses';
         break;
       case 'distributorExpenses':
-        items = reportData.distributor_expenses as Record<string, number>;
+        items = reportData.distributor_expenses as Record<string, number> || {};
+        updateField = 'distributor_expenses';
         break;
       case 'utilitiesExpenses':
-        items = reportData.utilities_expenses as Record<string, number>;
+        items = reportData.utilities_expenses as Record<string, number> || {};
+        updateField = 'utilities_expenses';
         break;
       case 'operationalExpenses':
-        items = reportData.operational_expenses as Record<string, number>;
+        items = reportData.operational_expenses as Record<string, number> || {};
+        updateField = 'operational_expenses';
         break;
       case 'otherExpenses':
-        items = reportData.other_expenses as Record<string, number>;
+        items = reportData.other_expenses as Record<string, number> || {};
+        updateField = 'other_expenses';
         break;
       case 'bucatarieItems':
       case 'tazzItems':
       case 'barItems':
-        items = reportData.revenue_items as Record<string, number>;
+        items = reportData.revenue_items as Record<string, number> || {};
+        updateField = 'revenue_items';
         break;
       default:
         console.error('Invalid category:', category);
         return false;
-    }
-    
-    if (!items) {
-      console.log('Category not found in the report.');
-      return false;
     }
     
     if (!(oldName in items)) {
@@ -655,13 +657,10 @@ export const renameItemInSupabase = async (
     delete items[oldName];
     items[newName] = value;
     
-    let updatePayload: any = {};
-    updatePayload[category] = items;
-    
     const { error: updateError } = await supabase
       .from('pl_reports')
       .update({
-        revenue_items: items,
+        [updateField]: items,
         updated_at: new Date().toISOString()
       })
       .eq('date', formattedDate)
@@ -828,7 +827,7 @@ export const handleAddRevenueItem = async (
     }
     
     // Update existing report
-    const revenueItems = reportData.revenue_items || {};
+    const revenueItems = reportData.revenue_items as Record<string, number> || {};
     revenueItems[name] = value;
     
     const { error: updateError } = await supabase

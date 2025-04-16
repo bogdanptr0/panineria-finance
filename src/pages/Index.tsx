@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
-import RevenueSection from "@/components/RevenueSection";
+import BucatarieSection from "@/components/BucatarieSection";
+import TazzSection from "@/components/TazzSection";
+import BarSection from "@/components/BarSection";
 import ExpensesSection from "@/components/ExpensesSection";
 import ProfitSummary from "@/components/ProfitSummary";
 import DataVisualization from "@/components/DataVisualization";
@@ -584,6 +586,165 @@ const Index = () => {
     }
   };
 
+  const handleAddBucatarieItem = async (name: string) => {
+    setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
+    const success = await handleAddRevenueItem(selectedMonth, 'bucatarieItems', name, 0);
+    if (!success) {
+      toast({
+        title: "Error",
+        description: "Failed to add item to Bucatarie. Please try again.",
+        variant: "destructive"
+      });
+    }
+    setHasUnsavedChanges(true);
+  };
+
+  const handleAddTazzItem = async (name: string) => {
+    setTazzItems(prev => ({ ...prev, [name]: 0 }));
+    const success = await handleAddRevenueItem(selectedMonth, 'tazzItems', name, 0);
+    if (!success) {
+      toast({
+        title: "Error",
+        description: "Failed to add item to Tazz. Please try again.",
+        variant: "destructive"
+      });
+    }
+    setHasUnsavedChanges(true);
+  };
+
+  const handleAddBarItem = async (name: string) => {
+    setBarItems(prev => ({ ...prev, [name]: 0 }));
+    const success = await handleAddRevenueItem(selectedMonth, 'barItems', name, 0);
+    if (!success) {
+      toast({
+        title: "Error",
+        description: "Failed to add item to Bar. Please try again.",
+        variant: "destructive"
+      });
+    }
+    setHasUnsavedChanges(true);
+  };
+
+  const handleBucatarieRename = async (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setBucatarieItems(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+    
+    await renameItemInSupabase(selectedMonth, 'bucatarieItems', oldName, newName);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleTazzRename = async (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setTazzItems(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+    
+    await renameItemInSupabase(selectedMonth, 'tazzItems', oldName, newName);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleBarRename = async (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setBarItems(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+    
+    await renameItemInSupabase(selectedMonth, 'barItems', oldName, newName);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleDeleteBucatarieItem = async (name: string) => {
+    try {
+      setBucatarieItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      await deleteItemFromSupabase(selectedMonth, 'bucatarieItems', name);
+      
+      toast({
+        title: "Item deleted",
+        description: `"${name}" has been removed from Bucatarie`
+      });
+      
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteTazzItem = async (name: string) => {
+    try {
+      setTazzItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      await deleteItemFromSupabase(selectedMonth, 'tazzItems', name);
+      
+      toast({
+        title: "Item deleted",
+        description: `"${name}" has been removed from Tazz`
+      });
+      
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteBarItem = async (name: string) => {
+    try {
+      setBarItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[name];
+        return newItems;
+      });
+      
+      await deleteItemFromSupabase(selectedMonth, 'barItems', name);
+      
+      toast({
+        title: "Item deleted",
+        description: `"${name}" has been removed from Bar`
+      });
+      
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete item. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const operationalExpensesSubsections = [
     {
       title: "Utilitati",
@@ -642,15 +803,39 @@ const Index = () => {
             <TabsContent value="summary">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:block">
                 <div className="space-y-6">
-                  <RevenueSection 
-                    revenueItems={getRevenueItems()}
+                  <BucatarieSection 
+                    bucatarieItems={bucatarieItems}
                     onUpdateItem={handleRevenueUpdate}
-                    totalRevenue={totalRevenue}
-                    onRenameItem={handleRevenueRename}
-                    onAddItem={handleAddRevenue}
-                    onDeleteItem={handleDeleteRevenue}
-                    subsections={revenueSubsections}
+                    totalRevenue={totalBucatarieRevenue}
+                    onRenameItem={handleBucatarieRename}
+                    onAddItem={handleAddBucatarieItem}
+                    onDeleteItem={handleDeleteBucatarieItem}
                   />
+                  
+                  <TazzSection 
+                    tazzItems={tazzItems}
+                    onUpdateItem={handleRevenueUpdate}
+                    totalRevenue={totalTazzRevenue}
+                    onRenameItem={handleTazzRename}
+                    onAddItem={handleAddTazzItem}
+                    onDeleteItem={handleDeleteTazzItem}
+                  />
+                  
+                  <BarSection 
+                    barItems={barItems}
+                    onUpdateItem={handleRevenueUpdate}
+                    totalRevenue={totalBarRevenue}
+                    onRenameItem={handleBarRename}
+                    onAddItem={handleAddBarItem}
+                    onDeleteItem={handleDeleteBarItem}
+                  />
+                  
+                  <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
+                    <div className="flex justify-between items-center font-semibold">
+                      <span className="text-lg">TOTAL INCASARI</span>
+                      <span className="text-lg">{formatCurrency(totalRevenue)}</span>
+                    </div>
+                  </div>
                   
                   <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
                     <div className="flex justify-between items-center font-semibold">
