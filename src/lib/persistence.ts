@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PLReport {
@@ -444,16 +445,16 @@ export const addItemToSupabase = async (
         throw updateError;
       }
     } else {
-      let reportData: Record<string, any> = {
+      const reportData = {
         date: dateKey,
         user_id: user.id,
-        revenue_items: {},
-        cost_of_goods_items: {},
-        salary_expenses: {},
-        distributor_expenses: {},
-        utilities_expenses: {},
-        operational_expenses: {},
-        other_expenses: {}
+        revenue_items: {} as Record<string, number>,
+        cost_of_goods_items: {} as Record<string, number>,
+        salary_expenses: {} as Record<string, number>,
+        distributor_expenses: {} as Record<string, number>,
+        utilities_expenses: {} as Record<string, number>,
+        operational_expenses: {} as Record<string, number>,
+        other_expenses: {} as Record<string, number>
       };
       
       if (category === 'bucatarieItems' || category === 'barItems') {
