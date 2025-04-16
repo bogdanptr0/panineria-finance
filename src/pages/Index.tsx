@@ -451,7 +451,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bucatarie"
+          description: `"${name}" has been added to Bucatarie`
         });
       } else if (subsectionTitle === "Bar") {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
@@ -472,7 +472,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to Bar"
+          description: `"${name}" has been added to Bar`
         });
       } else {
         setBarItems(prev => ({ ...prev, [name]: 0 }));
@@ -493,7 +493,7 @@ const Index = () => {
         
         toast({
           title: "Item added",
-          description: `"${name}" has been added to revenue items"
+          description: `"${name}" has been added to revenue items`
         });
       }
       
