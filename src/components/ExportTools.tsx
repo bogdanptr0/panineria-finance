@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Download, Printer, Save } from "lucide-react";
 import { saveReport, exportToCsv, exportToPdf, PLReport } from "@/lib/persistence";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ExportToolsProps {
   selectedMonth: Date;
@@ -39,101 +39,52 @@ const ExportTools = ({
   budget
 }: ExportToolsProps) => {
   const { toast } = useToast();
-  const [isSaving, setIsSaving] = useState(false);
   
-  const handleSave = async () => {
-    try {
-      setIsSaving(true);
-      console.log("Saving report with revenue items:", revenueItems);
-      
-      await saveReport(
-        selectedMonth, 
-        revenueItems,
-        costOfGoodsItems,
-        salaryExpenses,
-        distributorExpenses,
-        utilitiesExpenses,
-        operationalExpenses,
-        otherExpenses,
-        budget
-      );
-      
-      toast({
-        title: "Saved",
-        description: "Report has been saved successfully.",
-      });
-    } catch (error) {
-      console.error("Error saving report:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save report. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
-    }
+  const handleSave = () => {
+    saveReport(selectedMonth, {
+      revenueItems,
+      costOfGoodsItems,
+      salaryExpenses,
+      distributorExpenses,
+      utilitiesExpenses,
+      operationalExpenses,
+      otherExpenses,
+      budget
+    });
+    
+    toast({
+      title: "Saved",
+      description: "Report has been saved successfully.",
+    });
   };
   
   const handleExportCsv = () => {
-    try {
-      const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
-      
-      const report: PLReport = {
-        date: dateKey,
-        revenueItems,
-        costOfGoodsItems,
-        salaryExpenses,
-        distributorExpenses,
-        utilitiesExpenses,
-        operationalExpenses,
-        otherExpenses,
-        budget
-      };
-      
-      exportToCsv(report);
-      
-      toast({
-        title: "Export Successful",
-        description: "Report has been exported to CSV.",
-      });
-    } catch (error) {
-      console.error("Error exporting to CSV:", error);
-      toast({
-        title: "Export Failed",
-        description: "Failed to export to CSV. Please try again.",
-        variant: "destructive"
-      });
-    }
+    const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
+    
+    const report: PLReport = {
+      date: dateKey,
+      revenueItems,
+      costOfGoodsItems,
+      salaryExpenses,
+      distributorExpenses,
+      utilitiesExpenses,
+      operationalExpenses,
+      otherExpenses,
+      budget
+    };
+    
+    exportToCsv(report);
   };
   
   const handleExportPdf = () => {
-    try {
-      exportToPdf();
-      
-      toast({
-        title: "Export Successful",
-        description: "Report has been exported to PDF.",
-      });
-    } catch (error) {
-      console.error("Error exporting to PDF:", error);
-      toast({
-        title: "Export Failed",
-        description: "Failed to export to PDF. Please try again.",
-        variant: "destructive"
-      });
-    }
+    exportToPdf();
   };
   
   return (
     <div className="flex gap-2">
-      <Button 
-        variant="outline" 
-        onClick={handleSave} 
-        className="flex items-center gap-2"
-        disabled={isSaving}
-      >
+      <Button variant="outline" onClick={handleSave} className="flex items-center gap-2">
         <Save className="h-4 w-4" />
-        <span>{isSaving ? "Saving..." : "Save"}</span>
+        <span>Save</span>
       </Button>
       
       <DropdownMenu>

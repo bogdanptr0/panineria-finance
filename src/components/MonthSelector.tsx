@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 
 interface MonthSelectorProps {
   selectedMonth: Date;
@@ -19,7 +19,6 @@ interface MonthSelectorProps {
 
 const MonthSelector = ({ selectedMonth, onMonthChange }: MonthSelectorProps) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const { toast } = useToast();
 
   const handleMonthChange = (date: Date | undefined) => {
     if (date) {
@@ -32,7 +31,7 @@ const MonthSelector = ({ selectedMonth, onMonthChange }: MonthSelectorProps) => 
       toast({
         title: "Month changed",
         description: `Switched to ${format(newDate, "MMMM yyyy", { locale: ro })}`,
-        duration: 2000
+        duration: 2000,
       });
     }
   };
