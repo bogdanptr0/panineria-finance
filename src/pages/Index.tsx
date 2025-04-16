@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -388,7 +387,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -405,7 +404,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -434,7 +433,7 @@ const Index = () => {
       
       toast({
         title: "Salary item deleted",
-        description: `"${name}" has been removed`
+        description: `"${name}" has been removed"
       });
       
       setHasUnsavedChanges(true);
@@ -462,7 +461,7 @@ const Index = () => {
       
       toast({
         title: "Distributor item deleted",
-        description: `"${name}" has been removed`
+        description: `"${name}" has been removed"
       });
       
       setHasUnsavedChanges(true);
@@ -489,7 +488,7 @@ const Index = () => {
         
         toast({
           title: "Utilities item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -504,7 +503,7 @@ const Index = () => {
         
         toast({
           title: "Operational item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -519,7 +518,7 @@ const Index = () => {
         
         toast({
           title: "Other expense item deleted",
-          description: `"${name}" has been removed`
+          description: `"${name}" has been removed"
         });
         
         setHasUnsavedChanges(true);
@@ -727,8 +726,13 @@ const Index = () => {
                   totalRevenue={totalRevenue}
                   totalExpenses={totalExpenses}
                   netProfit={netProfit}
+                  revenueItems={getRevenueItems()}
+                  costOfGoodsItems={{}}
+                  salaryExpenses={salaryExpenses}
+                  distributorExpenses={distributorExpenses}
+                  operationalExpenses={operationalExpenses}
                   budget={budget}
-                  onBudgetUpdate={(updatedBudget) => {
+                  onBudgetSave={(updatedBudget) => {
                     setBudget(updatedBudget);
                     setHasUnsavedChanges(true);
                   }}

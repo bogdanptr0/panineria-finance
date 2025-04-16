@@ -3,7 +3,7 @@ import { useState } from "react";
 import { formatCurrency, formatPercentage, calculatePercentageChange } from "@/lib/formatters";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PLReport, saveReport } from "@/lib/persistence";
+import { saveReport } from "@/lib/persistence";
 
 interface BudgetAnalysisProps {
   selectedMonth: Date;
