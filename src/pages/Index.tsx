@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -43,9 +42,10 @@ const Index = () => {
 
   // State for salary expenses
   const [salaryExpenses, setSalaryExpenses] = useState<Record<string, number>>({
-    "#1": 0,
-    "#2": 0,
-    "#3": 0
+    "Adi": 4050,
+    "Ioana": 4050,
+    "Andreea": 4050,
+    "Victoria": 4050
   });
 
   // State for distributor expenses

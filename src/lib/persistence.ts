@@ -159,9 +159,10 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         "Vin": 0
       },
       salaryExpenses: {
-        "#1": 0,
-        "#2": 0,
-        "#3": 0
+        "Adi": 4050,
+        "Ioana": 4050,
+        "Andreea": 4050,
+        "Victoria": 4050
       },
       distributorExpenses: {
         "#1": 0,
