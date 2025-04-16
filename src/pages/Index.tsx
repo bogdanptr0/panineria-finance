@@ -12,7 +12,7 @@ const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   
   // State for revenue items
-  const [revenueItems, setRevenueItems] = useState({
+  const [revenueItems, setRevenueItems] = useState<Record<string, number>>({
     "Produs #1": 0,
     "Produs #2": 0,
     "Produs #3": 0,
@@ -21,7 +21,7 @@ const Index = () => {
   });
 
   // State for cost of goods sold
-  const [costOfGoodsItems, setCostOfGoodsItems] = useState({
+  const [costOfGoodsItems, setCostOfGoodsItems] = useState<Record<string, number>>({
     "Produs #1": 0,
     "Produs #2": 0,
     "Produs #3": 0,
@@ -30,21 +30,21 @@ const Index = () => {
   });
 
   // State for salary expenses
-  const [salaryExpenses, setSalaryExpenses] = useState({
+  const [salaryExpenses, setSalaryExpenses] = useState<Record<string, number>>({
     "#1": 0,
     "#2": 0,
     "#3": 0
   });
 
   // State for distributor expenses
-  const [distributorExpenses, setDistributorExpenses] = useState({
+  const [distributorExpenses, setDistributorExpenses] = useState<Record<string, number>>({
     "#1": 0,
     "#2": 0,
     "#3": 0
   });
 
   // State for operational expenses
-  const [operationalExpenses, setOperationalExpenses] = useState({
+  const [operationalExpenses, setOperationalExpenses] = useState<Record<string, number>>({
     "Chirie": 0,
     "Utilitati - Curent": 0,
     "Utilitati - Apa": 0,
@@ -89,6 +89,83 @@ const Index = () => {
     setOperationalExpenses(prev => ({ ...prev, [name]: value }));
   };
 
+  // Handle item renaming for each section
+  const handleRevenueRename = (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setRevenueItems(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+  };
+
+  const handleCogsRename = (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setCostOfGoodsItems(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+  };
+
+  const handleSalaryRename = (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setSalaryExpenses(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+  };
+
+  const handleDistributorRename = (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setDistributorExpenses(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+  };
+
+  const handleOperationalRename = (oldName: string, newName: string) => {
+    if (oldName === newName) return;
+    
+    setOperationalExpenses(prev => {
+      const value = prev[oldName];
+      const newItems = { ...prev };
+      delete newItems[oldName];
+      return { ...newItems, [newName]: value };
+    });
+  };
+
+  // Handle adding new items for each section
+  const handleAddRevenue = (name: string) => {
+    setRevenueItems(prev => ({ ...prev, [name]: 0 }));
+  };
+
+  const handleAddCogs = (name: string) => {
+    setCostOfGoodsItems(prev => ({ ...prev, [name]: 0 }));
+  };
+
+  const handleAddSalary = (name: string) => {
+    setSalaryExpenses(prev => ({ ...prev, [name]: 0 }));
+  };
+
+  const handleAddDistributor = (name: string) => {
+    setDistributorExpenses(prev => ({ ...prev, [name]: 0 }));
+  };
+
+  const handleAddOperational = (name: string) => {
+    setOperationalExpenses(prev => ({ ...prev, [name]: 0 }));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -108,12 +185,16 @@ const Index = () => {
               revenueItems={revenueItems}
               onUpdateItem={handleRevenueUpdate}
               totalRevenue={totalRevenue}
+              onRenameItem={handleRevenueRename}
+              onAddItem={handleAddRevenue}
             />
             
             <CostOfGoodsSection 
               cogsItems={costOfGoodsItems}
               onUpdateItem={handleCogsUpdate}
               totalCogs={totalCogs}
+              onRenameItem={handleCogsRename}
+              onAddItem={handleAddCogs}
             />
             
             <div className="bg-gray-100 p-4 rounded-md">
@@ -130,6 +211,8 @@ const Index = () => {
               items={salaryExpenses}
               onUpdateItem={handleSalaryUpdate}
               totalExpenses={totalSalaryExpenses}
+              onRenameItem={handleSalaryRename}
+              onAddItem={handleAddSalary}
             />
             
             <ExpensesSection 
@@ -137,6 +220,8 @@ const Index = () => {
               items={distributorExpenses}
               onUpdateItem={handleDistributorUpdate}
               totalExpenses={totalDistributorExpenses}
+              onRenameItem={handleDistributorRename}
+              onAddItem={handleAddDistributor}
             />
             
             <ExpensesSection 
@@ -144,6 +229,8 @@ const Index = () => {
               items={operationalExpenses}
               onUpdateItem={handleOperationalUpdate}
               totalExpenses={totalOperationalExpenses}
+              onRenameItem={handleOperationalRename}
+              onAddItem={handleAddOperational}
             />
             
             <div className="bg-gray-100 p-4 rounded-md">
