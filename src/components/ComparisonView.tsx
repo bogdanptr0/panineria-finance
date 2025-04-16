@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { getAllReports, PLReport } from "@/lib/persistence";
 import { formatCurrency, formatPercentage, calculatePercentageChange } from "@/lib/formatters";

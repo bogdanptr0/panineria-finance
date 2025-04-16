@@ -311,7 +311,7 @@ export const deleteItemFromSupabase = async (
     }
     
     if (existingReport) {
-      let updatedData: any = {};
+      let updatedData: Record<string, any> = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
         const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
@@ -392,7 +392,7 @@ export const addItemToSupabase = async (
     }
     
     if (existingReport) {
-      let updatedData: any = {};
+      let updatedData: Record<string, any> = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
         const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
@@ -444,7 +444,7 @@ export const addItemToSupabase = async (
         throw updateError;
       }
     } else {
-      let reportData: any = {
+      let reportData: Record<string, any> = {
         date: dateKey,
         user_id: user.id,
         revenue_items: {},
@@ -524,7 +524,7 @@ export const updateItemInSupabase = async (
     }
     
     if (existingReport) {
-      let updatedData: any = {};
+      let updatedData: Record<string, any> = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
         const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
@@ -611,7 +611,7 @@ export const renameItemInSupabase = async (
     }
     
     if (existingReport) {
-      let updatedData: any = {};
+      let updatedData: Record<string, any> = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
         const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
