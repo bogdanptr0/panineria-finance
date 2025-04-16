@@ -20,7 +20,6 @@ const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState<boolean>(false);
   
-  // Split revenue items into two subsections
   const [bucatarieItems, setBucatarieItems] = useState<Record<string, number>>({
     "Il Classico": 0,
     "Il Prosciutto": 0,
@@ -34,7 +33,6 @@ const Index = () => {
   
   const [barItems, setBarItems] = useState<Record<string, number>>({});
   
-  // Combined revenue items for API compatibility
   const getRevenueItems = (): Record<string, number> => {
     return { ...bucatarieItems, ...barItems };
   };
@@ -90,18 +88,15 @@ const Index = () => {
     const fetchReport = async () => {
       const report = await loadReport(selectedMonth);
       if (report) {
-        // Split revenue items into subsections
         const bucatarie: Record<string, number> = {};
         const bar: Record<string, number> = {};
         
-        // These items go into "Bucatarie" subsection
         const bucatarieKeys = [
           "Il Classico", "Il Prosciutto", "Il Piccante", 
           "La Porchetta", "La Mortadella", "La Buffala", 
           "Tiramisu", "Platou"
         ];
         
-        // Categorize existing items
         Object.entries(report.revenueItems).forEach(([key, value]) => {
           if (bucatarieKeys.includes(key)) {
             bucatarie[key] = value;
@@ -156,7 +151,6 @@ const Index = () => {
   const netProfit = grossProfit - totalExpenses;
 
   const handleRevenueUpdate = (name: string, value: number) => {
-    // Determine which subsection the item belongs to
     if (Object.keys(bucatarieItems).includes(name)) {
       setBucatarieItems(prev => ({ ...prev, [name]: value }));
     } else {
@@ -187,7 +181,6 @@ const Index = () => {
   const handleRevenueRename = (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
-    // Check if the item is in bucatarieItems or barItems
     if (oldName in bucatarieItems) {
       setBucatarieItems(prev => {
         const value = prev[oldName];

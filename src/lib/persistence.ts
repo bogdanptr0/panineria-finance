@@ -1,16 +1,15 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PLReport {
-  date: string;
+  date: Date;
   revenueItems: Record<string, number>;
   costOfGoodsItems: Record<string, number>;
   salaryExpenses: Record<string, number>;
   distributorExpenses: Record<string, number>;
-  utilitiesExpenses: Record<string, number>;
-  operationalExpenses: Record<string, number>;
-  otherExpenses: Record<string, number>;
+  utilitiesExpenses?: Record<string, number>;
+  operationalExpenses?: Record<string, number>;
+  otherExpenses?: Record<string, number>;
   budget?: {
     targetRevenue: number;
     targetExpenses: number;
@@ -18,10 +17,7 @@ export interface PLReport {
   };
 }
 
-const STORAGE_KEY = 'panini_pl_reports';
-
-// Default revenue items that should be present in all reports
-const DEFAULT_REVENUE_ITEMS = {
+export const DEFAULT_REVENUE_ITEMS: Record<string, number> = {
   "Il Classico": 0,
   "Il Prosciutto": 0,
   "Il Piccante": 0,
@@ -31,6 +27,8 @@ const DEFAULT_REVENUE_ITEMS = {
   "Tiramisu": 0,
   "Platou": 0
 };
+
+export const DEFAULT_EMPTY_COGS_ITEMS: Record<string, number> = {};
 
 // Default salary expenses that should be present in all reports
 const DEFAULT_SALARY_EXPENSES = {
@@ -94,50 +92,64 @@ const processSupabaseData = (data: any): Record<string, number> => {
   return {};
 };
 
-export const saveReport = async (selectedMonth: Date, data: Omit<PLReport, 'date'>): Promise<void> => {
+export const saveReport = async (
+  date: Date,
+  revenueItems: Record<string, number> = {},
+  costOfGoodsItems: Record<string, number> = {},
+  salaryExpenses: Record<string, number> = {},
+  distributorExpenses: Record<string, number> = {},
+  utilitiesExpenses: Record<string, number> = {},
+  operationalExpenses: Record<string, number> = {},
+  otherExpenses: Record<string, number> = {},
+  budget?: {
+    targetRevenue: number;
+    targetExpenses: number;
+    targetProfit: number;
+  }
+): Promise<void> => {
   try {
     // Create date key in format YYYY-MM
-    const dateKey = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
     // Ensure the report has the default items
     const revenueItems = {
       ...DEFAULT_REVENUE_ITEMS,
-      ...data.revenueItems
+      ...revenueItems
     };
     
     const salaryExpenses = {
       ...DEFAULT_SALARY_EXPENSES,
-      ...data.salaryExpenses
+      ...salaryExpenses
     };
     
     const distributorExpenses = {
       ...DEFAULT_DISTRIBUTOR_EXPENSES,
-      ...data.distributorExpenses
+      ...distributorExpenses
     };
     
     const utilitiesExpenses = {
       ...DEFAULT_UTILITIES_EXPENSES,
-      ...data.utilitiesExpenses
+      ...utilitiesExpenses
     };
     
     const operationalExpenses = {
       ...DEFAULT_OPERATIONAL_EXPENSES,
-      ...data.operationalExpenses
+      ...operationalExpenses
     };
     
     const report: PLReport = {
       date: dateKey,
       revenueItems,
-      costOfGoodsItems: {},
+      costOfGoodsItems,
       salaryExpenses,
       distributorExpenses,
       utilitiesExpenses,
       operationalExpenses,
-      otherExpenses: data.otherExpenses || {}
+      otherExpenses
     };
 
-    if (data.budget) {
-      report.budget = data.budget;
+    if (budget) {
+      report.budget = budget;
     }
     
     // Get current user
@@ -310,7 +322,7 @@ export const loadReport = async (selectedMonth: Date): Promise<PLReport | null> 
         report.otherExpenses = {};
       }
       
-      // Check if any default values were added
+      // If the report was updated, save it back to the database
       const needsUpdate = 
         !reportData.utilities_expenses || 
         !reportData.other_expenses ||
@@ -392,7 +404,7 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
       
       if (updatedReport.costOfGoodsItems) {
         updatedReport.costOfGoodsItems = {
-          ...DEFAULT_COGS_ITEMS,
+          ...DEFAULT_EMPTY_COGS_ITEMS,
           ...updatedReport.costOfGoodsItems
         };
       }
@@ -438,7 +450,7 @@ const loadFromLocalStorage = (selectedMonth: Date): PLReport | null => {
         key => !(key in report.revenueItems || {})
       );
       
-      const cogsHasChanged = Object.keys(DEFAULT_COGS_ITEMS).some(
+      const cogsHasChanged = Object.keys(DEFAULT_EMPTY_COGS_ITEMS).some(
         key => !(key in report.costOfGoodsItems || {})
       );
       
@@ -657,13 +669,13 @@ const updateAllLocalStorageReportsWithDefaultExpenses = (): void => {
       
       // Check if cogs items need update
       if (report.costOfGoodsItems) {
-        const cogsNeedsUpdate = Object.keys(DEFAULT_COGS_ITEMS).some(
+        const cogsNeedsUpdate = Object.keys(DEFAULT_EMPTY_COGS_ITEMS).some(
           key => !(key in report.costOfGoodsItems)
         );
         
         if (cogsNeedsUpdate) {
           report.costOfGoodsItems = {
-            ...DEFAULT_COGS_ITEMS,
+            ...DEFAULT_EMPTY_COGS_ITEMS,
             ...report.costOfGoodsItems
           };
           hasChanges = true;
@@ -897,4 +909,33 @@ export const exportToPdf = (): void => {
     description: "Use your browser's print function (Ctrl+P) to save as PDF",
   });
   window.print();
+};
+
+export const createDefaultReport = (date: Date): PLReport => {
+  return {
+    date,
+    revenueItems: { ...DEFAULT_REVENUE_ITEMS },
+    costOfGoodsItems: { ...DEFAULT_EMPTY_COGS_ITEMS },
+    salaryExpenses: { ...DEFAULT_SALARY_EXPENSES },
+    distributorExpenses: { ...DEFAULT_DISTRIBUTOR_EXPENSES },
+    utilitiesExpenses: { ...DEFAULT_UTILITIES_EXPENSES },
+    operationalExpenses: { ...DEFAULT_OPERATIONAL_EXPENSES },
+    otherExpenses: {}
+  };
+};
+
+export const getMonthlyReport = async (
+  year: number,
+  month: number
+): Promise<PLReport> => {
+  return {
+    date: new Date(year, month - 1, 1),
+    revenueItems: { ...DEFAULT_REVENUE_ITEMS },
+    costOfGoodsItems: { ...DEFAULT_EMPTY_COGS_ITEMS },
+    salaryExpenses: { ...DEFAULT_SALARY_EXPENSES },
+    distributorExpenses: { ...DEFAULT_DISTRIBUTOR_EXPENSES },
+    utilitiesExpenses: { ...DEFAULT_UTILITIES_EXPENSES },
+    operationalExpenses: { ...DEFAULT_OPERATIONAL_EXPENSES },
+    otherExpenses: {}
+  };
 };
