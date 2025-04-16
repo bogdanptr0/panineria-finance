@@ -13,7 +13,7 @@ interface ProductProfitabilityProps {
 const ProductProfitability = ({ revenueItems, costOfGoodsItems = {} }: ProductProfitabilityProps) => {
   // Calculate profitability metrics for each product
   const products = Object.keys(revenueItems).filter(name => 
-    costOfGoodsItems && costOfGoodsItems.hasOwnProperty(name)
+    costOfGoodsItems && name in revenueItems
   );
   
   const productMetrics = products.map(name => {
