@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
@@ -43,14 +44,6 @@ const Index = () => {
   const [deletedOtherItems, setDeletedOtherItems] = useState<Record<string, number>>({});
   
   const [barItems, setBarItems] = useState<Record<string, number>>({});
-  
-  const [bucatarieOrder, setBucatarieOrder] = useState<string[]>([
-    "Il Classico", "Il Prosciutto", "Il Piccante", 
-    "La Porchetta", "La Mortadella", "La Buffala", 
-    "Tiramisu", "Platou"
-  ]);
-  
-  const [barOrder, setBarOrder] = useState<string[]>([]);
   
   const getRevenueItems = (): Record<string, number> => {
     return { ...bucatarieItems, ...barItems };
@@ -112,12 +105,14 @@ const Index = () => {
         const bucatarie: Record<string, number> = {};
         const bar: Record<string, number> = {};
         
+        // Define default bucatarie items that should appear first
         const bucatarieKeys = [
           "Il Classico", "Il Prosciutto", "Il Piccante", 
           "La Porchetta", "La Mortadella", "La Buffala", 
           "Tiramisu", "Platou"
         ];
         
+        // Separate bucatarie and bar items
         Object.entries(report.revenueItems).forEach(([key, value]) => {
           if (bucatarieKeys.includes(key)) {
             bucatarie[key] = value;
@@ -128,14 +123,6 @@ const Index = () => {
         
         setBucatarieItems(bucatarie);
         setBarItems(bar);
-        
-        if (Object.keys(bucatarie).length > 0) {
-          setBucatarieOrder(Object.keys(bucatarie));
-        }
-        
-        if (Object.keys(bar).length > 0) {
-          setBarOrder(Object.keys(bar));
-        }
         
         setSalaryExpenses(report.salaryExpenses);
         setDistributorExpenses(report.distributorExpenses);
@@ -266,8 +253,6 @@ const Index = () => {
         return { ...newItems, [newName]: value };
       });
       
-      setBucatarieOrder(prev => prev.map(item => item === oldName ? newName : item));
-      
       await renameItemInSupabase(selectedMonth, 'bucatarieItems', oldName, newName);
     } else if (oldName in barItems) {
       setBarItems(prev => {
@@ -276,8 +261,6 @@ const Index = () => {
         delete newItems[oldName];
         return { ...newItems, [newName]: value };
       });
-      
-      setBarOrder(prev => prev.map(item => item === oldName ? newName : item));
       
       await renameItemInSupabase(selectedMonth, 'barItems', oldName, newName);
     }
@@ -352,11 +335,9 @@ const Index = () => {
   const handleAddRevenue = async (name: string, subsectionTitle?: string) => {
     if (subsectionTitle === "Bucatarie") {
       setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
-      setBucatarieOrder(prev => [...prev, name]);
       await addItemToSupabase(selectedMonth, 'bucatarieItems', name, 0);
     } else if (subsectionTitle === "Bar") {
       setBarItems(prev => ({ ...prev, [name]: 0 }));
-      setBarOrder(prev => [...prev, name]);
       await addItemToSupabase(selectedMonth, 'barItems', name, 0);
     }
     setHasUnsavedChanges(true);
@@ -403,8 +384,6 @@ const Index = () => {
           return newItems;
         });
         
-        setBucatarieOrder(prev => prev.filter(item => item !== name));
-        
         await deleteItemFromSupabase(selectedMonth, 'bucatarieItems', name);
         
         toast({
@@ -421,8 +400,6 @@ const Index = () => {
           delete newItems[name];
           return newItems;
         });
-        
-        setBarOrder(prev => prev.filter(item => item !== name));
         
         await deleteItemFromSupabase(selectedMonth, 'barItems', name);
         
@@ -557,53 +534,6 @@ const Index = () => {
     }
   };
 
-  const handleReorderRevenueItem = (name: string, direction: 'up' | 'down', subsectionTitle?: string) => {
-    try {
-      if (subsectionTitle === 'Bucatarie' || (subsectionTitle === undefined && Object.keys(bucatarieItems).includes(name))) {
-        const currentIndex = bucatarieOrder.indexOf(name);
-        if (currentIndex === -1) return;
-        
-        const newOrder = [...bucatarieOrder];
-        if (direction === 'up' && currentIndex > 0) {
-          [newOrder[currentIndex], newOrder[currentIndex - 1]] = [newOrder[currentIndex - 1], newOrder[currentIndex]];
-        } else if (direction === 'down' && currentIndex < newOrder.length - 1) {
-          [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
-        }
-        
-        setBucatarieOrder(newOrder);
-        
-        toast({
-          title: "Order updated",
-          description: `"${name}" has been moved ${direction}`
-        });
-      } else if (subsectionTitle === 'Bar' || (subsectionTitle === undefined && Object.keys(barItems).includes(name))) {
-        const currentIndex = barOrder.indexOf(name);
-        if (currentIndex === -1) return;
-        
-        const newOrder = [...barOrder];
-        if (direction === 'up' && currentIndex > 0) {
-          [newOrder[currentIndex], newOrder[currentIndex - 1]] = [newOrder[currentIndex - 1], newOrder[currentIndex]];
-        } else if (direction === 'down' && currentIndex < newOrder.length - 1) {
-          [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
-        }
-        
-        setBarOrder(newOrder);
-        
-        toast({
-          title: "Order updated",
-          description: `"${name}" has been moved ${direction}`
-        });
-      }
-    } catch (error) {
-      console.error("Error reordering item:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reorder item. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const operationalExpensesSubsections = [
     {
       title: "Utilitati",
@@ -622,13 +552,11 @@ const Index = () => {
   const revenueSubsections = [
     {
       title: "Bucatarie",
-      items: bucatarieOrder.filter(item => Object.keys(bucatarieItems).includes(item))
+      items: Object.keys(bucatarieItems)
     },
     {
       title: "Bar",
-      items: barOrder.length > 0 
-        ? barOrder.filter(item => Object.keys(barItems).includes(item)) 
-        : Object.keys(barItems)
+      items: Object.keys(barItems)
     }
   ];
 
@@ -676,7 +604,6 @@ const Index = () => {
                     onAddItem={handleAddRevenue}
                     onDeleteItem={handleDeleteRevenue}
                     subsections={revenueSubsections}
-                    onReorderItem={handleReorderRevenueItem}
                   />
                   
                   <div className="bg-gray-100 p-4 rounded-md print:break-after-page">

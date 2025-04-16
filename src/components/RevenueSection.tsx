@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, getDefaultIfEmpty } from "@/lib/formatters";
-import { Edit, Plus, Save, Trash, X, ArrowUp, ArrowDown } from "lucide-react";
+import { Edit, Plus, Save, Trash, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SubsectionType {
@@ -19,7 +19,6 @@ interface RevenueSectionProps {
   onRenameItem: (oldName: string, newName: string) => void;
   onDeleteItem?: (name: string) => void;
   subsections?: SubsectionType[];
-  onReorderItem?: (name: string, direction: 'up' | 'down', subsectionTitle?: string) => void;
 }
 
 const RevenueSection = ({ 
@@ -29,8 +28,7 @@ const RevenueSection = ({
   onAddItem, 
   onRenameItem,
   onDeleteItem,
-  subsections,
-  onReorderItem
+  subsections
 }: RevenueSectionProps) => {
   const { toast } = useToast();
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -82,12 +80,6 @@ const RevenueSection = ({
     }
   };
 
-  const handleReorderItem = (name: string, direction: 'up' | 'down', subsectionTitle?: string) => {
-    if (onReorderItem) {
-      onReorderItem(name, direction, subsectionTitle);
-    }
-  };
-
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="bg-gray-800 text-white font-bold p-3">
@@ -103,7 +95,7 @@ const RevenueSection = ({
               </div>
               
               <div>
-                {subsection.items.map((name, index) => (
+                {subsection.items.map((name) => (
                   <div key={name} className="border-b flex justify-between items-center p-2">
                     {editingName === name ? (
                       <div className="flex items-center gap-2 flex-1">
@@ -133,30 +125,6 @@ const RevenueSection = ({
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 flex-1">
-                        <div className="flex flex-shrink-0 gap-1">
-                          {onReorderItem && (
-                            <>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => handleReorderItem(name, 'up', subsection.title)}
-                                disabled={index === 0}
-                                className="h-8 w-8 text-gray-500 hover:text-gray-700"
-                              >
-                                <ArrowUp className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => handleReorderItem(name, 'down', subsection.title)}
-                                disabled={index === subsection.items.length - 1}
-                                className="h-8 w-8 text-gray-500 hover:text-gray-700"
-                              >
-                                <ArrowDown className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
                         <span className="text-gray-800 flex-1">{name}</span>
                         <Button 
                           variant="ghost" 
@@ -243,7 +211,7 @@ const RevenueSection = ({
         ) : (
           // Original layout without subsections
           <>
-            {Object.entries(revenueItems).map(([name, value], index) => (
+            {Object.entries(revenueItems).map(([name, value]) => (
               <div key={name} className="border-b flex justify-between items-center p-2">
                 {editingName === name ? (
                   <div className="flex items-center gap-2 flex-1">
@@ -273,30 +241,6 @@ const RevenueSection = ({
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 flex-1">
-                    <div className="flex flex-shrink-0 gap-1">
-                      {onReorderItem && (
-                        <>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleReorderItem(name, 'up')}
-                            disabled={index === 0}
-                            className="h-8 w-8 text-gray-500 hover:text-gray-700"
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleReorderItem(name, 'down')}
-                            disabled={index === Object.keys(revenueItems).length - 1}
-                            className="h-8 w-8 text-gray-500 hover:text-gray-700"
-                          >
-                            <ArrowDown className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
                     <span className="text-gray-800 flex-1">{name}</span>
                     <Button 
                       variant="ghost" 
