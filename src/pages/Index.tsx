@@ -13,7 +13,7 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { 
   loadReport, updateAllReportsWithDefaultSalaries, saveReport, 
   deleteItemFromSupabase, addItemToSupabase, updateItemInSupabase, renameItemInSupabase,
-  DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS
+  DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS, handleAddRevenueItem
 } from "@/lib/persistence";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -429,7 +429,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed from Bucatarie"
+          description: `"${name}" has been removed from Bucatarie`
         });
       } else if (isTazzItem) {
         setTazzItems(prev => {
@@ -442,7 +442,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed from Tazz"
+          description: `"${name}" has been removed from Tazz`
         });
       } else if (isBarItem) {
         setBarItems(prev => {
@@ -455,7 +455,7 @@ const Index = () => {
         
         toast({
           title: "Item deleted",
-          description: `"${name}" has been removed from Bar"
+          description: `"${name}" has been removed from Bar`
         });
       }
       

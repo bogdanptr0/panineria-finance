@@ -769,6 +769,7 @@ export const updateAllReportsWithDefaultSalaries = async () => {
   }
 };
 
+// Add handleAddRevenueItem function to export list so it can be imported in Index.tsx
 export const handleAddRevenueItem = async (
   date: Date,
   subcategory: 'bucatarieItems' | 'tazzItems' | 'barItems',
