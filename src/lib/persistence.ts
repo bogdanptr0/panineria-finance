@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PLReport {
@@ -20,6 +21,30 @@ export interface PLReport {
   };
 }
 
+interface SupabaseReport {
+  id: string;
+  date: string;
+  user_id: string;
+  revenue_items: Record<string, number>;
+  cost_of_goods_items: Record<string, number>;
+  salary_expenses: Record<string, number>;
+  distributor_expenses: Record<string, number>;
+  utilities_expenses: Record<string, number>;
+  operational_expenses: Record<string, number>;
+  other_expenses: Record<string, number>;
+  budget?: {
+    targetRevenue: number;
+    targetExpenses: number;
+    targetProfit: number;
+  };
+  subcategories?: {
+    revenueItems?: Record<string, string>;
+    expenses?: Record<string, string>;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
 export const loadReport = async (month: Date): Promise<PLReport | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -35,7 +60,7 @@ export const loadReport = async (month: Date): Promise<PLReport | null> => {
       .select('*')
       .eq('date', dateKey)
       .eq('user_id', user.id)
-      .single()
+      .single();
 
     if (error && error.code !== 'PGRST116') {
       throw error;
@@ -45,26 +70,22 @@ export const loadReport = async (month: Date): Promise<PLReport | null> => {
       return null;
     }
 
+    // Cast to our interface with known properties
+    const report = pl_reports as unknown as SupabaseReport;
+    
     // Safely handle subcategories with default empty objects
-    const subcategories = pl_reports.subcategories ? pl_reports.subcategories as {
-      revenueItems?: Record<string, string>;
-      expenses?: Record<string, string>;
-    } : { revenueItems: {}, expenses: {} };
+    const subcategories = report.subcategories || { revenueItems: {}, expenses: {} };
 
     return {
-      date: pl_reports.date,
-      revenueItems: pl_reports.revenue_items as Record<string, number> || {},
-      costOfGoodsItems: pl_reports.cost_of_goods_items as Record<string, number> || {},
-      salaryExpenses: pl_reports.salary_expenses as Record<string, number> || {},
-      distributorExpenses: pl_reports.distributor_expenses as Record<string, number> || {},
-      utilitiesExpenses: pl_reports.utilities_expenses as Record<string, number> || {},
-      operationalExpenses: pl_reports.operational_expenses as Record<string, number> || {},
-      otherExpenses: pl_reports.other_expenses as Record<string, number> || {},
-      budget: pl_reports.budget as { 
-        targetRevenue: number; 
-        targetExpenses: number; 
-        targetProfit: number; 
-      },
+      date: report.date,
+      revenueItems: report.revenue_items || {},
+      costOfGoodsItems: report.cost_of_goods_items || {},
+      salaryExpenses: report.salary_expenses || {},
+      distributorExpenses: report.distributor_expenses || {},
+      utilitiesExpenses: report.utilities_expenses || {},
+      operationalExpenses: report.operational_expenses || {},
+      otherExpenses: report.other_expenses || {},
+      budget: report.budget,
       subcategories
     };
   } catch (error) {
@@ -95,25 +116,21 @@ export const getAllReports = async (): Promise<PLReport[]> => {
       return [];
     }
 
-    return pl_reports.map(report => ({
-      date: report.date,
-      revenueItems: report.revenue_items as Record<string, number> || {},
-      costOfGoodsItems: report.cost_of_goods_items as Record<string, number> || {},
-      salaryExpenses: report.salary_expenses as Record<string, number> || {},
-      distributorExpenses: report.distributor_expenses as Record<string, number> || {},
-      utilitiesExpenses: report.utilities_expenses as Record<string, number> || {},
-      operationalExpenses: report.operational_expenses as Record<string, number> || {},
-      otherExpenses: report.other_expenses as Record<string, number> || {},
-      budget: report.budget as { 
-        targetRevenue: number; 
-        targetExpenses: number; 
-        targetProfit: number; 
-      },
-      subcategories: report.subcategories as {
-        revenueItems?: Record<string, string>;
-        expenses?: Record<string, string>;
-      } || { revenueItems: {}, expenses: {} }
-    }));
+    return pl_reports.map(report => {
+      const typedReport = report as unknown as SupabaseReport;
+      return {
+        date: typedReport.date,
+        revenueItems: typedReport.revenue_items || {},
+        costOfGoodsItems: typedReport.cost_of_goods_items || {},
+        salaryExpenses: typedReport.salary_expenses || {},
+        distributorExpenses: typedReport.distributor_expenses || {},
+        utilitiesExpenses: typedReport.utilities_expenses || {},
+        operationalExpenses: typedReport.operational_expenses || {},
+        otherExpenses: typedReport.other_expenses || {},
+        budget: typedReport.budget,
+        subcategories: typedReport.subcategories || { revenueItems: {}, expenses: {} }
+      };
+    });
   } catch (error) {
     console.error("Error loading all reports:", error);
     return [];
@@ -332,80 +349,81 @@ export const deleteItemFromSupabase = async (
     }
     
     if (existingReport) {
+      const typedReport = existingReport as unknown as SupabaseReport;
       let updatedData: Record<string, any> = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
+        const currentRevenueItems = typedReport.revenue_items || {};
         const newRevenueItems = { ...currentRevenueItems };
         delete newRevenueItems[name];
         updatedData.revenue_items = newRevenueItems;
         
         // Also remove from subcategories tracking
-        const currentSubcategories = existingReport.subcategories || {};
-        const currentRevenueSubcategories = (currentSubcategories as any).revenueItems || {};
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
         const newRevenueSubcategories = { ...currentRevenueSubcategories };
         delete newRevenueSubcategories[name];
         
         updatedData.subcategories = {
-          ...(currentSubcategories as any),
+          ...currentSubcategories,
           revenueItems: newRevenueSubcategories
         };
       } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = existingReport.salary_expenses as Record<string, number> || {};
+        const currentSalaryExpenses = typedReport.salary_expenses || {};
         const newSalaryExpenses = { ...currentSalaryExpenses };
         delete newSalaryExpenses[name];
         updatedData.salary_expenses = newSalaryExpenses;
       } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = existingReport.distributor_expenses as Record<string, number> || {};
+        const currentDistributorExpenses = typedReport.distributor_expenses || {};
         const newDistributorExpenses = { ...currentDistributorExpenses };
         delete newDistributorExpenses[name];
         updatedData.distributor_expenses = newDistributorExpenses;
       } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = existingReport.utilities_expenses as Record<string, number> || {};
+        const currentUtilitiesExpenses = typedReport.utilities_expenses || {};
         const newUtilitiesExpenses = { ...currentUtilitiesExpenses };
         delete newUtilitiesExpenses[name];
         updatedData.utilities_expenses = newUtilitiesExpenses;
         
         // Also remove from subcategories tracking
-        const currentSubcategories = existingReport.subcategories || {};
-        const currentExpenseSubcategories = (currentSubcategories as any).expenses || {};
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentExpenseSubcategories = currentSubcategories.expenses || {};
         const newExpenseSubcategories = { ...currentExpenseSubcategories };
         delete newExpenseSubcategories[name];
         
         updatedData.subcategories = {
-          ...(currentSubcategories as any),
+          ...currentSubcategories,
           expenses: newExpenseSubcategories
         };
       } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = existingReport.operational_expenses as Record<string, number> || {};
+        const currentOperationalExpenses = typedReport.operational_expenses || {};
         const newOperationalExpenses = { ...currentOperationalExpenses };
         delete newOperationalExpenses[name];
         updatedData.operational_expenses = newOperationalExpenses;
         
         // Also remove from subcategories tracking
-        const currentSubcategories = existingReport.subcategories || {};
-        const currentExpenseSubcategories = (currentSubcategories as any).expenses || {};
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentExpenseSubcategories = currentSubcategories.expenses || {};
         const newExpenseSubcategories = { ...currentExpenseSubcategories };
         delete newExpenseSubcategories[name];
         
         updatedData.subcategories = {
-          ...(currentSubcategories as any),
+          ...currentSubcategories,
           expenses: newExpenseSubcategories
         };
       } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = existingReport.other_expenses as Record<string, number> || {};
+        const currentOtherExpenses = typedReport.other_expenses || {};
         const newOtherExpenses = { ...currentOtherExpenses };
         delete newOtherExpenses[name];
         updatedData.other_expenses = newOtherExpenses;
         
         // Also remove from subcategories tracking
-        const currentSubcategories = existingReport.subcategories || {};
-        const currentExpenseSubcategories = (currentSubcategories as any).expenses || {};
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentExpenseSubcategories = currentSubcategories.expenses || {};
         const newExpenseSubcategories = { ...currentExpenseSubcategories };
         delete newExpenseSubcategories[name];
         
         updatedData.subcategories = {
-          ...(currentSubcategories as any),
+          ...currentSubcategories,
           expenses: newExpenseSubcategories
         };
       }
@@ -458,87 +476,88 @@ export const addItemToSupabase = async (
     }
     
     if (existingReport) {
+      const typedReport = existingReport as unknown as SupabaseReport;
       let updatedData: Record<string, any> = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
+        const currentRevenueItems = typedReport.revenue_items || {};
         updatedData.revenue_items = {
           ...currentRevenueItems,
           [name]: value
         };
         
         // Track the subcategory
-        const currentSubcategories = existingReport.subcategories || {};
-        const currentRevenueSubcategories = (currentSubcategories as any).revenueItems || {};
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
         
         updatedData.subcategories = {
-          ...(currentSubcategories as any),
+          ...currentSubcategories,
           revenueItems: {
             ...currentRevenueSubcategories,
             [name]: category === 'bucatarieItems' ? 'Bucatarie' : 'Bar'
           }
         };
       } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = existingReport.salary_expenses as Record<string, number> || {};
+        const currentSalaryExpenses = typedReport.salary_expenses || {};
         updatedData.salary_expenses = {
           ...currentSalaryExpenses,
           [name]: value
         };
       } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = existingReport.distributor_expenses as Record<string, number> || {};
+        const currentDistributorExpenses = typedReport.distributor_expenses || {};
         updatedData.distributor_expenses = {
           ...currentDistributorExpenses,
           [name]: value
         };
       } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = existingReport.utilities_expenses as Record<string, number> || {};
+        const currentUtilitiesExpenses = typedReport.utilities_expenses || {};
         updatedData.utilities_expenses = {
           ...currentUtilitiesExpenses,
           [name]: value
         };
         
         // Track the subcategory
-        const currentSubcategories = existingReport.subcategories || {};
-        const currentExpenseSubcategories = (currentSubcategories as any).expenses || {};
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentExpenseSubcategories = currentSubcategories.expenses || {};
         
         updatedData.subcategories = {
-          ...(currentSubcategories as any),
+          ...currentSubcategories,
           expenses: {
             ...currentExpenseSubcategories,
             [name]: 'Utilitati'
           }
         };
       } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = existingReport.operational_expenses as Record<string, number> || {};
+        const currentOperationalExpenses = typedReport.operational_expenses || {};
         updatedData.operational_expenses = {
           ...currentOperationalExpenses,
           [name]: value
         };
         
         // Track the subcategory
-        const currentSubcategories = existingReport.subcategories || {};
-        const currentExpenseSubcategories = (currentSubcategories as any).expenses || {};
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentExpenseSubcategories = currentSubcategories.expenses || {};
         
         updatedData.subcategories = {
-          ...(currentSubcategories as any),
+          ...currentSubcategories,
           expenses: {
             ...currentExpenseSubcategories,
             [name]: 'Operationale'
           }
         };
       } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = existingReport.other_expenses as Record<string, number> || {};
+        const currentOtherExpenses = typedReport.other_expenses || {};
         updatedData.other_expenses = {
           ...currentOtherExpenses,
           [name]: value
         };
         
         // Track the subcategory
-        const currentSubcategories = existingReport.subcategories || {};
-        const currentExpenseSubcategories = (currentSubcategories as any).expenses || {};
+        const currentSubcategories = typedReport.subcategories || {};
+        const currentExpenseSubcategories = currentSubcategories.expenses || {};
         
         updatedData.subcategories = {
-          ...(currentSubcategories as any),
+          ...currentSubcategories,
           expenses: {
             ...currentExpenseSubcategories,
             [name]: 'Alte Cheltuieli'
@@ -558,53 +577,63 @@ export const addItemToSupabase = async (
         throw updateError;
       }
     } else {
-      const subcategories: any = {
+      // Creating a new report
+      const initialSubcategories: {
+        revenueItems: Record<string, string>;
+        expenses: Record<string, string>;
+      } = {
         revenueItems: {},
         expenses: {}
       };
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        subcategories.revenueItems[name] = category === 'bucatarieItems' ? 'Bucatarie' : 'Bar';
+        initialSubcategories.revenueItems[name] = category === 'bucatarieItems' ? 'Bucatarie' : 'Bar';
       } else if (category === 'utilitiesExpenses') {
-        subcategories.expenses[name] = 'Utilitati';
+        initialSubcategories.expenses[name] = 'Utilitati';
       } else if (category === 'operationalExpenses') {
-        subcategories.expenses[name] = 'Operationale';
+        initialSubcategories.expenses[name] = 'Operationale';
       } else if (category === 'otherExpenses') {
-        subcategories.expenses[name] = 'Alte Cheltuieli';
+        initialSubcategories.expenses[name] = 'Alte Cheltuieli';
       }
       
-      const reportData: Record<string, any> = {
-        date: dateKey,
-        user_id: user.id,
-        revenue_items: {} as Record<string, number>,
-        cost_of_goods_items: {} as Record<string, number>,
-        salary_expenses: {} as Record<string, number>,
-        distributor_expenses: {} as Record<string, number>,
-        utilities_expenses: {} as Record<string, number>,
-        operational_expenses: {} as Record<string, number>,
-        other_expenses: {} as Record<string, number>,
-        subcategories
-      };
+      // Initialize default empty objects for all item types
+      const revenue_items: Record<string, number> = {};
+      const cost_of_goods_items: Record<string, number> = {};
+      const salary_expenses: Record<string, number> = {};
+      const distributor_expenses: Record<string, number> = {};
+      const utilities_expenses: Record<string, number> = {};
+      const operational_expenses: Record<string, number> = {};
+      const other_expenses: Record<string, number> = {};
       
-      if (category === 'bucatarieItems') {
-        reportData.revenue_items = { [name]: value };
-      } else if (category === 'barItems') {
-        reportData.revenue_items = { [name]: value };
+      // Add the new item to the appropriate category
+      if (category === 'bucatarieItems' || category === 'barItems') {
+        revenue_items[name] = value;
       } else if (category === 'salaryExpenses') {
-        reportData.salary_expenses = { [name]: value };
+        salary_expenses[name] = value;
       } else if (category === 'distributorExpenses') {
-        reportData.distributor_expenses = { [name]: value };
+        distributor_expenses[name] = value;
       } else if (category === 'utilitiesExpenses') {
-        reportData.utilities_expenses = { [name]: value };
+        utilities_expenses[name] = value;
       } else if (category === 'operationalExpenses') {
-        reportData.operational_expenses = { [name]: value };
+        operational_expenses[name] = value;
       } else if (category === 'otherExpenses') {
-        reportData.other_expenses = { [name]: value };
+        other_expenses[name] = value;
       }
       
       const { error: insertError } = await supabase
         .from('pl_reports')
-        .insert(reportData);
+        .insert({
+          date: dateKey,
+          user_id: user.id,
+          revenue_items,
+          cost_of_goods_items,
+          salary_expenses,
+          distributor_expenses,
+          utilities_expenses,
+          operational_expenses,
+          other_expenses,
+          subcategories: initialSubcategories
+        });
       
       if (insertError) {
         console.error("Error inserting report:", insertError);
@@ -644,40 +673,41 @@ export const updateItemInSupabase = async (
     }
     
     if (existingReport) {
+      const typedReport = existingReport as unknown as SupabaseReport;
       let updatedData: Record<string, any> = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
+        const currentRevenueItems = typedReport.revenue_items || {};
         updatedData.revenue_items = {
           ...currentRevenueItems,
           [name]: value
         };
       } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = existingReport.salary_expenses as Record<string, number> || {};
+        const currentSalaryExpenses = typedReport.salary_expenses || {};
         updatedData.salary_expenses = {
           ...currentSalaryExpenses,
           [name]: value
         };
       } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = existingReport.distributor_expenses as Record<string, number> || {};
+        const currentDistributorExpenses = typedReport.distributor_expenses || {};
         updatedData.distributor_expenses = {
           ...currentDistributorExpenses,
           [name]: value
         };
       } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = existingReport.utilities_expenses as Record<string, number> || {};
+        const currentUtilitiesExpenses = typedReport.utilities_expenses || {};
         updatedData.utilities_expenses = {
           ...currentUtilitiesExpenses,
           [name]: value
         };
       } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = existingReport.operational_expenses as Record<string, number> || {};
+        const currentOperationalExpenses = typedReport.operational_expenses || {};
         updatedData.operational_expenses = {
           ...currentOperationalExpenses,
           [name]: value
         };
       } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = existingReport.other_expenses as Record<string, number> || {};
+        const currentOtherExpenses = typedReport.other_expenses || {};
         updatedData.other_expenses = {
           ...currentOtherExpenses,
           [name]: value
@@ -731,61 +761,132 @@ export const renameItemInSupabase = async (
     }
     
     if (existingReport) {
+      const typedReport = existingReport as unknown as SupabaseReport;
       let updatedData: Record<string, any> = {};
       
       if (category === 'bucatarieItems' || category === 'barItems') {
-        const currentRevenueItems = existingReport.revenue_items as Record<string, number> || {};
+        const currentRevenueItems = typedReport.revenue_items || {};
         
         if (currentRevenueItems[oldName] !== undefined) {
           const value = currentRevenueItems[oldName];
-          delete currentRevenueItems[oldName];
-          currentRevenueItems[newName] = value;
-          updatedData.revenue_items = currentRevenueItems;
+          const newRevenueItems = { ...currentRevenueItems };
+          delete newRevenueItems[oldName];
+          newRevenueItems[newName] = value;
+          updatedData.revenue_items = newRevenueItems;
+          
+          // Update subcategories
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentRevenueSubcategories = currentSubcategories.revenueItems || {};
+          
+          if (currentRevenueSubcategories[oldName]) {
+            const categoryType = currentRevenueSubcategories[oldName];
+            const newRevenueSubcategories = { ...currentRevenueSubcategories };
+            delete newRevenueSubcategories[oldName];
+            newRevenueSubcategories[newName] = categoryType;
+            
+            updatedData.subcategories = {
+              ...currentSubcategories,
+              revenueItems: newRevenueSubcategories
+            };
+          }
         }
       } else if (category === 'salaryExpenses') {
-        const currentSalaryExpenses = existingReport.salary_expenses as Record<string, number> || {};
+        const currentSalaryExpenses = typedReport.salary_expenses || {};
         
         if (currentSalaryExpenses[oldName] !== undefined) {
           const value = currentSalaryExpenses[oldName];
-          delete currentSalaryExpenses[oldName];
-          currentSalaryExpenses[newName] = value;
-          updatedData.salary_expenses = currentSalaryExpenses;
+          const newSalaryExpenses = { ...currentSalaryExpenses };
+          delete newSalaryExpenses[oldName];
+          newSalaryExpenses[newName] = value;
+          updatedData.salary_expenses = newSalaryExpenses;
         }
       } else if (category === 'distributorExpenses') {
-        const currentDistributorExpenses = existingReport.distributor_expenses as Record<string, number> || {};
+        const currentDistributorExpenses = typedReport.distributor_expenses || {};
         
         if (currentDistributorExpenses[oldName] !== undefined) {
           const value = currentDistributorExpenses[oldName];
-          delete currentDistributorExpenses[oldName];
-          currentDistributorExpenses[newName] = value;
-          updatedData.distributor_expenses = currentDistributorExpenses;
+          const newDistributorExpenses = { ...currentDistributorExpenses };
+          delete newDistributorExpenses[oldName];
+          newDistributorExpenses[newName] = value;
+          updatedData.distributor_expenses = newDistributorExpenses;
         }
       } else if (category === 'utilitiesExpenses') {
-        const currentUtilitiesExpenses = existingReport.utilities_expenses as Record<string, number> || {};
+        const currentUtilitiesExpenses = typedReport.utilities_expenses || {};
         
         if (currentUtilitiesExpenses[oldName] !== undefined) {
           const value = currentUtilitiesExpenses[oldName];
-          delete currentUtilitiesExpenses[oldName];
-          currentUtilitiesExpenses[newName] = value;
-          updatedData.utilities_expenses = currentUtilitiesExpenses;
+          const newUtilitiesExpenses = { ...currentUtilitiesExpenses };
+          delete newUtilitiesExpenses[oldName];
+          newUtilitiesExpenses[newName] = value;
+          updatedData.utilities_expenses = newUtilitiesExpenses;
+          
+          // Update subcategories
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentExpenseSubcategories = currentSubcategories.expenses || {};
+          
+          if (currentExpenseSubcategories[oldName]) {
+            const subcategory = currentExpenseSubcategories[oldName];
+            const newExpenseSubcategories = { ...currentExpenseSubcategories };
+            delete newExpenseSubcategories[oldName];
+            newExpenseSubcategories[newName] = subcategory;
+            
+            updatedData.subcategories = {
+              ...currentSubcategories,
+              expenses: newExpenseSubcategories
+            };
+          }
         }
       } else if (category === 'operationalExpenses') {
-        const currentOperationalExpenses = existingReport.operational_expenses as Record<string, number> || {};
+        const currentOperationalExpenses = typedReport.operational_expenses || {};
         
         if (currentOperationalExpenses[oldName] !== undefined) {
           const value = currentOperationalExpenses[oldName];
-          delete currentOperationalExpenses[oldName];
-          currentOperationalExpenses[newName] = value;
-          updatedData.operational_expenses = currentOperationalExpenses;
+          const newOperationalExpenses = { ...currentOperationalExpenses };
+          delete newOperationalExpenses[oldName];
+          newOperationalExpenses[newName] = value;
+          updatedData.operational_expenses = newOperationalExpenses;
+          
+          // Update subcategories
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentExpenseSubcategories = currentSubcategories.expenses || {};
+          
+          if (currentExpenseSubcategories[oldName]) {
+            const subcategory = currentExpenseSubcategories[oldName];
+            const newExpenseSubcategories = { ...currentExpenseSubcategories };
+            delete newExpenseSubcategories[oldName];
+            newExpenseSubcategories[newName] = subcategory;
+            
+            updatedData.subcategories = {
+              ...currentSubcategories,
+              expenses: newExpenseSubcategories
+            };
+          }
         }
       } else if (category === 'otherExpenses') {
-        const currentOtherExpenses = existingReport.other_expenses as Record<string, number> || {};
+        const currentOtherExpenses = typedReport.other_expenses || {};
         
         if (currentOtherExpenses[oldName] !== undefined) {
           const value = currentOtherExpenses[oldName];
-          delete currentOtherExpenses[oldName];
-          currentOtherExpenses[newName] = value;
-          updatedData.other_expenses = currentOtherExpenses;
+          const newOtherExpenses = { ...currentOtherExpenses };
+          delete newOtherExpenses[oldName];
+          newOtherExpenses[newName] = value;
+          updatedData.other_expenses = newOtherExpenses;
+          
+          // Update subcategories
+          const currentSubcategories = typedReport.subcategories || {};
+          const currentExpenseSubcategories = currentSubcategories.expenses || {};
+          
+          if (currentExpenseSubcategories[oldName]) {
+            const subcategory = currentExpenseSubcategories[oldName];
+            const newExpenseSubcategories = { ...currentExpenseSubcategories };
+            delete newExpenseSubcategories[oldName];
+            newExpenseSubcategories[newName] = subcategory;
+            
+            updatedData.subcategories = {
+              ...currentSubcategories,
+              expenses: newExpenseSubcategories
+            };
+          }
         }
       }
       
