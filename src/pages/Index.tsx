@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import RevenueSection from "@/components/RevenueSection";
-import CostOfGoodsSection from "@/components/CostOfGoodsSection";
 import ExpensesSection from "@/components/ExpensesSection";
 import ProfitSummary from "@/components/ProfitSummary";
 import DataVisualization from "@/components/DataVisualization";
@@ -21,7 +20,8 @@ const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState<boolean>(false);
   
-  const [revenueItems, setRevenueItems] = useState<Record<string, number>>({
+  // Split revenue items into two subsections
+  const [bucatarieItems, setBucatarieItems] = useState<Record<string, number>>({
     "Il Classico": 0,
     "Il Prosciutto": 0,
     "Il Piccante": 0,
@@ -31,17 +31,13 @@ const Index = () => {
     "Tiramisu": 0,
     "Platou": 0
   });
-
-  const [costOfGoodsItems, setCostOfGoodsItems] = useState<Record<string, number>>({
-    "Il Classico": 0,
-    "Il Prosciutto": 0,
-    "Il Piccante": 0,
-    "La Porchetta": 0,
-    "La Mortadella": 0,
-    "La Buffala": 0,
-    "Tiramisu": 0,
-    "Platou": 0
-  });
+  
+  const [barItems, setBarItems] = useState<Record<string, number>>({});
+  
+  // Combined revenue items for API compatibility
+  const getRevenueItems = (): Record<string, number> => {
+    return { ...bucatarieItems, ...barItems };
+  };
 
   const [salaryExpenses, setSalaryExpenses] = useState<Record<string, number>>({
     "Adi": 4050,
@@ -94,8 +90,29 @@ const Index = () => {
     const fetchReport = async () => {
       const report = await loadReport(selectedMonth);
       if (report) {
-        setRevenueItems(report.revenueItems);
-        setCostOfGoodsItems(report.costOfGoodsItems);
+        // Split revenue items into subsections
+        const bucatarie: Record<string, number> = {};
+        const bar: Record<string, number> = {};
+        
+        // These items go into "Bucatarie" subsection
+        const bucatarieKeys = [
+          "Il Classico", "Il Prosciutto", "Il Piccante", 
+          "La Porchetta", "La Mortadella", "La Buffala", 
+          "Tiramisu", "Platou"
+        ];
+        
+        // Categorize existing items
+        Object.entries(report.revenueItems).forEach(([key, value]) => {
+          if (bucatarieKeys.includes(key)) {
+            bucatarie[key] = value;
+          } else {
+            bar[key] = value;
+          }
+        });
+        
+        setBucatarieItems(bucatarie);
+        setBarItems(bar);
+        
         setSalaryExpenses(report.salaryExpenses);
         setDistributorExpenses(report.distributorExpenses);
         setUtilitiesExpenses(report.utilitiesExpenses || {
@@ -124,8 +141,9 @@ const Index = () => {
     return Object.values(items).reduce((sum, value) => sum + value, 0);
   };
 
-  const totalRevenue = calculateTotal(revenueItems);
-  const totalCogs = calculateTotal(costOfGoodsItems);
+  const totalBucatarieRevenue = calculateTotal(bucatarieItems);
+  const totalBarRevenue = calculateTotal(barItems);
+  const totalRevenue = totalBucatarieRevenue + totalBarRevenue;
   const totalSalaryExpenses = calculateTotal(salaryExpenses);
   const totalDistributorExpenses = calculateTotal(distributorExpenses);
   const totalUtilitiesExpenses = calculateTotal(utilitiesExpenses);
@@ -134,15 +152,16 @@ const Index = () => {
   const totalExpenses = totalSalaryExpenses + totalDistributorExpenses + 
                          totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses;
   
-  const grossProfit = totalRevenue - totalCogs;
+  const grossProfit = totalRevenue;
   const netProfit = grossProfit - totalExpenses;
 
   const handleRevenueUpdate = (name: string, value: number) => {
-    setRevenueItems(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleCogsUpdate = (name: string, value: number) => {
-    setCostOfGoodsItems(prev => ({ ...prev, [name]: value }));
+    // Determine which subsection the item belongs to
+    if (Object.keys(bucatarieItems).includes(name)) {
+      setBucatarieItems(prev => ({ ...prev, [name]: value }));
+    } else {
+      setBarItems(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSalaryUpdate = (name: string, value: number) => {
@@ -168,23 +187,22 @@ const Index = () => {
   const handleRevenueRename = (oldName: string, newName: string) => {
     if (oldName === newName) return;
     
-    setRevenueItems(prev => {
-      const value = prev[oldName];
-      const newItems = { ...prev };
-      delete newItems[oldName];
-      return { ...newItems, [newName]: value };
-    });
-  };
-
-  const handleCogsRename = (oldName: string, newName: string) => {
-    if (oldName === newName) return;
-    
-    setCostOfGoodsItems(prev => {
-      const value = prev[oldName];
-      const newItems = { ...prev };
-      delete newItems[oldName];
-      return { ...newItems, [newName]: value };
-    });
+    // Check if the item is in bucatarieItems or barItems
+    if (oldName in bucatarieItems) {
+      setBucatarieItems(prev => {
+        const value = prev[oldName];
+        const newItems = { ...prev };
+        delete newItems[oldName];
+        return { ...newItems, [newName]: value };
+      });
+    } else if (oldName in barItems) {
+      setBarItems(prev => {
+        const value = prev[oldName];
+        const newItems = { ...prev };
+        delete newItems[oldName];
+        return { ...newItems, [newName]: value };
+      });
+    }
   };
 
   const handleSalaryRename = (oldName: string, newName: string) => {
@@ -242,12 +260,12 @@ const Index = () => {
     });
   };
 
-  const handleAddRevenue = (name: string) => {
-    setRevenueItems(prev => ({ ...prev, [name]: 0 }));
-  };
-
-  const handleAddCogs = (name: string) => {
-    setCostOfGoodsItems(prev => ({ ...prev, [name]: 0 }));
+  const handleAddRevenue = (name: string, subsectionTitle?: string) => {
+    if (subsectionTitle === "Bucatarie") {
+      setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
+    } else if (subsectionTitle === "Bar") {
+      setBarItems(prev => ({ ...prev, [name]: 0 }));
+    }
   };
 
   const handleAddSalary = (name: string) => {
@@ -285,6 +303,17 @@ const Index = () => {
     }
   ];
 
+  const revenueSubsections = [
+    {
+      title: "Bucatarie",
+      items: Object.keys(bucatarieItems)
+    },
+    {
+      title: "Bar",
+      items: Object.keys(barItems)
+    }
+  ];
+
   const handleSubsectionAddItem = (subsectionTitle: string, name: string) => {
     if (subsectionTitle === "Utilitati") {
       handleAddUtilities(name);
@@ -302,8 +331,8 @@ const Index = () => {
           <Header 
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
-            revenueItems={revenueItems}
-            costOfGoodsItems={costOfGoodsItems}
+            revenueItems={getRevenueItems()}
+            costOfGoodsItems={{}}
             salaryExpenses={salaryExpenses}
             distributorExpenses={distributorExpenses}
             utilitiesExpenses={utilitiesExpenses}
@@ -322,24 +351,17 @@ const Index = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:block">
                 <div className="space-y-6">
                   <RevenueSection 
-                    revenueItems={revenueItems}
+                    revenueItems={getRevenueItems()}
                     onUpdateItem={handleRevenueUpdate}
                     totalRevenue={totalRevenue}
                     onRenameItem={handleRevenueRename}
                     onAddItem={handleAddRevenue}
-                  />
-                  
-                  <CostOfGoodsSection 
-                    cogsItems={costOfGoodsItems}
-                    onUpdateItem={handleCogsUpdate}
-                    totalCogs={totalCogs}
-                    onRenameItem={handleCogsRename}
-                    onAddItem={handleAddCogs}
+                    subsections={revenueSubsections}
                   />
                   
                   <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
                     <div className="flex justify-between items-center font-semibold">
-                      <span className="text-lg">PROFIT BRUT | Venituri minus CoGS</span>
+                      <span className="text-lg">PROFIT BRUT</span>
                       <span className="text-lg">{formatCurrency(grossProfit)}</span>
                     </div>
                   </div>
@@ -413,8 +435,8 @@ const Index = () => {
               
               <div className="mt-8">
                 <DataVisualization 
-                  revenueItems={revenueItems}
-                  costOfGoodsItems={costOfGoodsItems}
+                  revenueItems={getRevenueItems()}
+                  costOfGoodsItems={{}}
                   salaryExpenses={salaryExpenses}
                   distributorExpenses={distributorExpenses}
                   utilitiesExpenses={utilitiesExpenses}
@@ -430,8 +452,8 @@ const Index = () => {
             <TabsContent value="advanced">
               <div className="space-y-8">
                 <ProductProfitability 
-                  revenueItems={revenueItems}
-                  costOfGoodsItems={costOfGoodsItems}
+                  revenueItems={getRevenueItems()}
+                  costOfGoodsItems={{}}
                 />
                 
                 <LaborAnalysis 
@@ -443,7 +465,7 @@ const Index = () => {
                   currentMonth={selectedMonth}
                   currentReport={{
                     totalRevenue,
-                    totalCogs,
+                    totalCogs: 0,
                     grossProfit,
                     totalExpenses,
                     netProfit
@@ -455,8 +477,8 @@ const Index = () => {
                   totalRevenue={totalRevenue}
                   totalExpenses={totalExpenses}
                   netProfit={netProfit}
-                  revenueItems={revenueItems}
-                  costOfGoodsItems={costOfGoodsItems}
+                  revenueItems={getRevenueItems()}
+                  costOfGoodsItems={{}}
                   salaryExpenses={salaryExpenses}
                   distributorExpenses={distributorExpenses}
                   utilitiesExpenses={utilitiesExpenses}
@@ -482,11 +504,12 @@ const Index = () => {
             
             <div className="grid grid-cols-2 gap-6 mb-8">
               <RevenueSection 
-                revenueItems={revenueItems}
+                revenueItems={getRevenueItems()}
                 onUpdateItem={handleRevenueUpdate}
                 totalRevenue={totalRevenue}
                 onRenameItem={handleRevenueRename}
                 onAddItem={handleAddRevenue}
+                subsections={revenueSubsections}
               />
               
               <div className="space-y-6">
@@ -511,13 +534,9 @@ const Index = () => {
             <div className="page-break"></div>
             
             <div className="grid grid-cols-2 gap-6 mb-8">
-              <CostOfGoodsSection 
-                cogsItems={costOfGoodsItems}
-                onUpdateItem={handleCogsUpdate}
-                totalCogs={totalCogs}
-                onRenameItem={handleCogsRename}
-                onAddItem={handleAddCogs}
-              />
+              <div className="space-y-6">
+                
+              </div>
               
               <div className="space-y-6">
                 <ExpensesSection 
