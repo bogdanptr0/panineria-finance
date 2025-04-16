@@ -9,31 +9,11 @@ import { LogOut, User } from "lucide-react";
 interface HeaderProps {
   selectedMonth: Date;
   onMonthChange: (date: Date) => void;
-  revenueItems: Record<string, number>;
-  costOfGoodsItems: Record<string, number>;
-  salaryExpenses: Record<string, number>;
-  distributorExpenses: Record<string, number>;
-  utilitiesExpenses: Record<string, number>;
-  operationalExpenses: Record<string, number>;
-  otherExpenses: Record<string, number>;
-  budget?: {
-    targetRevenue: number;
-    targetExpenses: number;
-    targetProfit: number;
-  };
 }
 
 const Header = ({
   selectedMonth,
-  onMonthChange,
-  revenueItems,
-  costOfGoodsItems,
-  salaryExpenses,
-  distributorExpenses,
-  utilitiesExpenses,
-  operationalExpenses,
-  otherExpenses,
-  budget
+  onMonthChange
 }: HeaderProps) => {
   const { user, signOut } = useAuth();
 
@@ -56,17 +36,7 @@ const Header = ({
           onMonthChange={onMonthChange}
         />
         
-        <ExportTools 
-          selectedMonth={selectedMonth}
-          revenueItems={revenueItems}
-          costOfGoodsItems={costOfGoodsItems}
-          salaryExpenses={salaryExpenses}
-          distributorExpenses={distributorExpenses}
-          utilitiesExpenses={utilitiesExpenses}
-          operationalExpenses={operationalExpenses}
-          otherExpenses={otherExpenses}
-          budget={budget}
-        />
+        <ExportTools />
         
         {user && (
           <Button variant="outline" onClick={() => signOut()} className="flex items-center gap-1">

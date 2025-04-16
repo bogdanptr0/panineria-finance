@@ -650,14 +650,6 @@ const Index = () => {
           <Header 
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
-            revenueItems={getRevenueItems()}
-            costOfGoodsItems={{}}
-            salaryExpenses={salaryExpenses}
-            distributorExpenses={distributorExpenses}
-            utilitiesExpenses={utilitiesExpenses}
-            operationalExpenses={operationalExpenses}
-            otherExpenses={otherExpenses}
-            budget={budget}
           />
 
           <Tabs defaultValue="summary" className="print:hidden">
