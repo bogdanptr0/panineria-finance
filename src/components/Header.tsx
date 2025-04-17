@@ -1,65 +1,48 @@
 
-import React, { useState } from "react";
 import { formatDate } from "@/lib/formatters";
-import MonthSelector from "@/components/MonthSelector";
+import MonthSelector from "./MonthSelector";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { LogOut, User } from "lucide-react";
 
 interface HeaderProps {
   selectedMonth: Date;
   onMonthChange: (date: Date) => void;
 }
 
-const Header = ({ selectedMonth, onMonthChange }: HeaderProps) => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
-
-  const handleLogout = async () => {
-    setIsLogoutLoading(true);
-    try {
-      await supabase.auth.signOut();
-      navigate('/auth');
-    } catch (error) {
-      console.error("Error logging out:", error);
-    } finally {
-      setIsLogoutLoading(false);
-    }
-  };
+const Header = ({
+  selectedMonth,
+  onMonthChange
+}: HeaderProps) => {
+  const { user, signOut } = useAuth();
 
   return (
-    <div className="mb-8 print:mb-2">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold print:text-xl">
-          Report for {formatDate(selectedMonth)}
-        </h1>
-        <div className="print:hidden flex items-center gap-4">
-          <MonthSelector 
-            selectedMonth={selectedMonth}
-            onMonthChange={onMonthChange}
-          />
-          
-          {user && (
-            <Button 
-              onClick={handleLogout} 
-              disabled={isLogoutLoading}
-              variant="outline"
-              size="sm"
-            >
-              {isLogoutLoading ? 'Signing out...' : 'Sign Out'}
-            </Button>
-          )}
-        </div>
+    <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center print:hidden">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Raport P&L Panineria</h1>
+        <p className="text-gray-600">{formatDate(selectedMonth)}</p>
+        {user && (
+          <p className="text-sm text-gray-500 flex items-center mt-1">
+            <User className="h-3 w-3 mr-1" />
+            {user.email}
+          </p>
+        )}
       </div>
       
-      <div className="print:hidden bg-blue-50 p-4 rounded-lg mb-8">
-        <p className="text-blue-800">
-          Selectați luna din calendar pentru a vizualiza raportul corespunzător.
-        </p>
+      <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-4 items-start md:items-center">
+        <MonthSelector
+          selectedMonth={selectedMonth}
+          onMonthChange={onMonthChange}
+        />
+        
+        {user && (
+          <Button variant="outline" onClick={() => signOut()} className="flex items-center gap-1">
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </Button>
+        )}
       </div>
-    </div>
+    </header>
   );
 };
 

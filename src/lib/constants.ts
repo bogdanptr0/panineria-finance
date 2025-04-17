@@ -1,24 +1,73 @@
 
 // Default items for each section
 export const DEFAULT_BUCATARIE_ITEMS: Record<string, number> = {
-  "Paste": 0,
-  "Risotto": 0,
-  "Sosuri": 0,
-  "Insalate": 0,
-  "Aperitive": 0,
-  "HardTag": 0,
-  "Pizza": 0,
-  "Desert": 0,
-  "Kids Menu": 0
+  "Il Classico": 0,
+  "Il Prosciutto": 0,
+  "Il Piccante": 0,
+  "La Porchetta": 0,
+  "La Mortadella": 0,
+  "La Buffala": 0,
+  "Tiramisu": 0,
+  "Platou": 0
 };
 
 export const DEFAULT_TAZZ_ITEMS: Record<string, number> = {
-  "Comenzi": 0,
-  "Discount Aplicat": 0
+  "[MINI] Il Classico": 0,
+  "[MINI] Il Prosciutto": 0,
+  "[MINI] Il Piccante": 0,
+  "[MINI] La Porchetta": 0,
+  "[MINI] La Mortadella": 0,
+  "[MINI] La Buffala": 0,
+  "Il Classico": 0,
+  "Il Prosciutto": 0,
+  "Il Piccante": 0,
+  "La Porchetta": 0,
+  "La Mortadella": 0,
+  "La Buffala": 0,
+  "Apa plata - 0,5": 0,
+  "Apa minerala - 0,5": 0,
+  "Coca Cola": 0,
+  "Sprite": 0,
+  "Fanta": 0,
+  "Peroni": 0
 };
 
 export const DEFAULT_BAR_ITEMS: Record<string, number> = {
-  "Bauturi Alcoolice": 0,
-  "Bauturi Non-Alcoolice": 0,
-  "Cafea": 0
+  "Espresso": 0,
+  "Cafea Lunga": 0,
+  "Cappucino": 0,
+  "Nutellino": 0,
+  "Ceai": 0,
+  "Ciocolata calda": 0,
+  "Coca Cola": 0,
+  "Fanta": 0,
+  "Sprite": 0,
+  "Schwepps": 0,
+  "FuzeTea": 0,
+  "Cappy": 0,
+  "Dorna - Plata - 0,33": 0,
+  "Dorna - Minerala - 0,33": 0,
+  "Dorna - Plata - 0,75": 0,
+  "Dorna - Minerala - 0,75": 0,
+  "Dorna - Plata - 0,5": 0,
+  "Dorna - Minerala - 0,5": 0,
+  "12 Mezzo - Bianca": 0,
+  "12 Mezzo - Rosato": 0,
+  "12 Mezzo - Primitivo": 0,
+  "Montemajor - Greco di tufo": 0,
+  "Scaia - Garganega": 0,
+  "Davinci - Rosato": 0,
+  "Tenuta Ulisse - Rose": 0,
+  "Montemajor - Quattro Noti": 0,
+  "Davinci - Portate a Cesena Sangiovese": 0,
+  "Astoria DOC": 0,
+  "Astoria Rose": 0,
+  "Peroni": 0,
+  "Peroni 0% Alcool": 0,
+  "Hugo": 0,
+  "Bellini": 0,
+  "Aperol Spritz": 0,
+  "Negroni": 0,
+  "Whiskey Cola": 0,
+  "Gin Tonic": 0
 };
