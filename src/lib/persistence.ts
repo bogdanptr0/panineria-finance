@@ -1,8 +1,18 @@
+
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
 // Empty default items for the various sections
-export const DEFAULT_BUCATARIE_ITEMS: Record<string, number> = {};
+export const DEFAULT_BUCATARIE_ITEMS: Record<string, number> = {
+  "Il Classico": 0,
+  "Il Prosciutto": 0,
+  "Il Piccante": 0,
+  "La Porchetta": 0,
+  "La Mortadella": 0,
+  "La Buffala": 0,
+  "Tiramisu": 0,
+  "Platou": 0
+};
 export const DEFAULT_TAZZ_ITEMS: Record<string, number> = {};
 export const DEFAULT_BAR_ITEMS: Record<string, number> = {};
 

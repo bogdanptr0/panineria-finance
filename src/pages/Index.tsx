@@ -819,8 +819,25 @@ const Index = () => {
     }
   };
 
+  const addDefaultBucatarieItems = async () => {
+    for (const [itemName, value] of Object.entries(DEFAULT_BUCATARIE_ITEMS)) {
+      await handleAddRevenueItem(selectedMonth, 'revenue_items', itemName, value);
+    }
+    setBucatarieItems(DEFAULT_BUCATARIE_ITEMS);
+    
+    toast({
+      title: "Default items added",
+      description: "Default Bucatarie items have been added to the database."
+    });
+  };
+
   useEffect(() => {
-    clearAllDefaultItems();
+    const setupItems = async () => {
+      await clearAllDefaultItems();
+      await addDefaultBucatarieItems();
+    };
+    
+    setupItems();
   }, []);
 
   return (
@@ -933,7 +950,6 @@ const Index = () => {
                     onAddItem={(name) => handleSubsectionAddItem("Alte Cheltuieli", name)}
                     onDeleteItem={handleDeleteOperationalItem}
                     subsections={operationalExpensesSubsections}
-                    onSubsectionAddItem={handleSubsectionAddItem}
                   />
                   
                   <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
