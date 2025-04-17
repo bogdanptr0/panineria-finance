@@ -1,9 +1,10 @@
+
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS } from "@/lib/constants";
 
-// Update the return type to include the new columns
-export async function loadReport(month: Date): Promise<{
+// Return type for loadReport
+export type ReportData = {
   bucatarieItems: Record<string, number>;
   tazzItems: Record<string, number>;
   barItems: Record<string, number>;
@@ -17,7 +18,10 @@ export async function loadReport(month: Date): Promise<{
     targetExpenses: number;
     targetProfit: number;
   } | undefined;
-} | null> {
+};
+
+// Load report from database
+export async function loadReport(month: Date): Promise<ReportData | null> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -68,7 +72,7 @@ export async function loadReport(month: Date): Promise<{
 }
 
 // New function to create a default report with default items
-async function createDefaultReport(formattedDate: string, userId: string) {
+async function createDefaultReport(formattedDate: string, userId: string): Promise<ReportData | null> {
   const defaultReportData = {
     date: formattedDate,
     user_id: userId,
@@ -76,6 +80,7 @@ async function createDefaultReport(formattedDate: string, userId: string) {
     tazz_items: DEFAULT_TAZZ_ITEMS,
     bar_items: DEFAULT_BAR_ITEMS,
     cost_of_goods_items: {},
+    revenue_items: {}, // Add empty revenue_items to make the schema happy
     salary_expenses: {
       "Adi": 4050,
       "Ioana": 4050,
@@ -139,7 +144,7 @@ async function createDefaultReport(formattedDate: string, userId: string) {
 export async function batchAddRevenueItems(
   month: Date, 
   items: Record<string, number>,
-  section: 'bucatarie' | 'tazz' | 'bar'
+  section: 'bucatarie' | 'tazz' | 'bar' = 'bucatarie'
 ): Promise<boolean> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -191,13 +196,14 @@ export async function batchAddRevenueItems(
       return true;
     } else {
       // Create default report with section-specific items
-      const defaultReportData: any = {
+      const defaultReportData = {
         date: formattedDate,
         user_id: user.id,
         bucatarie_items: section === 'bucatarie' ? items : {},
         tazz_items: section === 'tazz' ? items : {},
         bar_items: section === 'bar' ? items : {},
         cost_of_goods_items: {},
+        revenue_items: {}, // Add empty revenue_items to make the schema happy
         salary_expenses: {
           "Adi": 4050,
           "Ioana": 4050,
@@ -247,68 +253,6 @@ export async function batchAddRevenueItems(
   } catch (error) {
     console.error("Batch add revenue items error:", error);
     return false;
-  }
-}
-
-export async function loadReport(month: Date): Promise<{
-  bucatarieItems: Record<string, number>;
-  tazzItems: Record<string, number>;
-  barItems: Record<string, number>;
-  salaryExpenses: Record<string, number>;
-  distributorExpenses: Record<string, number>;
-  utilitiesExpenses: Record<string, number>;
-  operationalExpenses: Record<string, number>;
-  otherExpenses: Record<string, number>;
-  budget: {
-    targetRevenue: number;
-    targetExpenses: number;
-    targetProfit: number;
-  } | undefined;
-} | null> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      console.error("User not authenticated");
-      return null;
-    }
-
-    const formattedDate = format(month, "yyyy-MM");
-
-    let { data: pl_reports, error } = await supabase
-      .from('pl_reports')
-      .select('*')
-      .eq('date', formattedDate)
-      .eq('user_id', user.id)
-      .single();
-
-    if (error) {
-      console.error("Error fetching report:", error);
-      return null;
-    }
-
-    if (!pl_reports) {
-      return null;
-    }
-
-    return {
-      bucatarieItems: pl_reports.bucatarie_items as Record<string, number> || DEFAULT_BUCATARIE_ITEMS,
-      tazzItems: pl_reports.tazz_items as Record<string, number> || DEFAULT_TAZZ_ITEMS,
-      barItems: pl_reports.bar_items as Record<string, number> || DEFAULT_BAR_ITEMS,
-      salaryExpenses: pl_reports.salary_expenses as Record<string, number>,
-      distributorExpenses: pl_reports.distributor_expenses as Record<string, number>,
-      utilitiesExpenses: pl_reports.utilities_expenses as Record<string, number>,
-      operationalExpenses: pl_reports.operational_expenses as Record<string, number>,
-      otherExpenses: pl_reports.other_expenses as Record<string, number>,
-      budget: pl_reports.budget as {
-        targetRevenue: number;
-        targetExpenses: number;
-        targetProfit: number;
-      } | undefined
-    };
-  } catch (error) {
-    console.error("Error in loadReport:", error);
-    return null;
   }
 }
 
@@ -419,6 +363,7 @@ export async function saveReport(
           tazz_items: tazzItems,
           bar_items: barItems,
           cost_of_goods_items: costOfGoodsItems,
+          revenue_items: {}, // Add empty revenue_items to keep the schema happy
           salary_expenses: salaryExpenses,
           distributor_expenses: distributorExpenses,
           utilities_expenses: utilitiesExpenses,
@@ -436,24 +381,25 @@ export async function saveReport(
       return { success: true, message: "Report updated successfully" };
     } else {
       // Create a new report
+      const newReport = {
+        date: formattedDate,
+        user_id: user.id,
+        bucatarie_items: bucatarieItems,
+        tazz_items: tazzItems,
+        bar_items: barItems,
+        cost_of_goods_items: costOfGoodsItems,
+        revenue_items: {}, // Add empty revenue_items to keep the schema happy
+        salary_expenses: salaryExpenses,
+        distributor_expenses: distributorExpenses,
+        utilities_expenses: utilitiesExpenses,
+        operational_expenses: operationalExpenses,
+        other_expenses: otherExpenses,
+        budget: budget
+      };
+
       const { error: insertError } = await supabase
         .from('pl_reports')
-        .insert([
-          {
-            date: formattedDate,
-            user_id: user.id,
-            bucatarie_items: bucatarieItems,
-            tazz_items: tazzItems,
-            bar_items: barItems,
-            cost_of_goods_items: costOfGoodsItems,
-            salary_expenses: salaryExpenses,
-            distributor_expenses: distributorExpenses,
-            utilities_expenses: utilitiesExpenses,
-            operational_expenses: operationalExpenses,
-            other_expenses: otherExpenses,
-            budget: budget
-          }
-        ]);
+        .insert(newReport);
 
       if (insertError) {
         console.error("Error creating report:", insertError);
@@ -807,13 +753,14 @@ export async function handleAddRevenueItem(
       return true;
     } else {
       // Create default report with new item in the appropriate section
-      const defaultReportData: any = {
+      const defaultReportData = {
         date: formattedDate,
         user_id: user.id,
         bucatarie_items: section === 'bucatarie_items' ? { [itemName]: itemValue } : {},
         tazz_items: section === 'tazz_items' ? { [itemName]: itemValue } : {},
         bar_items: section === 'bar_items' ? { [itemName]: itemValue } : {},
         cost_of_goods_items: {},
+        revenue_items: {}, // Add empty revenue_items to make the schema happy
         salary_expenses: {
           "Adi": 4050,
           "Ioana": 4050,

@@ -1,86 +1,46 @@
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import React, { ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from 'react-router-dom';
 
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  signOut: () => Promise<void>;
-  loading: boolean;
+interface RequireAuthProps {
+  children: ReactNode;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  signOut: async () => {},
-  loading: true,
-});
+export function RequireAuth({ children }: RequireAuthProps) {
+  const [user, setUser] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-        
-        if (event === 'SIGNED_OUT') {
-          navigate('/auth');
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+  React.useEffect(() => {
+    async function checkAuth() {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+      setLoading(false);
+    }
+    
+    checkAuth();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, session, signOut, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => useContext(AuthContext);
-
-export const RequireAuth = ({ children }: { children: ReactNode }) => {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
-
-  // Return a simple loading indicator while checking authentication
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+  
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
       </div>
     );
   }
 
-  // If user is null but loading is false, we know authentication failed
-  // But let the navigation happen asynchronously
-  return user ? <>{children}</> : null;
-};
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+}
