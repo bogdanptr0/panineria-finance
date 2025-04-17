@@ -1,53 +1,72 @@
 
-import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from "@/lib/formatters";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 interface CashFlowProjectionProps {
-  currentRevenue: number;
-  currentExpenses: number;
+  currentMonthRevenue: number;
+  currentMonthExpenses: number;
+  estimatedGrowthRate: number;
 }
 
-const CashFlowProjection = ({ currentRevenue, currentExpenses }: CashFlowProjectionProps) => {
-  const [growthRate, setGrowthRate] = useState<number>(5); // 5% default growth rate
-  const [costRate, setCostRate] = useState<number>(3); // 3% default cost increase rate
-  const [projectionMonths, setProjectionMonths] = useState<number>(6); // Default 6 months
-  
-  // Generate projection data
+// Define custom tooltip props
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    name: string;
+    dataKey: string;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-2 border rounded shadow-sm">
+        <p className="font-medium">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm">
+            {entry.name}: {formatCurrency(entry.value)}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const CashFlowProjection = ({
+  currentMonthRevenue,
+  currentMonthExpenses,
+  estimatedGrowthRate
+}: CashFlowProjectionProps) => {
   const generateProjectionData = () => {
     const data = [];
-    let projectedRevenue = currentRevenue;
-    let projectedExpenses = currentExpenses;
+    const months = 6; // Project for 6 months
+    
+    let revenue = currentMonthRevenue;
+    let expenses = currentMonthExpenses;
     
     const currentDate = new Date();
     
-    for (let i = 0; i <= projectionMonths; i++) {
-      const date = new Date(currentDate);
-      date.setMonth(currentDate.getMonth() + i);
-      const monthYearLabel = date.toLocaleDateString('ro-RO', { month: 'short', year: 'numeric' });
+    for (let i = 0; i < months; i++) {
+      const projectionDate = new Date(currentDate);
+      projectionDate.setMonth(currentDate.getMonth() + i);
       
-      if (i === 0) {
-        // Current month
-        data.push({
-          month: monthYearLabel,
-          revenue: projectedRevenue,
-          expenses: projectedExpenses,
-          cashFlow: projectedRevenue - projectedExpenses
-        });
-      } else {
-        // Apply growth and cost rates
-        projectedRevenue = projectedRevenue * (1 + (growthRate / 100));
-        projectedExpenses = projectedExpenses * (1 + (costRate / 100));
-        
-        data.push({
-          month: monthYearLabel,
-          revenue: projectedRevenue,
-          expenses: projectedExpenses,
-          cashFlow: projectedRevenue - projectedExpenses
-        });
-      }
+      const monthName = projectionDate.toLocaleDateString('en-US', { month: 'short' });
+      
+      data.push({
+        month: `${monthName}`,
+        revenue,
+        expenses,
+        cashFlow: revenue - expenses
+      });
+      
+      // Apply growth rate for next month
+      revenue = revenue * (1 + estimatedGrowthRate);
+      expenses = expenses * (1 + estimatedGrowthRate * 0.5); // Assume expenses grow at half the rate of revenue
     }
     
     return data;
@@ -55,89 +74,54 @@ const CashFlowProjection = ({ currentRevenue, currentExpenses }: CashFlowProject
   
   const projectionData = generateProjectionData();
   
+  const totalProjectedCashFlow = projectionData.reduce((sum, item) => sum + item.cashFlow, 0);
+  
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4">Cash Flow Projection</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Revenue Growth Rate (%)
-          </label>
-          <Input 
-            type="number" 
-            value={growthRate}
-            onChange={(e) => setGrowthRate(Number(e.target.value))}
-            min="-20"
-            max="50"
-          />
+    <Card>
+      <CardHeader>
+        <CardTitle>Cash Flow Projection</CardTitle>
+        <CardDescription>Estimated future cash flow based on current performance and {estimatedGrowthRate * 100}% growth rate</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px] mb-6">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={projectionData}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip content={(props) => {
+                // Convert ValueType to number before passing to formatCurrency
+                const updatedProps = {
+                  ...props,
+                  payload: props.payload?.map(item => ({
+                    ...item,
+                    value: typeof item.value === 'number' ? item.value : 0
+                  }))
+                };
+                return CustomTooltip(updatedProps);
+              }} />
+              <Legend />
+              <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
+              <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#ff7300" />
+              <Line type="monotone" dataKey="cashFlow" name="Cash Flow" stroke="#82ca9d" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Cost Increase Rate (%)
-          </label>
-          <Input 
-            type="number" 
-            value={costRate}
-            onChange={(e) => setCostRate(Number(e.target.value))}
-            min="-20"
-            max="50"
-          />
+        <div className="text-center font-medium p-4 bg-gray-50 rounded-md">
+          <div className="text-sm text-gray-500 mb-1">Total Projected Cash Flow (6 months)</div>
+          <div className="text-2xl">{formatCurrency(totalProjectedCashFlow)}</div>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Projection Months
-          </label>
-          <Input 
-            type="number" 
-            value={projectionMonths}
-            onChange={(e) => setProjectionMonths(Number(e.target.value))}
-            min="1"
-            max="24"
-          />
-        </div>
-      </div>
-      
-      <div className="h-[400px] mt-6">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={projectionData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip formatter={(value) => formatCurrency(value as number)} />
-            <Legend />
-            <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#4CAF50" strokeWidth={2} />
-            <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#FF5252" strokeWidth={2} />
-            <Line type="monotone" dataKey="cashFlow" name="Cash Flow" stroke="#2196F3" strokeWidth={2} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      
-      <div className="mt-6">
-        <h3 className="font-semibold mb-2">Projection Summary</h3>
-        <div className="space-y-2">
-          <div className="grid grid-cols-4 text-sm font-medium border-b pb-1">
-            <div>Month</div>
-            <div className="text-right">Revenue</div>
-            <div className="text-right">Expenses</div>
-            <div className="text-right">Cash Flow</div>
-          </div>
-          
-          {projectionData.map((item, index) => (
-            <div key={index} className="grid grid-cols-4 text-sm">
-              <div>{item.month}</div>
-              <div className="text-right">{formatCurrency(item.revenue)}</div>
-              <div className="text-right">{formatCurrency(item.expenses)}</div>
-              <div className={`text-right font-medium ${item.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(item.cashFlow)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

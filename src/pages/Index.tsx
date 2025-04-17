@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import BucatarieSection from "@/components/BucatarieSection";
@@ -253,7 +252,7 @@ const Index = () => {
         return { ...newItems, [newName]: value };
       });
       
-      await renameItemInSupabase(selectedMonth, 'revenue_items', oldName, newName);
+      await renameItemInSupabase(selectedMonth, 'bucatarie_items', oldName, newName);
     } else if (isTazzItem) {
       setTazzItems(prev => {
         const value = prev[oldName];
@@ -262,7 +261,7 @@ const Index = () => {
         return { ...newItems, [newName]: value };
       });
       
-      await renameItemInSupabase(selectedMonth, 'revenue_items', oldName, newName);
+      await renameItemInSupabase(selectedMonth, 'tazz_items', oldName, newName);
     } else if (isBarItem) {
       setBarItems(prev => {
         const value = prev[oldName];
@@ -271,7 +270,7 @@ const Index = () => {
         return { ...newItems, [newName]: value };
       });
       
-      await renameItemInSupabase(selectedMonth, 'revenue_items', oldName, newName);
+      await renameItemInSupabase(selectedMonth, 'bar_items', oldName, newName);
     }
     setHasUnsavedChanges(true);
   };
@@ -344,7 +343,7 @@ const Index = () => {
   const handleAddRevenue = async (name: string, subsectionTitle?: string) => {
     if (subsectionTitle === "Bucatarie") {
       setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
-      const success = await handleAddRevenueItem(selectedMonth, 'revenue_items', name, 0);
+      const success = await handleAddRevenueItem(selectedMonth, 'bucatarie_items', name, 0);
       if (!success) {
         toast({
           title: "Error",
@@ -354,7 +353,7 @@ const Index = () => {
       }
     } else if (subsectionTitle === "Tazz") {
       setTazzItems(prev => ({ ...prev, [name]: 0 }));
-      const success = await handleAddRevenueItem(selectedMonth, 'revenue_items', name, 0);
+      const success = await handleAddRevenueItem(selectedMonth, 'tazz_items', name, 0);
       if (!success) {
         toast({
           title: "Error",
@@ -364,7 +363,7 @@ const Index = () => {
       }
     } else if (subsectionTitle === "Bar") {
       setBarItems(prev => ({ ...prev, [name]: 0 }));
-      const success = await handleAddRevenueItem(selectedMonth, 'revenue_items', name, 0);
+      const success = await handleAddRevenueItem(selectedMonth, 'bar_items', name, 0);
       if (!success) {
         toast({
           title: "Error",
@@ -419,7 +418,7 @@ const Index = () => {
           return newItems;
         });
         
-        await deleteItemFromSupabase(selectedMonth, 'revenue_items', name);
+        await deleteItemFromSupabase(selectedMonth, 'bucatarie_items', name);
         
         toast({
           title: "Item deleted",
@@ -432,7 +431,7 @@ const Index = () => {
           return newItems;
         });
         
-        await deleteItemFromSupabase(selectedMonth, 'revenue_items', name);
+        await deleteItemFromSupabase(selectedMonth, 'tazz_items', name);
         
         toast({
           title: "Item deleted",
@@ -445,7 +444,7 @@ const Index = () => {
           return newItems;
         });
         
-        await deleteItemFromSupabase(selectedMonth, 'revenue_items', name);
+        await deleteItemFromSupabase(selectedMonth, 'bar_items', name);
         
         toast({
           title: "Item deleted",
@@ -781,15 +780,15 @@ const Index = () => {
     const report = await loadReport(selectedMonth);
     if (report) {
       for (const itemName of Object.keys(report.bucatarieItems)) {
-        await deleteItemFromSupabase(selectedMonth, 'revenue_items', itemName);
+        await deleteItemFromSupabase(selectedMonth, 'bucatarie_items', itemName);
       }
       
       for (const itemName of Object.keys(report.tazzItems)) {
-        await deleteItemFromSupabase(selectedMonth, 'revenue_items', itemName);
+        await deleteItemFromSupabase(selectedMonth, 'tazz_items', itemName);
       }
       
       for (const itemName of Object.keys(report.barItems)) {
-        await deleteItemFromSupabase(selectedMonth, 'revenue_items', itemName);
+        await deleteItemFromSupabase(selectedMonth, 'bar_items', itemName);
       }
 
       setBucatarieItems({});

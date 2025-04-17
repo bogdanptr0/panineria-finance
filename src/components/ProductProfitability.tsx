@@ -1,84 +1,102 @@
 
-import { formatCurrency, formatPercentage } from "@/lib/formatters";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatCurrency } from "@/lib/formatters";
 
 interface ProductProfitabilityProps {
   revenueItems: Record<string, number>;
-  costOfGoodsItems?: Record<string, number>;
-  totalRevenue?: number;
-  totalExpenses?: number;
-  netProfit?: number;
+  revenueSubsections: {
+    title: string;
+    items: string[];
+  }[];
 }
 
-const ProductProfitability = ({ revenueItems, costOfGoodsItems = {} }: ProductProfitabilityProps) => {
-  // Calculate profitability metrics for each product
-  const products = Object.keys(revenueItems).filter(name => 
-    costOfGoodsItems && name in revenueItems
-  );
+// Define the tooltip props interface explicitly
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    name: string;
+    dataKey: string;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-2 border rounded shadow-sm">
+        <p className="font-medium">{label}</p>
+        <p className="text-sm">{formatCurrency(payload[0]?.value)}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const ProductProfitability = ({ revenueItems, revenueSubsections }: ProductProfitabilityProps) => {
+  const [selectedSection, setSelectedSection] = useState(revenueSubsections[0]?.title || '');
   
-  const productMetrics = products.map(name => {
-    const revenue = revenueItems[name] || 0;
-    const cost = costOfGoodsItems?.[name] || 0;
-    const profit = revenue - cost;
-    const margin = revenue > 0 ? profit / revenue : 0;
+  const getItemsForSection = (section: string) => {
+    const subsection = revenueSubsections.find(sub => sub.title === section);
+    if (!subsection) return [];
     
-    return {
-      name,
-      revenue,
-      profit,
-      margin
-    };
-  });
+    return subsection.items
+      .map(item => ({
+        name: item,
+        value: revenueItems[item] || 0
+      }))
+      .sort((a, b) => b.value - a.value);
+  };
   
-  // Sort products by profit margin (descending)
-  const sortedProducts = [...productMetrics].sort((a, b) => b.margin - a.margin);
+  const topProducts = getItemsForSection(selectedSection);
   
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4">Product Profitability</h2>
-      
-      {sortedProducts.length > 0 ? (
-        <div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
-                <TableHead className="text-right">Profit</TableHead>
-                <TableHead className="text-right">Margin</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedProducts.map(product => (
-                <TableRow key={product.name}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(product.revenue)}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    <span className={product.profit >= 0 ? "text-green-600" : "text-red-600"}>
-                      {formatCurrency(product.profit)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={product.margin >= 0.3 ? "text-green-600" : product.margin >= 0.15 ? "text-amber-600" : "text-red-600"}>
-                      {formatPercentage(product.margin)}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          
-          <div className="mt-4 text-sm text-gray-500">
-            <p>* Products are sorted by profit margin (highest to lowest)</p>
-            <p>* Only products with both revenue and cost data are shown</p>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Top Products</CardTitle>
+        <CardDescription>Revenue breakdown by product</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex mb-4 overflow-x-auto pb-2">
+          {revenueSubsections.map(section => (
+            <button
+              key={section.title}
+              onClick={() => setSelectedSection(section.title)}
+              className={`mr-2 px-3 py-1 rounded-full text-sm ${
+                selectedSection === section.title 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {section.title}
+            </button>
+          ))}
         </div>
-      ) : (
-        <div className="text-gray-500 italic">
-          No matching products found. Ensure product names match between revenue and cost sections.
+        
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={topProducts.slice(0, 5)}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+              layout="vertical"
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis dataKey="name" type="category" width={100} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="value" name="Revenue" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

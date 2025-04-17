@@ -1,114 +1,90 @@
 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { formatCurrency, formatPercentage } from "@/lib/formatters";
-import { ChartContainer, ChartLegend } from "@/components/ui/chart";
-import { BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, Cell, ResponsiveContainer } from "recharts";
 
 interface LaborAnalysisProps {
   salaryExpenses: Record<string, number>;
+  totalSalaries: number;
   totalRevenue: number;
 }
 
-const LaborAnalysis = ({ salaryExpenses, totalRevenue }: LaborAnalysisProps) => {
-  const totalSalary = Object.values(salaryExpenses).reduce((sum, val) => sum + val, 0);
-  const laborPercentage = totalRevenue > 0 ? totalSalary / totalRevenue : 0;
+// Define the tooltip props interface explicitly
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    name: string;
+    dataKey: string;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-2 border rounded shadow-sm">
+        <p className="font-medium">{payload[0]?.name}</p>
+        <p className="text-sm">{formatCurrency(payload[0]?.value)}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+const LaborAnalysis = ({ salaryExpenses, totalSalaries, totalRevenue }: LaborAnalysisProps) => {
+  const laborPercentage = totalRevenue > 0 ? (totalSalaries / totalRevenue) : 0;
   
-  // Industry benchmark (typically 25-35% for restaurants)
-  const industryBenchmark = 0.3; // 30%
-  
-  // Prepare the data for the chart
-  const salaryData = Object.entries(salaryExpenses).map(([name, value]) => ({
+  const data = Object.entries(salaryExpenses).map(([name, amount]) => ({
     name,
-    value,
-    percentage: totalRevenue > 0 ? value / totalRevenue : 0
+    value: amount
   }));
   
-  // Calculate metrics
-  const laborMetrics = {
-    totalSalary,
-    laborPercentage,
-    status: laborPercentage <= industryBenchmark ? "good" : "high",
-    difference: Math.abs(laborPercentage - industryBenchmark)
-  };
-  
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4">Labor Cost Analysis</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <div className={`p-4 rounded-lg ${laborMetrics.status === 'good' ? 'bg-green-50' : 'bg-amber-50'}`}>
-            <h3 className="text-lg font-semibold mb-2">Labor Cost Metrics</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm text-gray-500">Total Labor Cost</div>
-                <div className="text-2xl font-bold">{formatCurrency(laborMetrics.totalSalary)}</div>
-              </div>
-              
-              <div>
-                <div className="text-sm text-gray-500">Labor as % of Revenue</div>
-                <div className="text-2xl font-bold">
-                  <span className={laborMetrics.laborPercentage <= industryBenchmark ? "text-green-600" : "text-amber-600"}>
-                    {formatPercentage(laborMetrics.laborPercentage)}
-                  </span>
-                </div>
-              </div>
-              
-              <div>
-                <div className="text-sm text-gray-500">Industry Benchmark</div>
-                <div className="text-lg">{formatPercentage(industryBenchmark)}</div>
-              </div>
-              
-              <div>
-                <div className="text-sm text-gray-500">Status</div>
-                <div className={`text-lg font-medium ${laborMetrics.status === 'good' ? 'text-green-600' : 'text-amber-600'}`}>
-                  {laborMetrics.status === 'good' ? 'Within Industry Average' : 'Above Industry Average'}
-                </div>
-                <div className="text-sm">
-                  {laborMetrics.status === 'good' 
-                    ? `${formatPercentage(laborMetrics.difference)} below average`
-                    : `${formatPercentage(laborMetrics.difference)} above average`}
-                </div>
-              </div>
-            </div>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Labor Analysis</CardTitle>
+        <CardDescription>Labor cost breakdown and percentage of revenue</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[200px] mb-6">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                nameKey="name"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
         
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Labor Cost Breakdown</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={salaryData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value) => [formatCurrency(value as number), "Amount"]}
-                  labelFormatter={(name) => `Employee: ${name}`}
-                />
-                <Legend />
-                <Bar dataKey="value" name="Salary" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="p-3 bg-gray-50 rounded-md">
+            <div className="text-sm text-gray-500">Total Labor Cost</div>
+            <div className="text-lg font-bold">{formatCurrency(totalSalaries)}</div>
           </div>
-          
-          <div className="mt-4">
-            <h4 className="font-medium mb-2">Employee Cost Ratio</h4>
-            <div className="space-y-2">
-              {salaryData.map(item => (
-                <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full bg-indigo-500 mr-2"></div>
-                    <span>{item.name}</span>
-                  </div>
-                  <div className="text-sm">{formatPercentage(item.percentage)} of revenue</div>
-                </div>
-              ))}
-            </div>
+          <div className="p-3 bg-gray-50 rounded-md">
+            <div className="text-sm text-gray-500">Labor as % of Revenue</div>
+            <div className="text-lg font-bold">{formatPercentage(laborPercentage)}</div>
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

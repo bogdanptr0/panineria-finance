@@ -1,171 +1,208 @@
 
-import React, { useState, useEffect } from 'react';
-import { formatCurrency, formatDate, formatPercentage, calculatePercentageChange } from '@/lib/formatters';
-import { PLReport } from '@/lib/reportTypes';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatCurrency, formatPercentage, calculatePercentageChange } from "@/lib/formatters";
+import { supabase } from '@/integrations/supabase/client';
+import { format, subMonths } from 'date-fns';
+import { ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
-interface ComparisonViewProps {
-  currentMonth: Date;
-  currentReport: {
-    totalRevenue: number;
-    totalCogs: number;
-    grossProfit: number;
-    totalExpenses: number;
-    netProfit: number;
-  };
+interface ComparisonData {
+  revenue: number;
+  expenses: number;
+  profit: number;
 }
 
-const ComparisonView: React.FC<ComparisonViewProps> = ({ currentMonth, currentReport }) => {
-  const [prevMonthReport, setPrevMonthReport] = useState<PLReport | null>(null);
-  const [prevYearReport, setPrevYearReport] = useState<PLReport | null>(null);
-  
-  // Get the previous month's date
-  const getPrevMonthDate = (date: Date) => {
-    const prevMonth = new Date(date);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
-    return prevMonth;
-  };
-  
-  // Get the same month from previous year
-  const getPrevYearDate = (date: Date) => {
-    const prevYear = new Date(date);
-    prevYear.setFullYear(prevYear.getFullYear() - 1);
-    return prevYear;
-  };
-  
-  const renderComparison = (current: number, previous: number | undefined, label: string) => {
-    if (previous === undefined) return null;
-    
-    const change = calculatePercentageChange(current, previous);
-    const isPositive = change > 0;
-    
+interface ComparisonViewProps {
+  currentMonthData: ComparisonData;
+}
+
+// Define custom tooltip props
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    name: string;
+    dataKey: string;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
     return (
-      <div className="flex items-center space-x-2">
-        <span className="text-sm text-gray-500">{label}:</span>
-        <span className={`flex items-center ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-          {isPositive ? <ArrowUpIcon size={16} /> : <ArrowDownIcon size={16} />}
-          {formatPercentage(Math.abs(change))}
-        </span>
+      <div className="bg-white p-2 border rounded shadow-sm">
+        <p className="font-medium">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm">
+            {entry.name}: {formatCurrency(entry.value)}
+          </p>
+        ))}
       </div>
     );
-  };
+  }
+  return null;
+};
+
+const ComparisonView = ({ currentMonthData }: ComparisonViewProps) => {
+  const [previousMonthData, setPreviousMonthData] = useState<ComparisonData>({
+    revenue: 0,
+    expenses: 0,
+    profit: 0
+  });
+  const [loading, setLoading] = useState(true);
   
-  // Calculate month-to-month changes
-  const calculateMoMChanges = () => {
-    if (!prevMonthReport) return null;
+  useEffect(() => {
+    const fetchPreviousMonthData = async () => {
+      try {
+        const currentDate = new Date();
+        const previousMonth = subMonths(currentDate, 1);
+        const formattedDate = format(previousMonth, "yyyy-MM");
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.error("User not authenticated");
+          return;
+        }
+        
+        const { data: report, error } = await supabase
+          .from('pl_reports')
+          .select('*')
+          .eq('date', formattedDate)
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error) {
+          if (error.code !== 'PGRST116') { // No data found
+            console.error("Error fetching previous month data:", error);
+          }
+          setLoading(false);
+          return;
+        }
+        
+        if (report) {
+          const bucatarieTotal = Object.values(report.bucatarie_items || {}).reduce((sum, value) => sum + (value as number), 0);
+          const tazzTotal = Object.values(report.tazz_items || {}).reduce((sum, value) => sum + (value as number), 0);
+          const barTotal = Object.values(report.bar_items || {}).reduce((sum, value) => sum + (value as number), 0);
+          
+          const salaryTotal = Object.values(report.salary_expenses || {}).reduce((sum, value) => sum + (value as number), 0);
+          const distributorTotal = Object.values(report.distributor_expenses || {}).reduce((sum, value) => sum + (value as number), 0);
+          const utilitiesTotal = Object.values(report.utilities_expenses || {}).reduce((sum, value) => sum + (value as number), 0);
+          const operationalTotal = Object.values(report.operational_expenses || {}).reduce((sum, value) => sum + (value as number), 0);
+          const otherTotal = Object.values(report.other_expenses || {}).reduce((sum, value) => sum + (value as number), 0);
+          
+          const totalRevenue = bucatarieTotal + tazzTotal + barTotal;
+          const totalExpenses = salaryTotal + distributorTotal + utilitiesTotal + operationalTotal + otherTotal;
+          
+          setPreviousMonthData({
+            revenue: totalRevenue,
+            expenses: totalExpenses,
+            profit: totalRevenue - totalExpenses
+          });
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Error in fetchPreviousMonthData:", error);
+        setLoading(false);
+      }
+    };
     
-    const revenueChange = renderComparison(currentReport.totalRevenue, prevMonthReport.totalRevenue, "MoM Revenue");
-    const expensesChange = renderComparison(currentReport.totalExpenses, prevMonthReport.totalExpenses, "MoM Expenses");
-    const profitChange = renderComparison(currentReport.netProfit, prevMonthReport.netProfit, "MoM Profit");
-    
-    return (
-      <div className="space-y-2 mt-4">
-        {revenueChange}
-        {expensesChange}
-        {profitChange}
-      </div>
-    );
-  };
+    fetchPreviousMonthData();
+  }, []);
   
-  // Calculate year-over-year changes
-  const calculateYoYChanges = () => {
-    if (!prevYearReport) return null;
-    
-    const revenueChange = renderComparison(currentReport.totalRevenue, prevYearReport.totalRevenue, "YoY Revenue");
-    const expensesChange = renderComparison(currentReport.totalExpenses, prevYearReport.totalExpenses, "YoY Expenses");
-    const profitChange = renderComparison(currentReport.netProfit, prevYearReport.netProfit, "YoY Profit");
-    
-    return (
-      <div className="space-y-2 mt-4">
-        {revenueChange}
-        {expensesChange}
-        {profitChange}
-      </div>
-    );
-  };
+  const revenueChange = calculatePercentageChange(currentMonthData.revenue, previousMonthData.revenue);
+  const expensesChange = calculatePercentageChange(currentMonthData.expenses, previousMonthData.expenses);
+  const profitChange = calculatePercentageChange(currentMonthData.profit, previousMonthData.profit);
+  
+  const data = [
+    {
+      name: "Revenue",
+      previous: previousMonthData.revenue,
+      current: currentMonthData.revenue
+    },
+    {
+      name: "Expenses",
+      previous: previousMonthData.expenses,
+      current: currentMonthData.expenses
+    },
+    {
+      name: "Profit",
+      previous: previousMonthData.profit,
+      current: currentMonthData.profit
+    }
+  ];
   
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Comparison Analysis</CardTitle>
+        <CardTitle>Month-over-Month Comparison</CardTitle>
+        <CardDescription>Compare current month with previous month</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="mom">
-          <TabsList className="mb-4">
-            <TabsTrigger value="mom">Month-over-Month</TabsTrigger>
-            <TabsTrigger value="yoy">Year-over-Year</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="mom">
-            <div>
-              <h3 className="font-semibold text-lg mb-2">
-                Comparing {formatDate(currentMonth)} vs {formatDate(getPrevMonthDate(currentMonth))}
-              </h3>
-              
-              {prevMonthReport ? (
-                <>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Revenue</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.totalRevenue)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevMonthReport.totalRevenue || 0)}</div>
-                    </div>
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Expenses</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.totalExpenses)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevMonthReport.totalExpenses || 0)}</div>
-                    </div>
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Net Profit</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.netProfit)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevMonthReport.netProfit || 0)}</div>
-                    </div>
-                  </div>
-                  
-                  {calculateMoMChanges()}
-                </>
-              ) : (
-                <div className="text-gray-500">No data available for the previous month.</div>
-              )}
+        {loading ? (
+          <div className="flex justify-center items-center h-[300px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+          </div>
+        ) : (
+          <>
+            <div className="h-[250px] mb-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip content={(props) => {
+                    // Convert ValueType to number before passing to formatCurrency
+                    const updatedProps = {
+                      ...props,
+                      payload: props.payload?.map(item => ({
+                        ...item,
+                        value: typeof item.value === 'number' ? item.value : 0
+                      }))
+                    };
+                    return CustomTooltip(updatedProps);
+                  }} />
+                  <Legend />
+                  <Bar dataKey="previous" name="Previous Month" fill="#8884d8" />
+                  <Bar dataKey="current" name="Current Month" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="yoy">
-            <div>
-              <h3 className="font-semibold text-lg mb-2">
-                Comparing {formatDate(currentMonth)} vs {formatDate(getPrevYearDate(currentMonth))}
-              </h3>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 rounded-md bg-gray-50">
+                <div className="font-medium mb-1">Revenue</div>
+                <div className={`text-sm ${revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatPercentage(revenueChange)}
+                </div>
+              </div>
               
-              {prevYearReport ? (
-                <>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Revenue</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.totalRevenue)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevYearReport.totalRevenue || 0)}</div>
-                    </div>
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Expenses</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.totalExpenses)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevYearReport.totalExpenses || 0)}</div>
-                    </div>
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Net Profit</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.netProfit)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevYearReport.netProfit || 0)}</div>
-                    </div>
-                  </div>
-                  
-                  {calculateYoYChanges()}
-                </>
-              ) : (
-                <div className="text-gray-500">No data available for the previous year.</div>
-              )}
+              <div className="text-center p-3 rounded-md bg-gray-50">
+                <div className="font-medium mb-1">Expenses</div>
+                <div className={`text-sm ${expensesChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatPercentage(expensesChange)}
+                </div>
+              </div>
+              
+              <div className="text-center p-3 rounded-md bg-gray-50">
+                <div className="font-medium mb-1">Profit</div>
+                <div className={`text-sm ${profitChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatPercentage(profitChange)}
+                </div>
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          </>
+        )}
       </CardContent>
     </Card>
   );

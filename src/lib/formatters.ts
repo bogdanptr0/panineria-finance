@@ -1,8 +1,10 @@
-
 /**
  * Format a number as RON currency
  */
-export const formatCurrency = (value: number): string => {
+export const formatCurrency = (value: number | undefined | null): string => {
+  if (value === undefined || value === null) {
+    return 'RON 0';
+  }
   return `RON ${value.toLocaleString('ro-RO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 };
 
