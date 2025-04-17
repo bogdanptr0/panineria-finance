@@ -72,6 +72,108 @@ export const DEFAULT_BAR_ITEMS: Record<string, number> = {
   "Gin Tonic": 0
 };
 
+// New optimized function that adds multiple revenue items in a single batch operation
+export async function batchAddRevenueItems(
+  month: Date, 
+  items: Record<string, number>
+): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error("User not authenticated");
+      return false;
+    }
+
+    const formattedDate = format(month, "yyyy-MM");
+    
+    // Check if report exists
+    const { data: existingReport, error: reportError } = await supabase
+      .from('pl_reports')
+      .select('id, revenue_items')
+      .eq('date', formattedDate)
+      .eq('user_id', user.id)
+      .single();
+      
+    if (reportError && reportError.code !== 'PGRST116') {
+      console.error("Error fetching report:", reportError);
+      return false;
+    }
+    
+    if (existingReport) {
+      // Merge existing revenue items with new items
+      const revenueItems = existingReport.revenue_items as Record<string, number> || {};
+      const updatedItems = { ...revenueItems, ...items };
+      
+      const { error: updateError } = await supabase
+        .from('pl_reports')
+        .update({ revenue_items: updatedItems })
+        .eq('id', existingReport.id);
+        
+      if (updateError) {
+        console.error(`Error updating revenue_items:`, updateError);
+        return false;
+      }
+      
+      return true;
+    } else {
+      // Create default report with all provided items
+      const defaultReportData: any = {
+        date: formattedDate,
+        user_id: user.id,
+        revenue_items: items,
+        cost_of_goods_items: {},
+        salary_expenses: {
+          "Adi": 4050,
+          "Ioana": 4050,
+          "Andreea": 4050,
+          "Victoria": 4050
+        },
+        distributor_expenses: {
+          "Maria FoodNova": 0,
+          "CocaCola": 0,
+          "24H": 0,
+          "Sinless": 0,
+          "Peroni": 0,
+          "Sudavangarde(Brutarie Foccacia)": 0,
+          "Proporzioni": 0,
+          "LIDL": 0,
+          "Metro": 0
+        },
+        operational_expenses: {
+          "Contabilitate": 0,
+          "ECR": 0,
+          "ISU": 0,
+          "Chirie": 0,
+          "Protectia Muncii": 0
+        },
+        utilities_expenses: {
+          "Gaze(Engie)": 0,
+          "Apa": 0,
+          "Curent": 0,
+          "Gunoi(Iridex)": 0,
+          "Internet": 0
+        },
+        other_expenses: {},
+        budget: undefined
+      };
+      
+      const { error: insertError } = await supabase
+        .from('pl_reports')
+        .insert(defaultReportData);
+        
+      if (insertError) {
+        console.error("Error inserting new report:", insertError);
+        return false;
+      }
+      
+      return true;
+    }
+  } catch (error) {
+    console.error("Batch add revenue items error:", error);
+    return false;
+  }
+}
+
 export async function loadReport(month: Date): Promise<{
   bucatarieItems: Record<string, number>;
   tazzItems: Record<string, number>;

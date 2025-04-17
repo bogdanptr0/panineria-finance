@@ -15,7 +15,8 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { 
   loadReport, updateAllReportsWithDefaultSalaries, saveReport, 
   deleteItemFromSupabase, addItemToSupabase, updateItemInSupabase, renameItemInSupabase,
-  DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS, handleAddRevenueItem
+  DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS, handleAddRevenueItem,
+  batchAddRevenueItems
 } from "@/lib/persistence";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -819,48 +820,73 @@ const Index = () => {
     }
   };
 
-  const addDefaultBucatarieItems = async () => {
-    for (const [itemName, value] of Object.entries(DEFAULT_BUCATARIE_ITEMS)) {
-      await handleAddRevenueItem(selectedMonth, 'revenue_items', itemName, value);
-    }
-    setBucatarieItems(DEFAULT_BUCATARIE_ITEMS);
+  const addAllDefaultItems = async () => {
+    const allDefaultItems = {
+      ...DEFAULT_BUCATARIE_ITEMS,
+      ...DEFAULT_TAZZ_ITEMS,
+      ...DEFAULT_BAR_ITEMS
+    };
     
-    toast({
-      title: "Default items added",
-      description: "Default Bucatarie items have been added to the database."
-    });
+    const success = await batchAddRevenueItems(selectedMonth, allDefaultItems);
+    
+    if (success) {
+      setBucatarieItems(DEFAULT_BUCATARIE_ITEMS);
+      setTazzItems(DEFAULT_TAZZ_ITEMS);
+      setBarItems(DEFAULT_BAR_ITEMS);
+      
+      toast({
+        title: "Default items added",
+        description: "All default items have been added to the database."
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to add default items. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const addDefaultBucatarieItems = async () => {
+    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_BUCATARIE_ITEMS);
+    if (success) {
+      setBucatarieItems(DEFAULT_BUCATARIE_ITEMS);
+      
+      toast({
+        title: "Default items added",
+        description: "Default Bucatarie items have been added to the database."
+      });
+    }
   };
 
   const addDefaultTazzItems = async () => {
-    for (const [itemName, value] of Object.entries(DEFAULT_TAZZ_ITEMS)) {
-      await handleAddRevenueItem(selectedMonth, 'revenue_items', itemName, value);
+    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_TAZZ_ITEMS);
+    if (success) {
+      setTazzItems(DEFAULT_TAZZ_ITEMS);
+      
+      toast({
+        title: "Default items added",
+        description: "Default Tazz items have been added to the database."
+      });
     }
-    setTazzItems(DEFAULT_TAZZ_ITEMS);
-    
-    toast({
-      title: "Default items added",
-      description: "Default Tazz items have been added to the database."
-    });
   };
 
   const addDefaultBarItems = async () => {
-    for (const [itemName, value] of Object.entries(DEFAULT_BAR_ITEMS)) {
-      await handleAddRevenueItem(selectedMonth, 'revenue_items', itemName, value);
+    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_BAR_ITEMS);
+    if (success) {
+      setBarItems(DEFAULT_BAR_ITEMS);
+      
+      toast({
+        title: "Default items added",
+        description: "Default Bar items have been added to the database."
+      });
     }
-    setBarItems(DEFAULT_BAR_ITEMS);
-    
-    toast({
-      title: "Default items added",
-      description: "Default Bar items have been added to the database."
-    });
   };
 
   useEffect(() => {
     const setupItems = async () => {
       await clearAllDefaultItems();
-      await addDefaultBucatarieItems();
-      await addDefaultTazzItems();
-      await addDefaultBarItems();
+      await addAllDefaultItems();
     };
     
     setupItems();

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, getDefaultIfEmpty } from "@/lib/formatters";
@@ -29,42 +29,43 @@ const TazzSection = ({
   const [newItemName, setNewItemName] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
 
-  const handleInputChange = (name: string, valueStr: string) => {
+  // Memoize callbacks for better performance
+  const handleInputChange = useCallback((name: string, valueStr: string) => {
     const value = valueStr === "" ? 0 : parseFloat(valueStr);
     onUpdateItem(name, value);
-  };
+  }, [onUpdateItem]);
 
-  const handleStartRename = (name: string) => {
+  const handleStartRename = useCallback((name: string) => {
     setEditingName(name);
     setNewName(name);
-  };
+  }, []);
 
-  const handleSaveRename = (oldName: string) => {
+  const handleSaveRename = useCallback((oldName: string) => {
     if (newName.trim() !== "" && newName !== oldName) {
       onRenameItem(oldName, getDefaultIfEmpty(newName));
     }
     setEditingName(null);
     setNewName("");
-  };
+  }, [newName, onRenameItem]);
 
-  const handleCancelRename = () => {
+  const handleCancelRename = useCallback(() => {
     setEditingName(null);
     setNewName("");
-  };
+  }, []);
 
-  const handleAddItem = () => {
+  const handleAddItem = useCallback(() => {
     if (newItemName.trim() !== "") {
       onAddItem(getDefaultIfEmpty(newItemName));
       setNewItemName("");
       setShowAddForm(false);
     }
-  };
+  }, [newItemName, onAddItem]);
 
-  const handleDeleteItem = (name: string) => {
+  const handleDeleteItem = useCallback((name: string) => {
     if (onDeleteItem) {
       onDeleteItem(name);
     }
-  };
+  }, [onDeleteItem]);
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
