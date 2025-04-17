@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import BucatarieSection from "@/components/BucatarieSection";
@@ -15,9 +16,9 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { 
   loadReport, updateAllReportsWithDefaultSalaries, saveReport, 
   deleteItemFromSupabase, addItemToSupabase, updateItemInSupabase, renameItemInSupabase,
-  DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS, handleAddRevenueItem,
-  batchAddRevenueItems
+  handleAddRevenueItem, batchAddRevenueItems
 } from "@/lib/persistence";
+import { DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp } from "lucide-react";

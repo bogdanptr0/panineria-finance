@@ -1,23 +1,29 @@
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { formatCurrency, formatPercentage, calculatePercentageChange } from "@/lib/formatters";
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency, formatPercentage, calculatePercentageChange } from '@/lib/formatters';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { format, subMonths } from 'date-fns';
-import { ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
-interface ComparisonData {
+interface ComparisonViewProps {
+  currentMonthData: {
+    revenue: number;
+    expenses: number;
+    profit: number;
+  };
+}
+
+interface MonthData {
+  month: string;
   revenue: number;
   expenses: number;
   profit: number;
 }
 
-interface ComparisonViewProps {
-  currentMonthData: ComparisonData;
-}
-
-// Define custom tooltip props
 interface CustomTooltipProps {
   active?: boolean;
   payload?: Array<{
@@ -31,16 +37,17 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white p-2 border rounded shadow-sm">
-        <p className="font-medium">{label}</p>
-        {payload.map((entry, index) => (
-          <p key={index} className="text-sm">
-            {entry.name}: {formatCurrency(entry.value)}
+      <div className="bg-white p-2 border border-gray-200 shadow-md">
+        <p className="font-semibold">{label}</p>
+        {payload.map((item, index) => (
+          <p key={index}>
+            {item.name}: {formatCurrency(item.value)}
           </p>
         ))}
       </div>
     );
   }
+  
   return null;
 };
 
