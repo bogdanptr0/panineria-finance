@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import BucatarieSection from "@/components/BucatarieSection";
@@ -16,9 +15,9 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { 
   loadReport, updateAllReportsWithDefaultSalaries, saveReport, 
   deleteItemFromSupabase, addItemToSupabase, updateItemInSupabase, renameItemInSupabase,
-  DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS, handleAddRevenueItem,
-  batchAddRevenueItems
+  handleAddRevenueItem, batchAddRevenueItems
 } from "@/lib/persistence";
+import { DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -875,6 +874,76 @@ const Index = () => {
     setupItems();
   }, []);
 
+  const expensesProps = {
+    title: "CHELTUIELI",
+    items: {
+      ...salaryExpenses,
+      ...distributorExpenses,
+      ...utilitiesExpenses,
+      ...operationalExpenses,
+      ...otherExpenses
+    },
+    onUpdateItem: handleOperationalUpdate,
+    totalExpenses: totalSalaryExpenses + totalDistributorExpenses + totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses,
+    onRenameItem: handleOperationalRename,
+    onAddItem: handleSubsectionAddItem,
+    onDeleteItem: handleDeleteOperationalItem,
+    subsections: operationalExpensesSubsections
+  };
+
+  const profitSummaryProps = {
+    title: "PROFIT",
+    revenue: totalRevenue,
+    expenses: totalExpenses,
+    profit: netProfit
+  };
+
+  const dataVisualizationProps = {
+    revenueCategories: [
+      { name: "Bucatarie", value: totalBucatarieRevenue },
+      { name: "Tazz", value: totalTazzRevenue },
+      { name: "Bar", value: totalBarRevenue }
+    ],
+    expenseCategories: [
+      { name: "Salarii", value: totalSalaryExpenses },
+      { name: "Distribuitori", value: totalDistributorExpenses },
+      { name: "Utilitati", value: totalUtilitiesExpenses },
+      { name: "Operationale", value: totalOperationalExpenses },
+      { name: "Alte", value: totalOtherExpenses }
+    ]
+  };
+
+  const productProfitabilityProps = {
+    items: getRevenueItems(),
+    sections: revenueSubsections
+  };
+
+  const laborAnalysisProps = {
+    salaries: salaryExpenses,
+    totalSalaries: totalSalaryExpenses,
+    revenue: totalRevenue
+  };
+
+  const comparisonViewProps = {
+    currentMonth: selectedMonth,
+    revenue: totalRevenue,
+    expenses: totalExpenses,
+    profit: netProfit
+  };
+
+  const budgetAnalysisProps = {
+    budgetTargets: budget,
+    actualRevenue: totalRevenue,
+    actualExpenses: totalExpenses,
+    actualProfit: netProfit
+  };
+
+  const cashFlowProjectionProps = {
+    currentRevenue: totalRevenue,
+    currentExpenses: totalExpenses,
+    growthRate: 0.05
+  };
+
   return (
     <RequireAuth>
       <div className="min-h-screen bg-gray-50 print:bg-white">
@@ -923,35 +992,11 @@ const Index = () => {
                   />
                   
                   <ExpensesSection 
-                    salaryExpenses={salaryExpenses}
-                    distributorExpenses={distributorExpenses}
-                    utilitiesExpenses={utilitiesExpenses}
-                    operationalExpenses={operationalExpenses}
-                    otherExpenses={otherExpenses}
-                    onSalaryUpdate={handleSalaryUpdate}
-                    onDistributorUpdate={handleDistributorUpdate}
-                    onUtilitiesUpdate={handleUtilitiesUpdate}
-                    onOperationalUpdate={handleOperationalUpdate}
-                    onOtherExpensesUpdate={handleOtherExpensesUpdate}
-                    onSalaryRename={handleSalaryRename}
-                    onDistributorRename={handleDistributorRename}
-                    onUtilitiesRename={handleUtilitiesRename}
-                    onOperationalRename={handleOperationalRename}
-                    onOtherExpensesRename={handleOtherExpensesRename}
-                    onAddSalary={handleAddSalary}
-                    onAddDistributor={handleAddDistributor}
-                    onSubsectionAddItem={handleSubsectionAddItem}
-                    operationalExpensesSubsections={operationalExpensesSubsections}
-                    onDeleteSalary={handleDeleteSalary}
-                    onDeleteDistributor={handleDeleteDistributor}
-                    onDeleteOperationalItem={handleDeleteOperationalItem}
+                    {...expensesProps}
                   />
                   
                   <ProfitSummary 
-                    totalRevenue={totalRevenue}
-                    totalExpenses={totalExpenses}
-                    grossProfit={grossProfit}
-                    netProfit={netProfit}
+                    {...profitSummaryProps}
                   />
                 </div>
               </div>
@@ -960,56 +1005,31 @@ const Index = () => {
             <TabsContent value="advanced">
               <div className="space-y-8">
                 <DataVisualization 
-                  categories={[
-                    { name: "Bucatarie", value: totalBucatarieRevenue },
-                    { name: "Tazz", value: totalTazzRevenue },
-                    { name: "Bar", value: totalBarRevenue }
-                  ]}
-                  expenses={[
-                    { name: "Salarii", value: totalSalaryExpenses },
-                    { name: "Distribuitori", value: totalDistributorExpenses },
-                    { name: "Utilitati", value: totalUtilitiesExpenses },
-                    { name: "Operationale", value: totalOperationalExpenses },
-                    { name: "Alte", value: totalOtherExpenses }
-                  ]}
+                  {...dataVisualizationProps}
                 />
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <ProductProfitability 
-                    revenueItems={getRevenueItems()}
-                    revenueSubsections={revenueSubsections}
+                    {...productProfitabilityProps}
                   />
                   
                   <LaborAnalysis 
-                    salaryExpenses={salaryExpenses}
-                    totalSalaries={totalSalaryExpenses}
-                    totalRevenue={totalRevenue}
+                    {...laborAnalysisProps}
                   />
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <ComparisonView 
-                    currentMonthData={{
-                      revenue: totalRevenue,
-                      expenses: totalExpenses,
-                      profit: netProfit
-                    }}
+                    {...comparisonViewProps}
                   />
                   
                   <BudgetAnalysis 
-                    targetRevenue={budget?.targetRevenue}
-                    targetExpenses={budget?.targetExpenses}
-                    targetProfit={budget?.targetProfit}
-                    actualRevenue={totalRevenue}
-                    actualExpenses={totalExpenses}
-                    actualProfit={netProfit}
+                    {...budgetAnalysisProps}
                   />
                 </div>
                 
                 <CashFlowProjection 
-                  currentMonthRevenue={totalRevenue}
-                  currentMonthExpenses={totalExpenses}
-                  estimatedGrowthRate={0.05}
+                  {...cashFlowProjectionProps}
                 />
               </div>
             </TabsContent>

@@ -1,17 +1,31 @@
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate } from 'react-router-dom';
 
-interface RequireAuthProps {
+interface AuthContextType {
+  user: any | null;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true
+});
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function RequireAuth({ children }: RequireAuthProps) {
-  const [user, setUser] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     async function checkAuth() {
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
@@ -29,6 +43,25 @@ export function RequireAuth({ children }: RequireAuthProps) {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  const value = {
+    user,
+    loading
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+interface RequireAuthProps {
+  children: ReactNode;
+}
+
+export function RequireAuth({ children }: RequireAuthProps) {
+  const { user, loading } = useAuth();
   
   if (loading) {
     return (

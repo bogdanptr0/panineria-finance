@@ -1,173 +1,201 @@
 
-import React, { useState, useEffect } from 'react';
-import { formatCurrency, formatDate, formatPercentage, calculatePercentageChange } from '@/lib/formatters';
-import { PLReport } from '@/lib/reportTypes';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { formatCurrency, formatDate } from "@/lib/formatters";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { addMonths, subMonths, format } from "date-fns";
+import { loadReport } from "@/lib/persistence";
 
-interface ComparisonViewProps {
+export interface ComparisonViewProps {
   currentMonth: Date;
-  currentReport: {
-    totalRevenue: number;
-    totalCogs: number;
-    grossProfit: number;
-    totalExpenses: number;
-    netProfit: number;
-  };
+  revenue: number;
+  expenses: number;
+  profit: number;
 }
 
-const ComparisonView: React.FC<ComparisonViewProps> = ({ currentMonth, currentReport }) => {
-  const [prevMonthReport, setPrevMonthReport] = useState<PLReport | null>(null);
-  const [prevYearReport, setPrevYearReport] = useState<PLReport | null>(null);
+const ComparisonView = ({ currentMonth, revenue, expenses, profit }: ComparisonViewProps) => {
+  const [previousMonthData, setPreviousMonthData] = useState<{ revenue: number; expenses: number; profit: number } | null>(null);
+  const [nextMonthData, setNextMonthData] = useState<{ revenue: number; expenses: number; profit: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      
+      const prevMonth = subMonths(currentMonth, 1);
+      const nextMonth = addMonths(currentMonth, 1);
+      
+      const prevMonthReport = await loadReport(prevMonth);
+      const nextMonthReport = await loadReport(nextMonth);
+      
+      if (prevMonthReport) {
+        const totalBucatarieRevenue = Object.values(prevMonthReport.bucatarieItems).reduce((sum, value) => sum + value, 0);
+        const totalTazzRevenue = Object.values(prevMonthReport.tazzItems).reduce((sum, value) => sum + value, 0);
+        const totalBarRevenue = Object.values(prevMonthReport.barItems).reduce((sum, value) => sum + value, 0);
+        const totalRevenue = totalBucatarieRevenue + totalTazzRevenue + totalBarRevenue;
+        
+        const totalSalaryExpenses = Object.values(prevMonthReport.salaryExpenses).reduce((sum, value) => sum + value, 0);
+        const totalDistributorExpenses = Object.values(prevMonthReport.distributorExpenses).reduce((sum, value) => sum + value, 0);
+        const totalUtilitiesExpenses = Object.values(prevMonthReport.utilitiesExpenses).reduce((sum, value) => sum + value, 0);
+        const totalOperationalExpenses = Object.values(prevMonthReport.operationalExpenses).reduce((sum, value) => sum + value, 0);
+        const totalOtherExpenses = Object.values(prevMonthReport.otherExpenses).reduce((sum, value) => sum + value, 0);
+        const totalExpenses = totalSalaryExpenses + totalDistributorExpenses + totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses;
+        
+        setPreviousMonthData({
+          revenue: totalRevenue,
+          expenses: totalExpenses,
+          profit: totalRevenue - totalExpenses
+        });
+      } else {
+        setPreviousMonthData(null);
+      }
+      
+      if (nextMonthReport) {
+        const totalBucatarieRevenue = Object.values(nextMonthReport.bucatarieItems).reduce((sum, value) => sum + value, 0);
+        const totalTazzRevenue = Object.values(nextMonthReport.tazzItems).reduce((sum, value) => sum + value, 0);
+        const totalBarRevenue = Object.values(nextMonthReport.barItems).reduce((sum, value) => sum + value, 0);
+        const totalRevenue = totalBucatarieRevenue + totalTazzRevenue + totalBarRevenue;
+        
+        const totalSalaryExpenses = Object.values(nextMonthReport.salaryExpenses).reduce((sum, value) => sum + value, 0);
+        const totalDistributorExpenses = Object.values(nextMonthReport.distributorExpenses).reduce((sum, value) => sum + value, 0);
+        const totalUtilitiesExpenses = Object.values(nextMonthReport.utilitiesExpenses).reduce((sum, value) => sum + value, 0);
+        const totalOperationalExpenses = Object.values(nextMonthReport.operationalExpenses).reduce((sum, value) => sum + value, 0);
+        const totalOtherExpenses = Object.values(nextMonthReport.otherExpenses).reduce((sum, value) => sum + value, 0);
+        const totalExpenses = totalSalaryExpenses + totalDistributorExpenses + totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses;
+        
+        setNextMonthData({
+          revenue: totalRevenue,
+          expenses: totalExpenses,
+          profit: totalRevenue - totalExpenses
+        });
+      } else {
+        setNextMonthData(null);
+      }
+      
+      setLoading(false);
+    };
+    
+    fetchData();
+  }, [currentMonth]);
   
-  // Get the previous month's date
-  const getPrevMonthDate = (date: Date) => {
-    const prevMonth = new Date(date);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
-    return prevMonth;
+  // Prepare data for chart
+  const chartData = [];
+  
+  if (previousMonthData) {
+    chartData.push({
+      name: format(subMonths(currentMonth, 1), 'MMM yy'),
+      revenue: previousMonthData.revenue,
+      expenses: previousMonthData.expenses,
+      profit: previousMonthData.profit
+    });
+  }
+  
+  chartData.push({
+    name: format(currentMonth, 'MMM yy'),
+    revenue: revenue,
+    expenses: expenses,
+    profit: profit
+  });
+  
+  if (nextMonthData) {
+    chartData.push({
+      name: format(addMonths(currentMonth, 1), 'MMM yy'),
+      revenue: nextMonthData.revenue,
+      expenses: nextMonthData.expenses,
+      profit: nextMonthData.profit
+    });
+  }
+  
+  // Calculate month-over-month changes
+  const calculateChange = (current: number, previous: number) => {
+    if (!previous) return null;
+    const change = ((current - previous) / previous) * 100;
+    return change;
   };
   
-  // Get the same month from previous year
-  const getPrevYearDate = (date: Date) => {
-    const prevYear = new Date(date);
-    prevYear.setFullYear(prevYear.getFullYear() - 1);
-    return prevYear;
-  };
-  
-  const renderComparison = (current: number, previous: number | undefined, label: string) => {
-    if (previous === undefined) return null;
+  const revenueChange = previousMonthData 
+    ? calculateChange(revenue, previousMonthData.revenue) 
+    : null;
     
-    const change = calculatePercentageChange(current, previous);
-    const isPositive = change > 0;
+  const expensesChange = previousMonthData 
+    ? calculateChange(expenses, previousMonthData.expenses) 
+    : null;
     
-    return (
-      <div className="flex items-center space-x-2">
-        <span className="text-sm text-gray-500">{label}:</span>
-        <span className={`flex items-center ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-          {isPositive ? <ArrowUpIcon size={16} /> : <ArrowDownIcon size={16} />}
-          {formatPercentage(Math.abs(change))}
-        </span>
-      </div>
-    );
-  };
-  
-  // Calculate month-to-month changes
-  const calculateMoMChanges = () => {
-    if (!prevMonthReport) return null;
-    
-    const revenueChange = renderComparison(currentReport.totalRevenue, prevMonthReport.totalRevenue, "MoM Revenue");
-    const expensesChange = renderComparison(currentReport.totalExpenses, prevMonthReport.totalExpenses, "MoM Expenses");
-    const profitChange = renderComparison(currentReport.netProfit, prevMonthReport.netProfit, "MoM Profit");
-    
-    return (
-      <div className="space-y-2 mt-4">
-        {revenueChange}
-        {expensesChange}
-        {profitChange}
-      </div>
-    );
-  };
-  
-  // Calculate year-over-year changes
-  const calculateYoYChanges = () => {
-    if (!prevYearReport) return null;
-    
-    const revenueChange = renderComparison(currentReport.totalRevenue, prevYearReport.totalRevenue, "YoY Revenue");
-    const expensesChange = renderComparison(currentReport.totalExpenses, prevYearReport.totalExpenses, "YoY Expenses");
-    const profitChange = renderComparison(currentReport.netProfit, prevYearReport.netProfit, "YoY Profit");
-    
-    return (
-      <div className="space-y-2 mt-4">
-        {revenueChange}
-        {expensesChange}
-        {profitChange}
-      </div>
-    );
-  };
-  
+  const profitChange = previousMonthData 
+    ? calculateChange(profit, previousMonthData.profit) 
+    : null;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Comparison Analysis</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="mom">
-          <TabsList className="mb-4">
-            <TabsTrigger value="mom">Month-over-Month</TabsTrigger>
-            <TabsTrigger value="yoy">Year-over-Year</TabsTrigger>
-          </TabsList>
+    <div className="bg-white rounded-lg shadow p-4">
+      <h2 className="text-xl font-bold mb-4">Comparație Lunară</h2>
+      
+      {loading ? (
+        <div className="flex justify-center items-center h-60">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-6">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={chartData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Bar dataKey="revenue" name="Încasări" fill="#82ca9d" />
+                <Bar dataKey="expenses" name="Cheltuieli" fill="#ff7f0e" />
+                <Bar dataKey="profit" name="Profit" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
           
-          <TabsContent value="mom">
-            <div>
-              <h3 className="font-semibold text-lg mb-2">
-                Comparing {formatDate(currentMonth)} vs {formatDate(getPrevMonthDate(currentMonth))}
-              </h3>
-              
-              {prevMonthReport ? (
-                <>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Revenue</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.totalRevenue)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevMonthReport.totalRevenue || 0)}</div>
-                    </div>
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Expenses</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.totalExpenses)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevMonthReport.totalExpenses || 0)}</div>
-                    </div>
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Net Profit</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.netProfit)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevMonthReport.netProfit || 0)}</div>
-                    </div>
-                  </div>
-                  
-                  {calculateMoMChanges()}
-                </>
-              ) : (
-                <div className="text-gray-500">No data available for the previous month.</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border rounded p-3">
+              <h3 className="font-semibold mb-1">Încasări</h3>
+              <div className="text-lg font-bold">{formatCurrency(revenue)}</div>
+              {revenueChange !== null && (
+                <div className={`text-sm ${revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {revenueChange >= 0 ? '▲' : '▼'} {Math.abs(revenueChange).toFixed(1)}% față de luna anterioară
+                </div>
               )}
             </div>
-          </TabsContent>
-          
-          <TabsContent value="yoy">
-            <div>
-              <h3 className="font-semibold text-lg mb-2">
-                Comparing {formatDate(currentMonth)} vs {formatDate(getPrevYearDate(currentMonth))}
-              </h3>
-              
-              {prevYearReport ? (
-                <>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Revenue</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.totalRevenue)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevYearReport.totalRevenue || 0)}</div>
-                    </div>
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Expenses</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.totalExpenses)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevYearReport.totalExpenses || 0)}</div>
-                    </div>
-                    <div className="bg-gray-100 p-3 rounded-md">
-                      <div className="text-sm text-gray-500">Net Profit</div>
-                      <div className="font-semibold">{formatCurrency(currentReport.netProfit)}</div>
-                      <div className="text-xs text-gray-500">vs {formatCurrency(prevYearReport.netProfit || 0)}</div>
-                    </div>
-                  </div>
-                  
-                  {calculateYoYChanges()}
-                </>
-              ) : (
-                <div className="text-gray-500">No data available for the previous year.</div>
+            
+            <div className="border rounded p-3">
+              <h3 className="font-semibold mb-1">Cheltuieli</h3>
+              <div className="text-lg font-bold">{formatCurrency(expenses)}</div>
+              {expensesChange !== null && (
+                <div className={`text-sm ${expensesChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {expensesChange >= 0 ? '▲' : '▼'} {Math.abs(expensesChange).toFixed(1)}% față de luna anterioară
+                </div>
               )}
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+            
+            <div className="border rounded p-3">
+              <h3 className="font-semibold mb-1">Profit</h3>
+              <div className="text-lg font-bold">{formatCurrency(profit)}</div>
+              {profitChange !== null && (
+                <div className={`text-sm ${profitChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {profitChange >= 0 ? '▲' : '▼'} {Math.abs(profitChange).toFixed(1)}% față de luna anterioară
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {previousMonthData && (
+            <div className="mt-4 text-sm text-gray-600">
+              <p>
+                Comparativ cu luna anterioară, afacerea {profit >= previousMonthData.profit 
+                  ? 'a înregistrat o creștere în profitabilitate' 
+                  : 'a înregistrat o scădere în profitabilitate'}.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 };
 

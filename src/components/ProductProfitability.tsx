@@ -1,83 +1,101 @@
 
-import { formatCurrency, formatPercentage } from "@/lib/formatters";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import React from "react";
+import { formatCurrency } from "@/lib/formatters";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-interface ProductProfitabilityProps {
-  revenueItems: Record<string, number>;
-  costOfGoodsItems?: Record<string, number>;
-  totalRevenue?: number;
-  totalExpenses?: number;
-  netProfit?: number;
+interface Section {
+  title: string;
+  items: string[];
 }
 
-const ProductProfitability = ({ revenueItems, costOfGoodsItems = {} }: ProductProfitabilityProps) => {
-  // Calculate profitability metrics for each product
-  const products = Object.keys(revenueItems).filter(name => 
-    costOfGoodsItems && name in revenueItems
-  );
+export interface ProductProfitabilityProps {
+  items: Record<string, number>;
+  sections: Section[];
+}
+
+const ProductProfitability = ({ items, sections }: ProductProfitabilityProps) => {
+  // Sort items by value (descending)
+  const sortedItems = Object.entries(items)
+    .sort(([, valueA], [, valueB]) => valueB - valueA)
+    .slice(0, 10);  // Top 10 items
+
+  // Prepare data for chart
+  const chartData = sortedItems.map(([name, value]) => ({
+    name: name.length > 15 ? name.substring(0, 15) + '...' : name,
+    fullName: name,
+    value
+  }));
   
-  const productMetrics = products.map(name => {
-    const revenue = revenueItems[name] || 0;
-    const cost = costOfGoodsItems?.[name] || 0;
-    const profit = revenue - cost;
-    const margin = revenue > 0 ? profit / revenue : 0;
+  // Group items by section
+  const sectionData = sections.map(section => {
+    const sectionItems = section.items
+      .filter(itemName => items[itemName] > 0)
+      .map(itemName => ({
+        name: itemName,
+        value: items[itemName]
+      }))
+      .sort((a, b) => b.value - a.value);
+    
+    const total = sectionItems.reduce((sum, item) => sum + item.value, 0);
     
     return {
-      name,
-      revenue,
-      profit,
-      margin
+      title: section.title,
+      items: sectionItems,
+      total
     };
   });
-  
-  // Sort products by profit margin (descending)
-  const sortedProducts = [...productMetrics].sort((a, b) => b.margin - a.margin);
-  
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-2 border border-gray-200 shadow-md">
+          <p className="font-semibold">{payload[0].payload.fullName || label}</p>
+          <p>{formatCurrency(payload[0].value)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4">Product Profitability</h2>
+    <div className="bg-white rounded-lg shadow p-4">
+      <h2 className="text-xl font-bold mb-4">Top Produse după Cifra de Afaceri</h2>
       
-      {sortedProducts.length > 0 ? (
-        <div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
-                <TableHead className="text-right">Profit</TableHead>
-                <TableHead className="text-right">Margin</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedProducts.map(product => (
-                <TableRow key={product.name}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(product.revenue)}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    <span className={product.profit >= 0 ? "text-green-600" : "text-red-600"}>
-                      {formatCurrency(product.profit)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={product.margin >= 0.3 ? "text-green-600" : product.margin >= 0.15 ? "text-amber-600" : "text-red-600"}>
-                      {formatPercentage(product.margin)}
-                    </span>
-                  </TableCell>
-                </TableRow>
+      <div className="mb-6">
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart
+            data={chartData}
+            margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis tickFormatter={(value) => formatCurrency(value)} />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="value" name="Încasări" fill="#8884d8" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {sectionData.map((section, index) => (
+          <div key={index} className="border rounded p-3">
+            <h3 className="font-semibold border-b pb-2 mb-2">{section.title} - {formatCurrency(section.total)}</h3>
+            <div className="space-y-1">
+              {section.items.slice(0, 5).map((item, idx) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span className="truncate mr-2">{item.name}</span>
+                  <span className="font-medium">{formatCurrency(item.value)}</span>
+                </div>
               ))}
-            </TableBody>
-          </Table>
-          
-          <div className="mt-4 text-sm text-gray-500">
-            <p>* Products are sorted by profit margin (highest to lowest)</p>
-            <p>* Only products with both revenue and cost data are shown</p>
+              {section.items.length > 5 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  + {section.items.length - 5} more items
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="text-gray-500 italic">
-          No matching products found. Ensure product names match between revenue and cost sections.
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 };
