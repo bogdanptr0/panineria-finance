@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from '@/lib/formatters';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Edit2, Save, Plus, Trash2 } from 'lucide-react';
-import { Collapse } from '@/components/ui/collapse';
+import { Collapse } from '@/components/ui/collapsible';
 
 export interface ExpensesSectionProps {
   salaryExpenses: Record<string, number>;
