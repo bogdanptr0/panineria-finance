@@ -843,11 +843,24 @@ const Index = () => {
     });
   };
 
+  const addDefaultBarItems = async () => {
+    for (const [itemName, value] of Object.entries(DEFAULT_BAR_ITEMS)) {
+      await handleAddRevenueItem(selectedMonth, 'revenue_items', itemName, value);
+    }
+    setBarItems(DEFAULT_BAR_ITEMS);
+    
+    toast({
+      title: "Default items added",
+      description: "Default Bar items have been added to the database."
+    });
+  };
+
   useEffect(() => {
     const setupItems = async () => {
       await clearAllDefaultItems();
       await addDefaultBucatarieItems();
       await addDefaultTazzItems();
+      await addDefaultBarItems();
     };
     
     setupItems();

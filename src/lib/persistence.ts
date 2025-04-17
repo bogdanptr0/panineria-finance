@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,7 +32,45 @@ export const DEFAULT_TAZZ_ITEMS: Record<string, number> = {
   "Fanta": 0,
   "Peroni": 0
 };
-export const DEFAULT_BAR_ITEMS: Record<string, number> = {};
+export const DEFAULT_BAR_ITEMS: Record<string, number> = {
+  "Espresso": 0,
+  "Cafea Lunga": 0,
+  "Cappucino": 0,
+  "Nutellino": 0,
+  "Ceai": 0,
+  "Ciocolata calda": 0,
+  "Coca Cola": 0,
+  "Fanta": 0,
+  "Sprite": 0,
+  "Schwepps": 0,
+  "FuzeTea": 0,
+  "Cappy": 0,
+  "Dorna - Plata - 0,33": 0,
+  "Dorna - Minerala - 0,33": 0,
+  "Dorna - Plata - 0,75": 0,
+  "Dorna - Minerala - 0,75": 0,
+  "Dorna - Plata - 0,5": 0,
+  "Dorna - Minerala - 0,5": 0,
+  "12 Mezzo - Bianca": 0,
+  "12 Mezzo - Rosato": 0,
+  "12 Mezzo - Primitivo": 0,
+  "Montemajor - Greco di tufo": 0,
+  "Scaia - Garganega": 0,
+  "Davinci - Rosato": 0,
+  "Tenuta Ulisse - Rose": 0,
+  "Montemajor - Quattro Noti": 0,
+  "Davinci - Portate a Cesena Sangiovese": 0,
+  "Astoria DOC": 0,
+  "Astoria Rose": 0,
+  "Peroni": 0,
+  "Peroni 0% Alcool": 0,
+  "Hugo": 0,
+  "Bellini": 0,
+  "Aperol Spritz": 0,
+  "Negroni": 0,
+  "Whiskey Cola": 0,
+  "Gin Tonic": 0
+};
 
 export async function loadReport(month: Date): Promise<{
   bucatarieItems: Record<string, number>;
