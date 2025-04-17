@@ -72,10 +72,11 @@ export const DEFAULT_BAR_ITEMS: Record<string, number> = {
   "Gin Tonic": 0
 };
 
-// New optimized function that adds multiple revenue items in a single batch operation
+// Updated to handle separate sections
 export async function batchAddRevenueItems(
   month: Date, 
-  items: Record<string, number>
+  items: Record<string, number>,
+  section: 'bucatarie' | 'tazz' | 'bar'
 ): Promise<boolean> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -89,7 +90,7 @@ export async function batchAddRevenueItems(
     // Check if report exists
     const { data: existingReport, error: reportError } = await supabase
       .from('pl_reports')
-      .select('id, revenue_items')
+      .select('id, bucatarie_items, tazz_items, bar_items')
       .eq('date', formattedDate)
       .eq('user_id', user.id)
       .single();
@@ -100,27 +101,39 @@ export async function batchAddRevenueItems(
     }
     
     if (existingReport) {
-      // Merge existing revenue items with new items
-      const revenueItems = existingReport.revenue_items as Record<string, number> || {};
-      const updatedItems = { ...revenueItems, ...items };
+      // Update specific section items
+      const updateData: any = {};
+      switch(section) {
+        case 'bucatarie':
+          updateData.bucatarie_items = items;
+          break;
+        case 'tazz':
+          updateData.tazz_items = items;
+          break;
+        case 'bar':
+          updateData.bar_items = items;
+          break;
+      }
       
       const { error: updateError } = await supabase
         .from('pl_reports')
-        .update({ revenue_items: updatedItems })
+        .update(updateData)
         .eq('id', existingReport.id);
         
       if (updateError) {
-        console.error(`Error updating revenue_items:`, updateError);
+        console.error(`Error updating ${section}_items:`, updateError);
         return false;
       }
       
       return true;
     } else {
-      // Create default report with all provided items
+      // Create default report with section-specific items
       const defaultReportData: any = {
         date: formattedDate,
         user_id: user.id,
-        revenue_items: items,
+        bucatarie_items: section === 'bucatarie' ? items : {},
+        tazz_items: section === 'tazz' ? items : {},
+        bar_items: section === 'bar' ? items : {},
         cost_of_goods_items: {},
         salary_expenses: {
           "Adi": 4050,
@@ -216,9 +229,9 @@ export async function loadReport(month: Date): Promise<{
     }
 
     return {
-      bucatarieItems: pl_reports.revenue_items as Record<string, number> || DEFAULT_BUCATARIE_ITEMS,
-      tazzItems: pl_reports.revenue_items as Record<string, number> || DEFAULT_TAZZ_ITEMS,
-      barItems: pl_reports.revenue_items as Record<string, number> || DEFAULT_BAR_ITEMS,
+      bucatarieItems: pl_reports.bucatarie_items as Record<string, number> || DEFAULT_BUCATARIE_ITEMS,
+      tazzItems: pl_reports.tazz_items as Record<string, number> || DEFAULT_TAZZ_ITEMS,
+      barItems: pl_reports.bar_items as Record<string, number> || DEFAULT_BAR_ITEMS,
       salaryExpenses: pl_reports.salary_expenses as Record<string, number>,
       distributorExpenses: pl_reports.distributor_expenses as Record<string, number>,
       utilitiesExpenses: pl_reports.utilities_expenses as Record<string, number>,
@@ -297,7 +310,9 @@ export async function updateAllReportsWithDefaultSalaries() {
 
 export async function saveReport(
   month: Date,
-  revenueItems: Record<string, number>,
+  bucatarieItems: Record<string, number>,
+  tazzItems: Record<string, number>,
+  barItems: Record<string, number>,
   costOfGoodsItems: Record<string, number>,
   salaryExpenses: Record<string, number>,
   distributorExpenses: Record<string, number>,
@@ -337,7 +352,9 @@ export async function saveReport(
       const { error: updateError } = await supabase
         .from('pl_reports')
         .update({
-          revenue_items: revenueItems,
+          bucatarie_items: bucatarieItems,
+          tazz_items: tazzItems,
+          bar_items: barItems,
           cost_of_goods_items: costOfGoodsItems,
           salary_expenses: salaryExpenses,
           distributor_expenses: distributorExpenses,
@@ -362,7 +379,9 @@ export async function saveReport(
           {
             date: formattedDate,
             user_id: user.id,
-            revenue_items: revenueItems,
+            bucatarie_items: bucatarieItems,
+            tazz_items: tazzItems,
+            bar_items: barItems,
             cost_of_goods_items: costOfGoodsItems,
             salary_expenses: salaryExpenses,
             distributor_expenses: distributorExpenses,
@@ -388,7 +407,7 @@ export async function saveReport(
 
 export async function deleteItemFromSupabase(
   month: Date,
-  section: 'revenue_items' | 'cost_of_goods_items' | 'salary_expenses' | 'distributor_expenses' | 'utilities_expenses' | 'operational_expenses' | 'other_expenses',
+  section: 'bucatarie_items' | 'tazz_items' | 'bar_items' | 'cost_of_goods_items' | 'salary_expenses' | 'distributor_expenses' | 'utilities_expenses' | 'operational_expenses' | 'other_expenses',
   itemName: string
 ): Promise<boolean> {
   try {
@@ -501,7 +520,7 @@ export async function addItemToSupabase(
 
 export async function updateItemInSupabase(
   month: Date,
-  section: 'revenue_items' | 'salary_expenses' | 'distributor_expenses' | 'utilities_expenses' | 'operational_expenses' | 'other_expenses',
+  section: 'bucatarie_items' | 'tazz_items' | 'bar_items' | 'salary_expenses' | 'distributor_expenses' | 'utilities_expenses' | 'operational_expenses' | 'other_expenses',
   itemName: string,
   itemValue: number
 ): Promise<boolean> {
@@ -517,7 +536,7 @@ export async function updateItemInSupabase(
     // Fetch the report for the given month and user
     const { data: existingReport, error: reportError } = await supabase
       .from('pl_reports')
-      .select('id, revenue_items, cost_of_goods_items, salary_expenses, distributor_expenses, utilities_expenses, operational_expenses, other_expenses')
+      .select('id, bucatarie_items, tazz_items, bar_items, cost_of_goods_items, salary_expenses, distributor_expenses, utilities_expenses, operational_expenses, other_expenses')
       .eq('date', formattedDate)
       .eq('user_id', user.id)
       .single();
@@ -534,8 +553,12 @@ export async function updateItemInSupabase(
 
     let sectionItems: Record<string, number> = {};
 
-    if (section === 'revenue_items') {
-      sectionItems = (existingReport.revenue_items || {}) as Record<string, number>;
+    if (section === 'bucatarie_items') {
+      sectionItems = (existingReport.bucatarie_items || {}) as Record<string, number>;
+    } else if (section === 'tazz_items') {
+      sectionItems = (existingReport.tazz_items || {}) as Record<string, number>;
+    } else if (section === 'bar_items') {
+      sectionItems = (existingReport.bar_items || {}) as Record<string, number>;  
     } else if (section === 'salary_expenses') {
       sectionItems = (existingReport.salary_expenses || {}) as Record<string, number>;
     } else if (section === 'distributor_expenses') {
@@ -554,8 +577,12 @@ export async function updateItemInSupabase(
     // Prepare the update object
     let updateObject: any = {};
 
-    if (section === 'revenue_items') {
-      updateObject.revenue_items = sectionItems;
+    if (section === 'bucatarie_items') {
+      updateObject.bucatarie_items = sectionItems;
+    } else if (section === 'tazz_items') {
+      updateObject.tazz_items = sectionItems;
+    } else if (section === 'bar_items') {
+      updateObject.bar_items = sectionItems;
     } else if (section === 'salary_expenses') {
       updateObject.salary_expenses = sectionItems;
     } else if (section === 'distributor_expenses') {
@@ -589,7 +616,7 @@ export async function updateItemInSupabase(
 
 export async function renameItemInSupabase(
   month: Date,
-  section: 'revenue_items' | 'salary_expenses' | 'distributor_expenses' | 'utilities_expenses' | 'operational_expenses' | 'other_expenses',
+  section: 'bucatarie_items' | 'tazz_items' | 'bar_items' | 'salary_expenses' | 'distributor_expenses' | 'utilities_expenses' | 'operational_expenses' | 'other_expenses',
   oldName: string,
   newName: string
 ): Promise<boolean> {
@@ -605,7 +632,7 @@ export async function renameItemInSupabase(
     // Fetch the report for the given month and user
     const { data: existingReport, error: reportError } = await supabase
       .from('pl_reports')
-      .select('id, revenue_items, cost_of_goods_items, salary_expenses, distributor_expenses, utilities_expenses, operational_expenses, other_expenses')
+      .select('id, bucatarie_items, tazz_items, bar_items, cost_of_goods_items, salary_expenses, distributor_expenses, utilities_expenses, operational_expenses, other_expenses')
       .eq('date', formattedDate)
       .eq('user_id', user.id)
       .single();
@@ -622,8 +649,12 @@ export async function renameItemInSupabase(
 
     let sectionItems: Record<string, number> = {};
 
-    if (section === 'revenue_items') {
-      sectionItems = (existingReport.revenue_items || {}) as Record<string, number>;
+    if (section === 'bucatarie_items') {
+      sectionItems = (existingReport.bucatarie_items || {}) as Record<string, number>;
+    } else if (section === 'tazz_items') {
+      sectionItems = (existingReport.tazz_items || {}) as Record<string, number>;
+    } else if (section === 'bar_items') {
+      sectionItems = (existingReport.bar_items || {}) as Record<string, number>;  
     } else if (section === 'salary_expenses') {
       sectionItems = (existingReport.salary_expenses || {}) as Record<string, number>;
     } else if (section === 'distributor_expenses') {
@@ -647,20 +678,7 @@ export async function renameItemInSupabase(
 
     // Prepare the update object
     let updateObject: any = {};
-
-    if (section === 'revenue_items') {
-      updateObject.revenue_items = sectionItems;
-    } else if (section === 'salary_expenses') {
-      updateObject.salary_expenses = sectionItems;
-    } else if (section === 'distributor_expenses') {
-      updateObject.distributor_expenses = sectionItems;
-    } else if (section === 'utilities_expenses') {
-      updateObject.utilities_expenses = sectionItems;
-    } else if (section === 'operational_expenses') {
-      updateObject.operational_expenses = sectionItems;
-    } else if (section === 'other_expenses') {
-      updateObject.other_expenses = sectionItems;
-    }
+    updateObject[section] = sectionItems;
 
     // Update the report in Supabase with the modified section
     const { error: updateError } = await supabase
@@ -683,7 +701,7 @@ export async function renameItemInSupabase(
 
 export async function handleAddRevenueItem(
   month: Date, 
-  section: 'revenue_items', 
+  section: 'bucatarie_items' | 'tazz_items' | 'bar_items', 
   itemName: string, 
   itemValue: number
 ): Promise<boolean> {
@@ -699,7 +717,7 @@ export async function handleAddRevenueItem(
     // Check if report exists
     const { data: existingReport, error: reportError } = await supabase
       .from('pl_reports')
-      .select('id, revenue_items')
+      .select(`id, ${section}`)
       .eq('date', formattedDate)
       .eq('user_id', user.id)
       .single();
@@ -710,26 +728,28 @@ export async function handleAddRevenueItem(
     }
     
     if (existingReport) {
-      const revenueItems = existingReport.revenue_items as Record<string, number> || {};
-      const updatedItems = { ...revenueItems, [itemName]: itemValue };
+      const sectionItems = existingReport[section] as Record<string, number> || {};
+      const updatedItems = { ...sectionItems, [itemName]: itemValue };
       
       const { error: updateError } = await supabase
         .from('pl_reports')
-        .update({ revenue_items: updatedItems })
+        .update({ [section]: updatedItems })
         .eq('id', existingReport.id);
         
       if (updateError) {
-        console.error(`Error updating revenue_items:`, updateError);
+        console.error(`Error updating ${section}:`, updateError);
         return false;
       }
       
       return true;
     } else {
-      // Create default report with new item
+      // Create default report with new item in the appropriate section
       const defaultReportData: any = {
         date: formattedDate,
         user_id: user.id,
-        revenue_items: { [itemName]: itemValue },
+        bucatarie_items: section === 'bucatarie_items' ? { [itemName]: itemValue } : {},
+        tazz_items: section === 'tazz_items' ? { [itemName]: itemValue } : {},
+        bar_items: section === 'bar_items' ? { [itemName]: itemValue } : {},
         cost_of_goods_items: {},
         salary_expenses: {
           "Adi": 4050,

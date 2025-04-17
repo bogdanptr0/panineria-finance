@@ -13,6 +13,7 @@ interface TazzSectionProps {
   onAddItem: (name: string) => void;
   onRenameItem: (oldName: string, newName: string) => void;
   onDeleteItem?: (name: string) => void;
+  sectionType?: "bucatarie" | "tazz" | "bar"; // Add section type prop
 }
 
 const TazzSection = ({ 
@@ -21,7 +22,8 @@ const TazzSection = ({
   totalRevenue, 
   onAddItem, 
   onRenameItem,
-  onDeleteItem
+  onDeleteItem,
+  sectionType = "tazz" // Default to tazz if not specified
 }: TazzSectionProps) => {
   const { toast } = useToast();
   const [editingName, setEditingName] = useState<string | null>(null);

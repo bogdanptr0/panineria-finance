@@ -166,7 +166,9 @@ const Index = () => {
         try {
           await saveReport(
             selectedMonth,
-            getRevenueItems(),
+            bucatarieItems,
+            tazzItems,
+            barItems,
             {},
             salaryExpenses,
             distributorExpenses,
@@ -597,7 +599,7 @@ const Index = () => {
 
   const handleAddBucatarieItem = async (name: string) => {
     setBucatarieItems(prev => ({ ...prev, [name]: 0 }));
-    const success = await handleAddRevenueItem(selectedMonth, 'revenue_items', name, 0);
+    const success = await handleAddRevenueItem(selectedMonth, 'bucatarie_items', name, 0);
     if (!success) {
       toast({
         title: "Error",
@@ -610,7 +612,7 @@ const Index = () => {
 
   const handleAddTazzItem = async (name: string) => {
     setTazzItems(prev => ({ ...prev, [name]: 0 }));
-    const success = await handleAddRevenueItem(selectedMonth, 'revenue_items', name, 0);
+    const success = await handleAddRevenueItem(selectedMonth, 'tazz_items', name, 0);
     if (!success) {
       toast({
         title: "Error",
@@ -623,7 +625,7 @@ const Index = () => {
 
   const handleAddBarItem = async (name: string) => {
     setBarItems(prev => ({ ...prev, [name]: 0 }));
-    const success = await handleAddRevenueItem(selectedMonth, 'revenue_items', name, 0);
+    const success = await handleAddRevenueItem(selectedMonth, 'bar_items', name, 0);
     if (!success) {
       toast({
         title: "Error",
@@ -644,7 +646,7 @@ const Index = () => {
       return { ...newItems, [newName]: value };
     });
     
-    await renameItemInSupabase(selectedMonth, 'revenue_items', oldName, newName);
+    await renameItemInSupabase(selectedMonth, 'bucatarie_items', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
@@ -658,7 +660,7 @@ const Index = () => {
       return { ...newItems, [newName]: value };
     });
     
-    await renameItemInSupabase(selectedMonth, 'revenue_items', oldName, newName);
+    await renameItemInSupabase(selectedMonth, 'tazz_items', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
@@ -672,7 +674,7 @@ const Index = () => {
       return { ...newItems, [newName]: value };
     });
     
-    await renameItemInSupabase(selectedMonth, 'revenue_items', oldName, newName);
+    await renameItemInSupabase(selectedMonth, 'bar_items', oldName, newName);
     setHasUnsavedChanges(true);
   };
 
@@ -684,7 +686,7 @@ const Index = () => {
         return newItems;
       });
       
-      await deleteItemFromSupabase(selectedMonth, 'revenue_items', name);
+      await deleteItemFromSupabase(selectedMonth, 'bucatarie_items', name);
       
       toast({
         title: "Item deleted",
@@ -710,7 +712,7 @@ const Index = () => {
         return newItems;
       });
       
-      await deleteItemFromSupabase(selectedMonth, 'revenue_items', name);
+      await deleteItemFromSupabase(selectedMonth, 'tazz_items', name);
       
       toast({
         title: "Item deleted",
@@ -736,7 +738,7 @@ const Index = () => {
         return newItems;
       });
       
-      await deleteItemFromSupabase(selectedMonth, 'revenue_items', name);
+      await deleteItemFromSupabase(selectedMonth, 'bar_items', name);
       
       toast({
         title: "Item deleted",
@@ -848,7 +850,7 @@ const Index = () => {
   };
 
   const addDefaultBucatarieItems = async () => {
-    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_BUCATARIE_ITEMS);
+    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_BUCATARIE_ITEMS, 'bucatarie');
     if (success) {
       setBucatarieItems(DEFAULT_BUCATARIE_ITEMS);
       
@@ -860,7 +862,7 @@ const Index = () => {
   };
 
   const addDefaultTazzItems = async () => {
-    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_TAZZ_ITEMS);
+    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_TAZZ_ITEMS, 'tazz');
     if (success) {
       setTazzItems(DEFAULT_TAZZ_ITEMS);
       
@@ -872,7 +874,7 @@ const Index = () => {
   };
 
   const addDefaultBarItems = async () => {
-    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_BAR_ITEMS);
+    const success = await batchAddRevenueItems(selectedMonth, DEFAULT_BAR_ITEMS, 'bar');
     if (success) {
       setBarItems(DEFAULT_BAR_ITEMS);
       
@@ -926,6 +928,7 @@ const Index = () => {
                     onRenameItem={handleTazzRename}
                     onAddItem={handleAddTazzItem}
                     onDeleteItem={handleDeleteTazzItem}
+                    sectionType="tazz"
                   />
                   
                   <BarSection 
