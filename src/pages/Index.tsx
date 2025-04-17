@@ -113,35 +113,15 @@ const Index = () => {
     const fetchReport = async () => {
       const report = await loadReport(selectedMonth);
       if (report) {
-        setBucatarieItems(report.bucatarieItems || DEFAULT_BUCATARIE_ITEMS);
-        
-        let updatedTazzItems = report.tazzItems || DEFAULT_TAZZ_ITEMS;
-        if (updatedTazzItems["Bere Peroni 0% Alcool"] !== undefined) {
-          const value = updatedTazzItems["Bere Peroni 0% Alcool"];
-          delete updatedTazzItems["Bere Peroni 0% Alcool"];
-          updatedTazzItems["Peroni 0% Alcool"] = value;
-        }
-        setTazzItems(updatedTazzItems);
-        
-        setBarItems(report.barItems || DEFAULT_BAR_ITEMS);
+        setBucatarieItems(report.bucatarieItems);
+        setTazzItems(report.tazzItems);
+        setBarItems(report.barItems);
         
         setSalaryExpenses(report.salaryExpenses);
         setDistributorExpenses(report.distributorExpenses);
-        setUtilitiesExpenses(report.utilitiesExpenses || {
-          "Gaze(Engie)": 0,
-          "Apa": 0,
-          "Curent": 0,
-          "Gunoi(Iridex)": 0,
-          "Internet": 0
-        });
-        setOperationalExpenses(report.operationalExpenses || {
-          "Contabilitate": 0,
-          "ECR": 0,
-          "ISU": 0,
-          "Chirie": 0,
-          "Protectia Muncii": 0
-        });
-        setOtherExpenses(report.otherExpenses || {});
+        setUtilitiesExpenses(report.utilitiesExpenses);
+        setOperationalExpenses(report.operationalExpenses);
+        setOtherExpenses(report.otherExpenses);
         setBudget(report.budget);
         
         setDeletedTazzItems({});
@@ -213,13 +193,13 @@ const Index = () => {
     
     if (isBucatarieItem) {
       setBucatarieItems(prev => ({ ...prev, [name]: value }));
-      await updateItemInSupabase(selectedMonth, 'revenue_items', name, value);
+      await updateItemInSupabase(selectedMonth, 'bucatarie_items', name, value);
     } else if (isTazzItem) {
       setTazzItems(prev => ({ ...prev, [name]: value }));
-      await updateItemInSupabase(selectedMonth, 'revenue_items', name, value);
+      await updateItemInSupabase(selectedMonth, 'tazz_items', name, value);
     } else if (isBarItem) {
       setBarItems(prev => ({ ...prev, [name]: value }));
-      await updateItemInSupabase(selectedMonth, 'revenue_items', name, value);
+      await updateItemInSupabase(selectedMonth, 'bar_items', name, value);
     } else {
       console.warn("Item not found in any subcategory:", name);
     }
@@ -923,143 +903,3 @@ const Index = () => {
                   
                   <TazzSection 
                     tazzItems={tazzItems}
-                    onUpdateItem={handleRevenueUpdate}
-                    totalRevenue={totalTazzRevenue}
-                    onRenameItem={handleTazzRename}
-                    onAddItem={handleAddTazzItem}
-                    onDeleteItem={handleDeleteTazzItem}
-                    sectionType="tazz"
-                  />
-                  
-                  <BarSection 
-                    barItems={barItems}
-                    onUpdateItem={handleRevenueUpdate}
-                    totalRevenue={totalBarRevenue}
-                    onRenameItem={handleBarRename}
-                    onAddItem={handleAddBarItem}
-                    onDeleteItem={handleDeleteBarItem}
-                  />
-                  
-                  <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
-                    <div className="flex justify-between items-center font-semibold">
-                      <span className="text-lg">TOTAL INCASARI</span>
-                      <span className="text-lg">{formatCurrency(totalRevenue)}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
-                    <div className="flex justify-between items-center font-semibold">
-                      <span className="text-lg">PROFIT BRUT</span>
-                      <span className="text-lg">{formatCurrency(grossProfit)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <ExpensesSection 
-                    title="CHELTUIELI SALARIALE"
-                    items={salaryExpenses}
-                    onUpdateItem={handleSalaryUpdate}
-                    totalExpenses={totalSalaryExpenses}
-                    onRenameItem={handleSalaryRename}
-                    onAddItem={handleAddSalary}
-                    onDeleteItem={handleDeleteSalary}
-                  />
-                  
-                  <ExpensesSection 
-                    title="CHELTUIELI DISTRIBUITORI"
-                    items={distributorExpenses}
-                    onUpdateItem={handleDistributorUpdate}
-                    totalExpenses={totalDistributorExpenses}
-                    onRenameItem={handleDistributorRename}
-                    onAddItem={handleAddDistributor}
-                    onDeleteItem={handleDeleteDistributor}
-                  />
-                  
-                  <ExpensesSection 
-                    title="CHELTUIELI OPERATIONALE"
-                    items={{
-                      ...utilitiesExpenses,
-                      ...operationalExpenses,
-                      ...otherExpenses
-                    }}
-                    onUpdateItem={(name, value) => {
-                      if (operationalExpensesSubsections[0].items.includes(name)) {
-                        handleUtilitiesUpdate(name, value);
-                      } else if (operationalExpensesSubsections[1].items.includes(name)) {
-                        handleOperationalUpdate(name, value);
-                      } else {
-                        handleOtherExpensesUpdate(name, value);
-                      }
-                    }}
-                    totalExpenses={totalUtilitiesExpenses + totalOperationalExpenses + totalOtherExpenses}
-                    onRenameItem={(oldName, newName) => {
-                      if (operationalExpensesSubsections[0].items.includes(oldName)) {
-                        handleUtilitiesRename(oldName, newName);
-                      } else if (operationalExpensesSubsections[1].items.includes(oldName)) {
-                        handleOperationalRename(oldName, newName);
-                      } else {
-                        handleOtherExpensesRename(oldName, newName);
-                      }
-                    }}
-                    onAddItem={(name) => handleSubsectionAddItem("Alte Cheltuieli", name)}
-                    onDeleteItem={handleDeleteOperationalItem}
-                    subsections={operationalExpensesSubsections}
-                  />
-                  
-                  <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
-                    <div className="flex justify-between items-center font-semibold">
-                      <span className="text-lg">TOTAL CHELTUIELI</span>
-                      <span className="text-lg">{formatCurrency(totalExpenses)}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-100 p-4 rounded-md print:break-after-page">
-                    <div className="flex justify-between items-center font-semibold">
-                      <span className="text-lg">PROFIT NET</span>
-                      <span className="text-lg">{formatCurrency(netProfit)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="advanced">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Commented out advanced sections to fix type errors */}
-                {/* These components need their props adjusted to match their interfaces */}
-                {/* 
-                <DataVisualization 
-                  // Props need to be adjusted to match interface
-                />
-                
-                <ProductProfitability 
-                  // Props need to be adjusted to match interface
-                />
-                
-                <LaborAnalysis 
-                  // Props need to be adjusted to match interface
-                />
-                
-                <ComparisonView 
-                  // Props need to be adjusted to match interface
-                />
-                
-                <BudgetAnalysis 
-                  // Props need to be adjusted to match interface
-                />
-                
-                <CashFlowProjection 
-                  // Props need to be adjusted to match interface
-                />
-                */}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-    </RequireAuth>
-  );
-};
-
-export default Index;

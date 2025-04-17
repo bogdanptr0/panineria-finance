@@ -11,6 +11,8 @@ export type Database = {
     Tables: {
       pl_reports: {
         Row: {
+          bar_items: Json | null
+          bucatarie_items: Json | null
           budget: Json | null
           cost_of_goods_items: Json
           created_at: string
@@ -21,11 +23,14 @@ export type Database = {
           other_expenses: Json | null
           revenue_items: Json
           salary_expenses: Json
+          tazz_items: Json | null
           updated_at: string
           user_id: string
           utilities_expenses: Json | null
         }
         Insert: {
+          bar_items?: Json | null
+          bucatarie_items?: Json | null
           budget?: Json | null
           cost_of_goods_items: Json
           created_at?: string
@@ -36,11 +41,14 @@ export type Database = {
           other_expenses?: Json | null
           revenue_items: Json
           salary_expenses: Json
+          tazz_items?: Json | null
           updated_at?: string
           user_id: string
           utilities_expenses?: Json | null
         }
         Update: {
+          bar_items?: Json | null
+          bucatarie_items?: Json | null
           budget?: Json | null
           cost_of_goods_items?: Json
           created_at?: string
@@ -51,6 +59,7 @@ export type Database = {
           other_expenses?: Json | null
           revenue_items?: Json
           salary_expenses?: Json
+          tazz_items?: Json | null
           updated_at?: string
           user_id?: string
           utilities_expenses?: Json | null

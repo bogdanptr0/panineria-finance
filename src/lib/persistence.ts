@@ -1,78 +1,141 @@
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_BUCATARIE_ITEMS, DEFAULT_TAZZ_ITEMS, DEFAULT_BAR_ITEMS } from "@/lib/constants";
 
-// Empty default items for the various sections
-export const DEFAULT_BUCATARIE_ITEMS: Record<string, number> = {
-  "Il Classico": 0,
-  "Il Prosciutto": 0,
-  "Il Piccante": 0,
-  "La Porchetta": 0,
-  "La Mortadella": 0,
-  "La Buffala": 0,
-  "Tiramisu": 0,
-  "Platou": 0
-};
-export const DEFAULT_TAZZ_ITEMS: Record<string, number> = {
-  "[MINI] Il Classico": 0,
-  "[MINI] Il Prosciutto": 0,
-  "[MINI] Il Piccante": 0,
-  "[MINI] La Porchetta": 0,
-  "[MINI] La Mortadella": 0,
-  "[MINI] La Buffala": 0,
-  "Il Classico": 0,
-  "Il Prosciutto": 0,
-  "Il Piccante": 0,
-  "La Porchetta": 0,
-  "La Mortadella": 0,
-  "La Buffala": 0,
-  "Apa plata - 0,5": 0,
-  "Apa minerala - 0,5": 0,
-  "Coca Cola": 0,
-  "Sprite": 0,
-  "Fanta": 0,
-  "Peroni": 0
-};
-export const DEFAULT_BAR_ITEMS: Record<string, number> = {
-  "Espresso": 0,
-  "Cafea Lunga": 0,
-  "Cappucino": 0,
-  "Nutellino": 0,
-  "Ceai": 0,
-  "Ciocolata calda": 0,
-  "Coca Cola": 0,
-  "Fanta": 0,
-  "Sprite": 0,
-  "Schwepps": 0,
-  "FuzeTea": 0,
-  "Cappy": 0,
-  "Dorna - Plata - 0,33": 0,
-  "Dorna - Minerala - 0,33": 0,
-  "Dorna - Plata - 0,75": 0,
-  "Dorna - Minerala - 0,75": 0,
-  "Dorna - Plata - 0,5": 0,
-  "Dorna - Minerala - 0,5": 0,
-  "12 Mezzo - Bianca": 0,
-  "12 Mezzo - Rosato": 0,
-  "12 Mezzo - Primitivo": 0,
-  "Montemajor - Greco di tufo": 0,
-  "Scaia - Garganega": 0,
-  "Davinci - Rosato": 0,
-  "Tenuta Ulisse - Rose": 0,
-  "Montemajor - Quattro Noti": 0,
-  "Davinci - Portate a Cesena Sangiovese": 0,
-  "Astoria DOC": 0,
-  "Astoria Rose": 0,
-  "Peroni": 0,
-  "Peroni 0% Alcool": 0,
-  "Hugo": 0,
-  "Bellini": 0,
-  "Aperol Spritz": 0,
-  "Negroni": 0,
-  "Whiskey Cola": 0,
-  "Gin Tonic": 0
-};
+// Update the return type to include the new columns
+export async function loadReport(month: Date): Promise<{
+  bucatarieItems: Record<string, number>;
+  tazzItems: Record<string, number>;
+  barItems: Record<string, number>;
+  salaryExpenses: Record<string, number>;
+  distributorExpenses: Record<string, number>;
+  utilitiesExpenses: Record<string, number>;
+  operationalExpenses: Record<string, number>;
+  otherExpenses: Record<string, number>;
+  budget: {
+    targetRevenue: number;
+    targetExpenses: number;
+    targetProfit: number;
+  } | undefined;
+} | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
 
-// Updated to handle separate sections
+    if (!user) {
+      console.error("User not authenticated");
+      return null;
+    }
+
+    const formattedDate = format(month, "yyyy-MM");
+
+    let { data: pl_reports, error } = await supabase
+      .from('pl_reports')
+      .select('*')
+      .eq('date', formattedDate)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching report:", error);
+      return null;
+    }
+
+    if (!pl_reports) {
+      // If no report exists, create one with default items
+      const defaultReport = await createDefaultReport(formattedDate, user.id);
+      return defaultReport;
+    }
+
+    return {
+      bucatarieItems: pl_reports.bucatarie_items as Record<string, number> || DEFAULT_BUCATARIE_ITEMS,
+      tazzItems: pl_reports.tazz_items as Record<string, number> || DEFAULT_TAZZ_ITEMS,
+      barItems: pl_reports.bar_items as Record<string, number> || DEFAULT_BAR_ITEMS,
+      salaryExpenses: pl_reports.salary_expenses as Record<string, number>,
+      distributorExpenses: pl_reports.distributor_expenses as Record<string, number>,
+      utilitiesExpenses: pl_reports.utilities_expenses as Record<string, number>,
+      operationalExpenses: pl_reports.operational_expenses as Record<string, number>,
+      otherExpenses: pl_reports.other_expenses as Record<string, number>,
+      budget: pl_reports.budget as {
+        targetRevenue: number;
+        targetExpenses: number;
+        targetProfit: number;
+      } | undefined
+    };
+  } catch (error) {
+    console.error("Error in loadReport:", error);
+    return null;
+  }
+}
+
+// New function to create a default report with default items
+async function createDefaultReport(formattedDate: string, userId: string) {
+  const defaultReportData = {
+    date: formattedDate,
+    user_id: userId,
+    bucatarie_items: DEFAULT_BUCATARIE_ITEMS,
+    tazz_items: DEFAULT_TAZZ_ITEMS,
+    bar_items: DEFAULT_BAR_ITEMS,
+    cost_of_goods_items: {},
+    salary_expenses: {
+      "Adi": 4050,
+      "Ioana": 4050,
+      "Andreea": 4050,
+      "Victoria": 4050
+    },
+    distributor_expenses: {
+      "Maria FoodNova": 0,
+      "CocaCola": 0,
+      "24H": 0,
+      "Sinless": 0,
+      "Peroni": 0,
+      "Sudavangarde(Brutarie Foccacia)": 0,
+      "Proporzioni": 0,
+      "LIDL": 0,
+      "Metro": 0
+    },
+    operational_expenses: {
+      "Contabilitate": 0,
+      "ECR": 0,
+      "ISU": 0,
+      "Chirie": 0,
+      "Protectia Muncii": 0
+    },
+    utilities_expenses: {
+      "Gaze(Engie)": 0,
+      "Apa": 0,
+      "Curent": 0,
+      "Gunoi(Iridex)": 0,
+      "Internet": 0
+    },
+    other_expenses: {},
+    budget: undefined
+  };
+
+  const { data, error } = await supabase
+    .from('pl_reports')
+    .insert(defaultReportData)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating default report:", error);
+    return null;
+  }
+
+  return {
+    bucatarieItems: DEFAULT_BUCATARIE_ITEMS,
+    tazzItems: DEFAULT_TAZZ_ITEMS,
+    barItems: DEFAULT_BAR_ITEMS,
+    salaryExpenses: defaultReportData.salary_expenses,
+    distributorExpenses: defaultReportData.distributor_expenses,
+    utilitiesExpenses: defaultReportData.utilities_expenses,
+    operationalExpenses: defaultReportData.operational_expenses,
+    otherExpenses: defaultReportData.other_expenses,
+    budget: defaultReportData.budget
+  };
+}
+
+// Update the batchAddRevenueItems function to use the new columns
 export async function batchAddRevenueItems(
   month: Date, 
   items: Record<string, number>,
