@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import BucatarieSection from "@/components/BucatarieSection";
@@ -903,3 +904,120 @@ const Index = () => {
                   
                   <TazzSection 
                     tazzItems={tazzItems}
+                    onUpdateItem={handleRevenueUpdate}
+                    totalRevenue={totalTazzRevenue}
+                    onRenameItem={handleTazzRename}
+                    onAddItem={handleAddTazzItem}
+                    onDeleteItem={handleDeleteTazzItem}
+                  />
+                </div>
+                
+                <div className="space-y-6">
+                  <BarSection 
+                    barItems={barItems}
+                    onUpdateItem={handleRevenueUpdate}
+                    totalRevenue={totalBarRevenue}
+                    onRenameItem={handleBarRename}
+                    onAddItem={handleAddBarItem}
+                    onDeleteItem={handleDeleteBarItem}
+                  />
+                  
+                  <ExpensesSection 
+                    salaryExpenses={salaryExpenses}
+                    distributorExpenses={distributorExpenses}
+                    utilitiesExpenses={utilitiesExpenses}
+                    operationalExpenses={operationalExpenses}
+                    otherExpenses={otherExpenses}
+                    onSalaryUpdate={handleSalaryUpdate}
+                    onDistributorUpdate={handleDistributorUpdate}
+                    onUtilitiesUpdate={handleUtilitiesUpdate}
+                    onOperationalUpdate={handleOperationalUpdate}
+                    onOtherExpensesUpdate={handleOtherExpensesUpdate}
+                    onSalaryRename={handleSalaryRename}
+                    onDistributorRename={handleDistributorRename}
+                    onUtilitiesRename={handleUtilitiesRename}
+                    onOperationalRename={handleOperationalRename}
+                    onOtherExpensesRename={handleOtherExpensesRename}
+                    onAddSalary={handleAddSalary}
+                    onAddDistributor={handleAddDistributor}
+                    onSubsectionAddItem={handleSubsectionAddItem}
+                    operationalExpensesSubsections={operationalExpensesSubsections}
+                    onDeleteSalary={handleDeleteSalary}
+                    onDeleteDistributor={handleDeleteDistributor}
+                    onDeleteOperationalItem={handleDeleteOperationalItem}
+                  />
+                  
+                  <ProfitSummary 
+                    totalRevenue={totalRevenue}
+                    totalExpenses={totalExpenses}
+                    grossProfit={grossProfit}
+                    netProfit={netProfit}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="advanced">
+              <div className="space-y-8">
+                <DataVisualization 
+                  categories={[
+                    { name: "Bucatarie", value: totalBucatarieRevenue },
+                    { name: "Tazz", value: totalTazzRevenue },
+                    { name: "Bar", value: totalBarRevenue }
+                  ]}
+                  expenses={[
+                    { name: "Salarii", value: totalSalaryExpenses },
+                    { name: "Distribuitori", value: totalDistributorExpenses },
+                    { name: "Utilitati", value: totalUtilitiesExpenses },
+                    { name: "Operationale", value: totalOperationalExpenses },
+                    { name: "Alte", value: totalOtherExpenses }
+                  ]}
+                />
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ProductProfitability 
+                    revenueItems={getRevenueItems()}
+                    revenueSubsections={revenueSubsections}
+                  />
+                  
+                  <LaborAnalysis 
+                    salaryExpenses={salaryExpenses}
+                    totalSalaries={totalSalaryExpenses}
+                    totalRevenue={totalRevenue}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ComparisonView 
+                    currentMonthData={{
+                      revenue: totalRevenue,
+                      expenses: totalExpenses,
+                      profit: netProfit
+                    }}
+                  />
+                  
+                  <BudgetAnalysis 
+                    targetRevenue={budget?.targetRevenue}
+                    targetExpenses={budget?.targetExpenses}
+                    targetProfit={budget?.targetProfit}
+                    actualRevenue={totalRevenue}
+                    actualExpenses={totalExpenses}
+                    actualProfit={netProfit}
+                  />
+                </div>
+                
+                <CashFlowProjection 
+                  currentMonthRevenue={totalRevenue}
+                  currentMonthExpenses={totalExpenses}
+                  estimatedGrowthRate={0.05}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </RequireAuth>
+  );
+};
+
+export default Index;
