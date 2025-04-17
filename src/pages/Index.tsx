@@ -793,6 +793,36 @@ const Index = () => {
     }
   };
 
+  const clearAllDefaultItems = async () => {
+    const report = await loadReport(selectedMonth);
+    if (report) {
+      for (const itemName of Object.keys(report.bucatarieItems)) {
+        await deleteItemFromSupabase(selectedMonth, 'revenue_items', itemName);
+      }
+      
+      for (const itemName of Object.keys(report.tazzItems)) {
+        await deleteItemFromSupabase(selectedMonth, 'revenue_items', itemName);
+      }
+      
+      for (const itemName of Object.keys(report.barItems)) {
+        await deleteItemFromSupabase(selectedMonth, 'revenue_items', itemName);
+      }
+
+      setBucatarieItems({});
+      setTazzItems({});
+      setBarItems({});
+      
+      toast({
+        title: "Items cleared",
+        description: "All default revenue items have been removed from the database."
+      });
+    }
+  };
+
+  useEffect(() => {
+    clearAllDefaultItems();
+  }, []);
+
   return (
     <RequireAuth>
       <div className="min-h-screen bg-gray-50 print:bg-white">
