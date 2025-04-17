@@ -831,10 +831,23 @@ const Index = () => {
     });
   };
 
+  const addDefaultTazzItems = async () => {
+    for (const [itemName, value] of Object.entries(DEFAULT_TAZZ_ITEMS)) {
+      await handleAddRevenueItem(selectedMonth, 'revenue_items', itemName, value);
+    }
+    setTazzItems(DEFAULT_TAZZ_ITEMS);
+    
+    toast({
+      title: "Default items added",
+      description: "Default Tazz items have been added to the database."
+    });
+  };
+
   useEffect(() => {
     const setupItems = async () => {
       await clearAllDefaultItems();
       await addDefaultBucatarieItems();
+      await addDefaultTazzItems();
     };
     
     setupItems();

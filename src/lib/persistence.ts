@@ -13,7 +13,26 @@ export const DEFAULT_BUCATARIE_ITEMS: Record<string, number> = {
   "Tiramisu": 0,
   "Platou": 0
 };
-export const DEFAULT_TAZZ_ITEMS: Record<string, number> = {};
+export const DEFAULT_TAZZ_ITEMS: Record<string, number> = {
+  "[MINI] Il Classico": 0,
+  "[MINI] Il Prosciutto": 0,
+  "[MINI] Il Piccante": 0,
+  "[MINI] La Porchetta": 0,
+  "[MINI] La Mortadella": 0,
+  "[MINI] La Buffala": 0,
+  "Il Classico": 0,
+  "Il Prosciutto": 0,
+  "Il Piccante": 0,
+  "La Porchetta": 0,
+  "La Mortadella": 0,
+  "La Buffala": 0,
+  "Apa plata - 0,5": 0,
+  "Apa minerala - 0,5": 0,
+  "Coca Cola": 0,
+  "Sprite": 0,
+  "Fanta": 0,
+  "Peroni": 0
+};
 export const DEFAULT_BAR_ITEMS: Record<string, number> = {};
 
 export async function loadReport(month: Date): Promise<{
